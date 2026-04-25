@@ -1,5 +1,11 @@
 .streamlit/secrets.toml
 
+# Claw Agent — ficheiros de estado e segredos
+claw_memory_v7.json
+claw_pnl_v7.json
+.env
+secrets.toml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
