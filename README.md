@@ -1,19 +1,65 @@
-# 🎈 Blank app template
+# blank-app
 
-A simple Streamlit app template for you to modify!
+Uma aplicação Python com interface web construída com [Streamlit](https://streamlit.io/).
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
+## Descrição
 
-### How to run it on your own machine
+Este projecto serve de ponto de partida para aplicações Python interactivas. Utiliza o Streamlit para criar interfaces web de forma simples, sem necessidade de HTML ou JavaScript.
 
-1. Install the requirements
+## Estrutura do Projecto
 
-   ```
-   $ pip install -r requirements.txt
-   ```
+```
+blank-app/
+├── main.py              # Ponto de entrada da aplicação
+├── streamlit_app.py     # Interface web Streamlit
+├── requirements.txt     # Dependências Python
+└── README.md            # Este ficheiro
+```
 
-2. Run the app
+## Requisitos
 
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+- Python 3.8+
+- pip
+
+## Instalação
+
+```bash
+# Clonar o repositório
+git clone https://github.com/hltv27/blank-app.git
+cd blank-app
+
+# Criar e activar ambiente virtual
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# venv\Scripts\activate   # Windows
+
+# Instalar dependências
+pip install -r requirements.txt
+```
+
+## Como Executar
+
+**Aplicação principal (linha de comandos):**
+
+```bash
+python main.py
+```
+
+**Interface web Streamlit:**
+
+```bash
+streamlit run streamlit_app.py
+```
+
+## Desenvolvimento
+
+Para adicionar dependências:
+
+```bash
+pip install <pacote>
+pip freeze > requirements.txt
+```
+
+## Licença
+
+Consulte o ficheiro [LICENSE](LICENSE) para detalhes.
