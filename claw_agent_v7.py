@@ -44,6 +44,13 @@ SYMBOLS = [
     "SUIUSDC",  "PEPEUSDC"
 ]
 
+# Precisão de quantidade por par (casas decimais aceites pela Binance)
+SYMBOL_PRECISION = {
+    "BTCUSDC": 3, "ETHUSDC": 3, "BNBUSDC": 2, "SOLUSDC": 1,
+    "XRPUSDC": 1, "DOGEUSDC": 0, "AVAXUSDC": 2, "LINKUSDC": 2,
+    "SUIUSDC": 1, "PEPEUSDC": 0,
+}
+
 # ─────────────────────────────────────────────
 #  CONFIGURAÇÃO DE RISCO
 # ─────────────────────────────────────────────
@@ -133,7 +140,11 @@ def get_klines(symbol: str, interval: str = "5m", limit: int = LOOKBACK) -> list
             params={"symbol": symbol, "interval": interval, "limit": limit},
             timeout=10
         )
-        return r.json()
+        data = r.json()
+        if isinstance(data, dict):
+            print(f"[ERRO] Binance klines {symbol}: {data.get('msg', data)}")
+            return None
+        return data
     except Exception as e:
         print(f"[ERRO] get_klines {symbol}: {e}")
     return None
@@ -185,13 +196,14 @@ def set_leverage(symbol: str):
 def place_order(symbol: str, side: str, qty: float) -> dict | None:
     """Market order. side = BUY | SELL."""
     try:
+        decimals = SYMBOL_PRECISION.get(symbol, 4)
         r = requests.post(
             f"{BASE_URL}/fapi/v1/order",
             params=_sign({
                 "symbol":   symbol,
                 "side":     side,
                 "type":     "MARKET",
-                "quantity": f"{qty:.4f}",
+                "quantity": f"{qty:.{decimals}f}",
             }),
             headers=_headers(),
             timeout=10
@@ -390,7 +402,7 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list):
 # ─────────────────────────────────────────────
 #  GERAÇÃO DE SINAL — MODO RANGING (Bollinger Bands)
 # ─────────────────────────────────────────────
-def signal_ranging(closes: list, highs: list, lows: list):
+def signal_ranging(closes: list):
     """
     Mean-reversion via Bollinger Bands.
     Compra na banda inferior, vende na superior.
@@ -438,16 +450,17 @@ def calc_sl_tp(direction: str, price: float, atr_val: float, mode: str):
 
     return sl, tp
 
-def calc_qty(price: float, sl: float) -> float:
+def calc_qty(price: float, sl: float, symbol: str) -> float:
     """
-    Quantidade = Risco USDC / (distância SL em USDC por unidade)
-    Com alavancagem Cross: position notional = qty * price
+    Quantidade = RISCO_USDC / sl_dist
+    Garante perda máxima de exatamente RISCO_USDC se o SL for atingido.
+    A alavancagem afecta a margem usada, não o PnL em valor absoluto.
     """
     sl_dist = abs(price - sl)
     if sl_dist == 0:
         return 0.0
-    qty = (RISCO_USDC * ALAVANCAGEM) / price
-    return round(qty, 4)
+    decimals = SYMBOL_PRECISION.get(symbol, 4)
+    return round(RISCO_USDC / sl_dist, decimals)
 
 # ─────────────────────────────────────────────
 #  MEMÓRIA / PNL
@@ -517,11 +530,9 @@ def gerir_posicoes(mem: dict):
 
     for symbol, trade in list(trades_abertos.items()):
         if symbol not in posicoes_binance:
-            # Posição fechou (TP hit ou liquidação)
-            pnl_est = trade.get("pnl_estimado", 0)
+            # Posição fechou externamente (liquidação ou intervenção manual)
             mem["trades_abertos"].pop(symbol, None)
-            resultado = "✅ TP" if pnl_est > 0 else "❌ LIQUIDADA"
-            tg(f"{resultado} {symbol}\nPnL est.: {pnl_est:+.2f} USDC")
+            tg(f"⚠️ {symbol} fechada externamente (SL {trade.get('sl', '?'):.4f} / TP {trade.get('tp', '?'):.4f})")
             continue
 
         pos   = posicoes_binance[symbol]
@@ -617,7 +628,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
     price = closes[-1]
     sl, tp = calc_sl_tp(direction, price, atr_val, mode)
-    qty    = calc_qty(price, sl)
+    qty    = calc_qty(price, sl, symbol)
 
     if qty <= 0:
         return
@@ -661,9 +672,27 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         print(f"[ERRO] Ordem {symbol}: {erro}")
 
 # ─────────────────────────────────────────────
+#  VALIDAÇÃO DE CREDENCIAIS
+# ─────────────────────────────────────────────
+def _validate_credentials():
+    placeholders = {"TOKEN_AQUI", "CHATID_AQUI", "APIKEY_AQUI", "SECRET_AQUI"}
+    missing = [
+        name for name, val in [
+            ("TELEGRAM_TOKEN",    TELEGRAM_TOKEN),
+            ("TELEGRAM_CHAT_ID",  TELEGRAM_CHAT_ID),
+            ("BINANCE_API_KEY",   BINANCE_API_KEY),
+            ("BINANCE_API_SECRET",BINANCE_API_SECRET),
+        ]
+        if val in placeholders
+    ]
+    if missing:
+        raise SystemExit(f"[ERRO] Credenciais não definidas: {', '.join(missing)}")
+
+# ─────────────────────────────────────────────
 #  LOOP PRINCIPAL
 # ─────────────────────────────────────────────
 def run():
+    _validate_credentials()
     tg(
         "🤖 <b>Claw Agent v7 iniciado</b>\n"
         f"Pares: {len(SYMBOLS)} | Capital máx: {CAPITAL_MAX_BOT} USDC\n"
@@ -672,10 +701,8 @@ def run():
     )
     print(f"[v7] Claw Agent a correr — {len(SYMBOLS)} pares")
 
-    ciclo = 0
     while True:
         try:
-            ciclo += 1
             now_utc = datetime.now(timezone.utc)
             hora    = now_utc.strftime("%H:%M")
             mem     = load_memory()
@@ -730,7 +757,7 @@ def run():
                 if mode == "TRENDING":
                     direction, score, detalhe = signal_trending(closes, highs, lows, volumes)
                 else:  # RANGING
-                    direction, score, detalhe = signal_ranging(closes, highs, lows)
+                    direction, score, detalhe = signal_ranging(closes)
 
                 print(f"[{hora}] {symbol} {mode} {detalhe}")
 
