@@ -1,6 +1,4 @@
-def main():
-    print("blank-app iniciado.")
-
+from claw_agent_v7 import run
 
 if __name__ == "__main__":
-    main()
+    run()
