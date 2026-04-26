@@ -131,7 +131,11 @@ def get_balance() -> float | None:
             headers=_headers(),
             timeout=10
         )
-        for a in r.json():
+        data = r.json()
+        if isinstance(data, dict):
+            print(f"[ERRO] get_balance: {data.get('msg', data)}")
+            return None
+        for a in data:
             if a["asset"] in ("USDC", "BNFCR"):
                 return float(a["availableBalance"])
     except Exception as e:
@@ -164,8 +168,12 @@ def get_positions() -> dict:
             headers=_headers(),
             timeout=10
         )
+        data = r.json()
+        if isinstance(data, dict):
+            print(f"[ERRO] get_positions: {data.get('msg', data)}")
+            return {}
         pos = {}
-        for p in r.json():
+        for p in data:
             qty = float(p.get("positionAmt", 0))
             if abs(qty) > 0:
                 pos[p["symbol"]] = {
@@ -649,11 +657,7 @@ def gerir_posicoes(mem: dict):
         tp    = trade.get("tp", 0)
         side  = trade.get("direction", "LONG")
 
-        # Posições sincronizadas sem SL/TP válidos — não gerir automaticamente
-        if sl <= 0 or tp <= 0:
-            continue
-
-        # Preço actual
+        # Preço actual (necessário para SL/TP e ROI)
         try:
             r = requests.get(
                 f"{BASE_URL}/fapi/v1/ticker/price",
@@ -662,6 +666,32 @@ def gerir_posicoes(mem: dict):
             )
             price = float(r.json()["price"])
         except Exception:
+            continue
+
+        # ── Saída por tempo: 30 min + ROI ≥ 5% (funciona mesmo sem SL/TP definidos) ──
+        entry  = trade.get("entry", 0)
+        qty    = abs(pos["qty"])
+        margin = (qty * entry) / ALAVANCAGEM if entry > 0 and qty > 0 else 0
+        roi    = (pos["pnl"] / margin * 100) if margin > 0 else 0
+
+        opened_at = trade.get("opened_at")
+        elapsed   = (time.time() - opened_at) if opened_at else 1800
+
+        if elapsed >= 30 * 60 and roi >= 5.0:
+            close_position(symbol, pos["qty"], side)
+            mem["wins"] = mem.get("wins", 0) + 1
+            mem["perdas_seguidas"] = 0
+            mem["trades_abertos"].pop(symbol, None)
+            tg(
+                f"⏱️ <b>TEMPO+LUCRO</b> — {symbol}\n"
+                f"Direcção: {side} | ROI: {roi:.1f}%\n"
+                f"PnL: {pos['pnl']:+.2f} | Duração: {int(elapsed/60)}min"
+            )
+            log_trade(symbol, side, entry, sl, tp, qty, pos["pnl"], "TIME_TP")
+            continue
+
+        # Posições sem SL/TP válidos (sincronizadas) — não gerir SL/TP automaticamente
+        if sl <= 0 or tp <= 0:
             continue
 
         hit_sl = (side == "LONG" and price <= sl) or (side == "SHORT" and price >= sl)
@@ -701,29 +731,6 @@ def gerir_posicoes(mem: dict):
                 pos["qty"], pnl,
                 "TP" if hit_tp else "SL"
             )
-            continue
-
-        # ── Saída por tempo: 30 min + ROI ≥ 5% ──
-        entry  = trade.get("entry", 0)
-        qty    = abs(pos["qty"])
-        margin = (qty * entry) / ALAVANCAGEM if entry > 0 and qty > 0 else 0
-        roi    = (pos["pnl"] / margin * 100) if margin > 0 else 0
-
-        opened_at = trade.get("opened_at")
-        elapsed   = (time.time() - opened_at) if opened_at else 1800  # sem timestamp → assume 30 min
-
-        if elapsed >= 30 * 60:
-            if roi >= 5.0:
-                close_position(symbol, pos["qty"], side)
-                mem["wins"] = mem.get("wins", 0) + 1
-                mem["perdas_seguidas"] = 0
-                mem["trades_abertos"].pop(symbol, None)
-                tg(
-                    f"⏱️ <b>TEMPO+LUCRO</b> — {symbol}\n"
-                    f"Direcção: {side} | ROI: {roi:.1f}%\n"
-                    f"PnL: {pos['pnl']:+.2f} | Duração: {int(elapsed/60)}min"
-                )
-                log_trade(symbol, side, entry, sl, tp, qty, pos["pnl"], "TIME_TP")
 
     save_memory(mem)
 
