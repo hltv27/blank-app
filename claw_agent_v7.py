@@ -641,7 +641,7 @@ def gerir_posicoes(mem: dict):
         if symbol not in posicoes_binance:
             # Posição fechou externamente (liquidação ou intervenção manual)
             mem["trades_abertos"].pop(symbol, None)
-            tg(f"⚠️ {symbol} fechada externamente (SL {trade.get('sl', '?'):.4f} / TP {trade.get('tp', '?'):.4f})")
+            tg(f"⚠️ {symbol} fechada externamente")
             continue
 
         pos   = posicoes_binance[symbol]
@@ -704,12 +704,15 @@ def gerir_posicoes(mem: dict):
             continue
 
         # ── Saída por tempo: 30 min + ROI ≥ 5% ──
-        elapsed = time.time() - trade.get("opened_at", time.time())
+        entry  = trade.get("entry", 0)
+        qty    = abs(pos["qty"])
+        margin = (qty * entry) / ALAVANCAGEM if entry > 0 and qty > 0 else 0
+        roi    = (pos["pnl"] / margin * 100) if margin > 0 else 0
+
+        opened_at = trade.get("opened_at")
+        elapsed   = (time.time() - opened_at) if opened_at else 1800  # sem timestamp → assume 30 min
+
         if elapsed >= 30 * 60:
-            entry  = trade.get("entry", 0)
-            qty    = abs(pos["qty"])
-            margin = (qty * entry) / ALAVANCAGEM if entry > 0 and qty > 0 else 0
-            roi    = (pos["pnl"] / margin * 100) if margin > 0 else 0
             if roi >= 5.0:
                 close_position(symbol, pos["qty"], side)
                 mem["wins"] = mem.get("wins", 0) + 1
