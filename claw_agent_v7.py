@@ -984,7 +984,7 @@ def run():
             print(f"[ERRO GERAL] {e}")
             tg(f"⚠️ Claw Agent erro: {e}")
 
-        time.sleep(CHECK_EVERY)
+        time.sleep(CHECK_POSICOES)
 
 # ─────────────────────────────────────────────
 #  ARRANQUE
