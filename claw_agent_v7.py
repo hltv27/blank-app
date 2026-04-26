@@ -645,10 +645,13 @@ def gerir_posicoes(mem: dict):
             continue
 
         pos   = posicoes_binance[symbol]
-        price = pos["entry"]  # preço actual não está aqui — busca separado
         sl    = trade.get("sl", 0)
         tp    = trade.get("tp", 0)
         side  = trade.get("direction", "LONG")
+
+        # Posições sincronizadas sem SL/TP válidos — não gerir automaticamente
+        if sl <= 0 or tp <= 0:
+            continue
 
         # Preço actual
         try:
