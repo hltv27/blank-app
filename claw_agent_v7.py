@@ -82,6 +82,11 @@ BB_PERIOD         = 20
 BB_STD            = 2.0
 RANGING_ATR_MAX   = 0.006   # Se ATR < 0.6% → modo ranging
 
+# ORB — Opening Range Breakout (abertura NY, 9:30 ET = 13:30 UTC)
+ORB_HORA_UTC      = 13      # Hora da vela de referência
+ORB_MIN_UTC       = 30      # Minuto da vela de referência
+ORB_FIM_UTC       = 17      # Fim da janela de entrada ORB
+
 # Indicadores base
 EMA_FAST          = 9
 EMA_SLOW          = 21
@@ -489,6 +494,45 @@ def signal_ranging(closes: list):
     return None, 0, f"BB_NEUTRO mid {middle:.4f} RSI {rsi_val:.1f}"
 
 # ─────────────────────────────────────────────
+#  GERAÇÃO DE SINAL — MODO ORB (abertura NY)
+# ─────────────────────────────────────────────
+def signal_orb(closes: list, highs: list, lows: list, klines: list):
+    """
+    Opening Range Breakout — vela das 13:30 UTC (9:30 ET).
+    LONG se fecha acima do máximo; SHORT se fecha abaixo do mínimo.
+    Filtros: RSI + EMA20.
+    """
+    # Localizar a vela das 13:30 UTC
+    orb_high = orb_low = None
+    for k in klines:
+        ts = datetime.fromtimestamp(k[0] / 1000, tz=timezone.utc)
+        if ts.hour == ORB_HORA_UTC and ts.minute == ORB_MIN_UTC:
+            orb_high = float(k[2])
+            orb_low  = float(k[3])
+            break
+
+    if orb_high is None:
+        return None, 0, "ORB_SEM_VELA"
+
+    orb_size = orb_high - orb_low
+    atr_val  = atr(highs, lows, closes)
+
+    if orb_size < atr_val * 0.3:
+        return None, 0, f"ORB_RANGE_PEQUENO {orb_size:.5f}"
+
+    price   = closes[-1]
+    rsi_val = rsi(closes)
+    ema20   = ema(closes, 20)[-1]
+
+    if price > orb_high and 50 < rsi_val < 72 and price > ema20:
+        return "LONG", 5, f"ORB_LONG acima {orb_high:.4f} RSI {rsi_val:.1f}"
+
+    if price < orb_low and 28 < rsi_val < 50 and price < ema20:
+        return "SHORT", 5, f"ORB_SHORT abaixo {orb_low:.4f} RSI {rsi_val:.1f}"
+
+    return None, 0, f"ORB_NEUTRO [{orb_low:.4f},{orb_high:.4f}] RSI {rsi_val:.1f}"
+
+# ─────────────────────────────────────────────
 #  GESTÃO DE POSIÇÃO — SL/TP DINÂMICOS
 # ─────────────────────────────────────────────
 def calc_sl_tp(direction: str, price: float, atr_val: float, mode: str):
@@ -499,6 +543,9 @@ def calc_sl_tp(direction: str, price: float, atr_val: float, mode: str):
     if mode == "RANGING":
         sl_dist = atr_val * 1.0
         ratio   = 1.5
+    elif mode == "ORB":
+        sl_dist = atr_val * 1.2   # ≈ tamanho do range de abertura
+        ratio   = 2.0             # TP = 2× o SL (RR 1:2)
     else:
         sl_dist = atr_val * 1.5
         ratio   = RATIO_ALVO
@@ -862,16 +909,36 @@ def run():
                 volumes = [float(k[5]) for k in klines]
 
                 atr_val = atr(highs, lows, closes)
-                mode    = detect_market_mode(closes, atr_val)
 
-                if mode == "MORTO":
-                    print(f"[{hora}] {symbol} MERCADO_MORTO ATR {atr_val/closes[-1]*100:.3f}%")
-                    continue
+                # ── Modo ORB: segunda a sexta, 13:35–17:00 UTC ──
+                em_janela_orb = (
+                    now_utc.weekday() < 5 and (
+                        (now_utc.hour == ORB_HORA_UTC and now_utc.minute >= ORB_MIN_UTC + 5) or
+                        (ORB_HORA_UTC < now_utc.hour < ORB_FIM_UTC)
+                    )
+                )
 
-                if mode == "TRENDING":
-                    direction, score, detalhe = signal_trending(closes, highs, lows, volumes)
+                if em_janela_orb:
+                    direction, score, detalhe = signal_orb(closes, highs, lows, klines)
+                    mode = "ORB"
+                    if not direction:
+                        # Sem sinal ORB → tenta TRENDING (não RANGING durante abertura NY)
+                        mode_reg = detect_market_mode(closes, atr_val)
+                        if mode_reg == "TRENDING":
+                            direction, score, detalhe = signal_trending(closes, highs, lows, volumes)
+                            mode = "TRENDING"
+                        else:
+                            print(f"[{hora}] {symbol} ORB {detalhe}")
+                            continue
                 else:
-                    direction, score, detalhe = signal_ranging(closes)
+                    mode = detect_market_mode(closes, atr_val)
+                    if mode == "MORTO":
+                        print(f"[{hora}] {symbol} MERCADO_MORTO ATR {atr_val/closes[-1]*100:.3f}%")
+                        continue
+                    if mode == "TRENDING":
+                        direction, score, detalhe = signal_trending(closes, highs, lows, volumes)
+                    else:
+                        direction, score, detalhe = signal_ranging(closes)
 
                 print(f"[{hora}] {symbol} {mode} {detalhe}")
 
