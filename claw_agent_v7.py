@@ -725,11 +725,10 @@ def run():
     )
     print(f"[v7] Claw Agent a correr — {len(SYMBOLS)} pares")
 
-    ultimo_scan = 0.0
+    ultimo_minuto_scan = -1
 
     while True:
         try:
-            now     = time.time()
             now_utc = datetime.now(timezone.utc)
             hora    = now_utc.strftime("%H:%M")
             mem     = load_memory()
@@ -739,12 +738,13 @@ def run():
                 gerir_posicoes(mem)
                 mem = load_memory()
 
-            # ── Scan de novos sinais — a cada 4 minutos ──
-            if now - ultimo_scan < CHECK_EVERY:
+            # ── Scan de novos sinais — alinhado com velas de 5 min ──
+            minuto = now_utc.minute
+            if minuto % 5 != 0 or minuto == ultimo_minuto_scan:
                 time.sleep(CHECK_POSICOES)
                 continue
 
-            ultimo_scan = now
+            ultimo_minuto_scan = minuto
 
             # Fora de sessão
             if not em_sessao():
