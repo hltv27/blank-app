@@ -159,8 +159,8 @@ def get_klines(symbol: str, interval: str = "5m", limit: int = LOOKBACK) -> list
         print(f"[ERRO] get_klines {symbol}: {e}")
     return None
 
-def get_positions() -> dict:
-    """Posições abertas por símbolo."""
+def get_positions() -> dict | None:
+    """Posições abertas por símbolo. Retorna None se a API falhar."""
     try:
         r = requests.get(
             f"{BASE_URL}/fapi/v2/positionRisk",
@@ -171,7 +171,7 @@ def get_positions() -> dict:
         data = r.json()
         if isinstance(data, dict):
             print(f"[ERRO] get_positions: {data.get('msg', data)}")
-            return {}
+            return None
         pos = {}
         for p in data:
             qty = float(p.get("positionAmt", 0))
@@ -185,7 +185,7 @@ def get_positions() -> dict:
         return pos
     except Exception as e:
         print(f"[ERRO] get_positions: {e}")
-    return {}
+    return None
 
 def set_leverage(symbol: str):
     """Define alavancagem 10x em Cross para o par."""
@@ -643,6 +643,9 @@ def gerir_posicoes(mem: dict):
     Cross margin — SL manual para evitar liquidação da conta toda.
     """
     posicoes_binance = get_positions()
+    if posicoes_binance is None:
+        print("[AVISO] gerir_posicoes: API falhou, ciclo ignorado")
+        return
     trades_abertos   = mem.get("trades_abertos", {})
 
     for symbol, trade in list(trades_abertos.items()):
@@ -905,6 +908,9 @@ def run():
 
             # Sincroniza memória com posições reais da Binance
             posicoes_reais = get_positions()
+            if posicoes_reais is None:
+                print(f"[{hora}] get_positions falhou — scan ignorado")
+                continue
             for symbol, pos in posicoes_reais.items():
                 if symbol in SYMBOLS and symbol not in mem.get("trades_abertos", {}):
                     mem.setdefault("trades_abertos", {})[symbol] = {
