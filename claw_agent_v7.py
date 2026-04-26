@@ -283,6 +283,62 @@ def stoch_rsi(closes: list, period: int = STOCH_PERIOD) -> float:
         return 50.0
     return (rsi_vals[-1] - min_r) / (max_r - min_r) * 100
 
+def adx(highs: list, lows: list, closes: list, period: int = 14) -> float:
+    """ADX — força da tendência. >25 = trending, <20 = ranging."""
+    if len(closes) < period * 2:
+        return 25.0
+    tr_list, plus_dm, minus_dm = [], [], []
+    for i in range(1, len(closes)):
+        tr = max(highs[i] - lows[i], abs(highs[i] - closes[i-1]), abs(lows[i] - closes[i-1]))
+        tr_list.append(tr)
+        up   = highs[i] - highs[i-1]
+        down = lows[i-1] - lows[i]
+        plus_dm.append(up   if up > down and up > 0   else 0)
+        minus_dm.append(down if down > up  and down > 0 else 0)
+
+    def _smooth(data, n):
+        s = [sum(data[:n])]
+        for d in data[n:]:
+            s.append(s[-1] - s[-1] / n + d)
+        return s
+
+    if len(tr_list) < period:
+        return 25.0
+    atr_s  = _smooth(tr_list, period)
+    plus_s = _smooth(plus_dm, period)
+    minus_s= _smooth(minus_dm, period)
+    dx_list = []
+    for i in range(len(atr_s)):
+        if atr_s[i] == 0:
+            continue
+        pdi = 100 * plus_s[i]  / atr_s[i]
+        mdi = 100 * minus_s[i] / atr_s[i]
+        denom = pdi + mdi
+        dx_list.append(100 * abs(pdi - mdi) / denom if denom else 0)
+    if len(dx_list) < period:
+        return 25.0
+    return sum(dx_list[-period:]) / period
+
+def funding_rate_ok(symbol: str, direction: str) -> bool:
+    """Veta entradas contra funding rate extremo (>0.1% ou <-0.1%)."""
+    try:
+        r = requests.get(
+            f"{BASE_URL}/fapi/v1/fundingRate",
+            params={"symbol": symbol, "limit": 1},
+            timeout=5
+        )
+        data = r.json()
+        if not data:
+            return True
+        rate = float(data[-1]["fundingRate"])
+        if direction == "LONG"  and rate >  0.001:
+            return False
+        if direction == "SHORT" and rate < -0.001:
+            return False
+    except Exception:
+        pass
+    return True
+
 def bollinger_bands(closes: list, period: int = BB_PERIOD, std_mult: float = BB_STD):
     """Retorna (upper, middle, lower)."""
     if len(closes) < period:
@@ -346,6 +402,11 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list):
     rsi_val = rsi(closes)
     sr_val  = stoch_rsi(closes)
     atr_val = atr(highs, lows, closes)
+    adx_val = adx(highs, lows, closes)
+
+    # Veto ADX — mercado sem força de tendência
+    if adx_val < 25:
+        return None, 0, f"VETO_ADX {adx_val:.1f}"
 
     # Veto StochRSI
     if sr_val > STOCH_VETO_LONG:
@@ -630,6 +691,11 @@ def circuit_breaker_activo(mem: dict) -> tuple[bool, str]:
 # ─────────────────────────────────────────────
 def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
                 lows: list, atr_val: float, mode: str, detalhe: str, mem: dict):
+
+    # Funding rate — não entrar contra sentimento extremo
+    if not funding_rate_ok(symbol, direction):
+        print(f"[AVISO] {symbol}: funding rate desfavorável para {direction}")
+        return
 
     saldo = get_balance()
     if saldo is None:
