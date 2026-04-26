@@ -701,6 +701,26 @@ def gerir_posicoes(mem: dict):
                 pos["qty"], pnl,
                 "TP" if hit_tp else "SL"
             )
+            continue
+
+        # ── Saída por tempo: 30 min + ROI ≥ 5% ──
+        elapsed = time.time() - trade.get("opened_at", time.time())
+        if elapsed >= 30 * 60:
+            entry  = trade.get("entry", 0)
+            qty    = abs(pos["qty"])
+            margin = (qty * entry) / ALAVANCAGEM if entry > 0 and qty > 0 else 0
+            roi    = (pos["pnl"] / margin * 100) if margin > 0 else 0
+            if roi >= 5.0:
+                close_position(symbol, pos["qty"], side)
+                mem["wins"] = mem.get("wins", 0) + 1
+                mem["perdas_seguidas"] = 0
+                mem["trades_abertos"].pop(symbol, None)
+                tg(
+                    f"⏱️ <b>TEMPO+LUCRO</b> — {symbol}\n"
+                    f"Direcção: {side} | ROI: {roi:.1f}%\n"
+                    f"PnL: {pos['pnl']:+.2f} | Duração: {int(elapsed/60)}min"
+                )
+                log_trade(symbol, side, entry, sl, tp, qty, pos["pnl"], "TIME_TP")
 
     save_memory(mem)
 
@@ -790,6 +810,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             "tp": tp,
             "qty": qty,
             "mode": mode,
+            "opened_at": time.time(),
             "pnl_estimado": RISCO_USDC * RATIO_ALVO
         }
         mem["total_trades"] = mem.get("total_trades", 0) + 1
