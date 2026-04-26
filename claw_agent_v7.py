@@ -646,6 +646,16 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     if qty <= 0:
         return
 
+    # Limita qty ao capital disponível (margem máx = 80% do saldo)
+    decimals = SYMBOL_PRECISION.get(symbol, 4)
+    max_qty = round((capital_bot * ALAVANCAGEM * 0.8) / price, decimals)
+    if max_qty <= 0:
+        print(f"[AVISO] {symbol}: capital insuficiente para abrir posição")
+        return
+    if qty > max_qty:
+        print(f"[AVISO] {symbol}: qty {qty} reduzida para {max_qty} (capital limitado)")
+        qty = max_qty
+
     # Configura cross + alavancagem
     set_leverage(symbol)
 
