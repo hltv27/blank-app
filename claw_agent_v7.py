@@ -92,7 +92,7 @@ STOCH_PERIOD      = 14
 LOOKBACK          = 220     # Velas históricas (precisa de 220 para EMA99)
 
 # Sessões (UTC) — manhã europeia + abertura NY
-SESSOES_UTC       = [(7, 12), (13, 20)]
+SESSOES_UTC       = [(7, 20)]
 CHECK_EVERY       = 240     # 4 minutos entre ciclos
 
 # Ficheiros de estado
