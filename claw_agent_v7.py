@@ -918,7 +918,7 @@ def run():
             # Verifica saldo uma vez antes do scan (evita spam por par)
             saldo_pre = get_balance()
             if saldo_pre is None or min(saldo_pre, CAPITAL_MAX_BOT) < RISCO_USDC * 3:
-                print(f"[{hora}] Saldo insuficiente: {saldo_pre:.2f}")
+                print(f"[{hora}] Saldo insuficiente: {saldo_pre if saldo_pre is not None else 'N/A'}")
                 continue
 
             # ── Scan dos 10 pares ──
