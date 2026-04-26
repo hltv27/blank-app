@@ -637,7 +637,6 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     capital_bot = min(saldo, CAPITAL_MAX_BOT)
 
     if capital_bot < RISCO_USDC * 3:
-        tg(f"⚠️ Saldo insuficiente: {capital_bot:.2f} USDC")
         return
 
     price = closes[-1]
@@ -757,14 +756,34 @@ def run():
                 print(f"[{hora}] BLOQUEADO: {motivo}")
                 continue
 
-            # Máximo trades abertos (cautela Cross Margin)
-            if len(mem.get("trades_abertos", {})) >= MAX_TRADES_ABERTOS:
-                print(f"[{hora}] Max trades abertos atingido")
+            # Sincroniza memória com posições reais da Binance
+            posicoes_reais = get_positions()
+            for symbol, pos in posicoes_reais.items():
+                if symbol in SYMBOLS and symbol not in mem.get("trades_abertos", {}):
+                    mem.setdefault("trades_abertos", {})[symbol] = {
+                        "direction": pos["side"],
+                        "entry": pos["entry"],
+                        "sl": 0, "tp": 0,
+                        "qty": pos["qty"],
+                        "mode": "SYNC"
+                    }
+                    save_memory(mem)
+                    print(f"[{hora}] {symbol} sincronizado da Binance")
+
+            # Máximo trades abertos (usa posições reais)
+            if len(posicoes_reais) >= MAX_TRADES_ABERTOS:
+                print(f"[{hora}] Max trades abertos ({len(posicoes_reais)})")
+                continue
+
+            # Verifica saldo uma vez antes do scan (evita spam por par)
+            saldo_pre = get_balance()
+            if saldo_pre is None or min(saldo_pre, CAPITAL_MAX_BOT) < RISCO_USDC * 3:
+                print(f"[{hora}] Saldo insuficiente: {saldo_pre:.2f}")
                 continue
 
             # ── Scan dos 10 pares ──
             for symbol in SYMBOLS:
-                if symbol in mem.get("trades_abertos", {}):
+                if symbol in posicoes_reais:
                     continue
 
                 klines = get_klines(symbol)
