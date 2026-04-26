@@ -55,13 +55,13 @@ SYMBOL_PRECISION = {
 #  CONFIGURAÇÃO DE RISCO
 # ─────────────────────────────────────────────
 CAPITAL_MAX_BOT   = 50.0    # USDC — bot nunca usa mais que isto
-RISCO_USDC        = 1.0     # USDC por trade (fixo)
+RISCO_USDC        = 3.0     # USDC por trade (fixo)
 ALAVANCAGEM       = 10      # 10x Cross Margin
 RATIO_ALVO        = 2.0     # RR mínimo 2:1
-MAX_LOSS_DIA      = 3.0     # Circuit breaker diário (USDC)
+MAX_LOSS_DIA      = 9.0     # Circuit breaker diário (USDC) — 3x risco por trade
 MAX_PERDAS_SEGUIDAS = 4     # Circuit breaker por série negativa
 COOLDOWN_MIN      = 15      # Minutos bloqueado após circuit breaker
-MAX_TRADES_ABERTOS = 2      # Máximo posições simultâneas (cross = cuidado)
+MAX_TRADES_ABERTOS = 3      # Máximo posições simultâneas (cross = cuidado)
 
 # ─────────────────────────────────────────────
 #  PARÂMETROS DA ESTRATÉGIA — v7 CALIBRADO
@@ -560,15 +560,28 @@ def gerir_posicoes(mem: dict):
             pnl = pos["pnl"]
             mem["trades_abertos"].pop(symbol, None)
 
+            wins  = mem.get("wins", 0)
+            losses = mem.get("losses", 0)
             if hit_tp:
-                mem["wins"] = mem.get("wins", 0) + 1
+                mem["wins"] = wins + 1
                 mem["perdas_seguidas"] = 0
-                tg(f"✅ TP {symbol}\nPnL: {pnl:+.2f} USDC")
+                tg(
+                    f"✅ <b>TP ATINGIDO</b> — {symbol}\n"
+                    f"Direcção: {side} | Entrada: {trade.get('entry', 0):.4f}\n"
+                    f"PnL: {pnl:+.2f} USDC\n"
+                    f"Sessão: {mem['wins']+1}W / {losses}L"
+                )
             else:
-                mem["losses"] = mem.get("losses", 0) + 1
+                mem["losses"] = losses + 1
                 mem["perdas_seguidas"] = mem.get("perdas_seguidas", 0) + 1
                 mem["loss_dia"] = mem.get("loss_dia", 0) + abs(pnl)
-                tg(f"🔴 SL {symbol}\nPnL: {pnl:+.2f} USDC\nPerdas hoje: {mem['loss_dia']:.2f} USDC")
+                tg(
+                    f"🔴 <b>SL ATINGIDO</b> — {symbol}\n"
+                    f"Direcção: {side} | Entrada: {trade.get('entry', 0):.4f}\n"
+                    f"PnL: {pnl:+.2f} USDC\n"
+                    f"Perdas hoje: {mem['loss_dia']:.2f} USDC | "
+                    f"Sessão: {wins}W / {mem['losses']+1}L"
+                )
 
             log_trade(
                 symbol, side,
