@@ -227,6 +227,36 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
         print(f"[ERRO] place_order {symbol}: {e}")
     return None
 
+def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
+    """
+    Coloca STOP_MARKET reduceOnly na Binance.
+    A Binance cancela-a automaticamente se a posição fechar por outro motivo.
+    Retorna o orderId ou None se falhar.
+    """
+    try:
+        decimals = SYMBOL_PRECISION.get(symbol, 4)
+        r = requests.post(
+            f"{BASE_URL}/fapi/v1/order",
+            params=_sign({
+                "symbol":     symbol,
+                "side":       side,
+                "type":       "STOP_MARKET",
+                "stopPrice":  f"{stop_price:.{decimals}f}",
+                "quantity":   f"{qty:.{decimals}f}",
+                "reduceOnly": "true",
+                "timeInForce":"GTC",
+            }),
+            headers=_headers(),
+            timeout=10
+        )
+        data = r.json()
+        if "orderId" in data:
+            return data["orderId"]
+        print(f"[AVISO] stop_market {symbol}: {data.get('msg', data)}")
+    except Exception as e:
+        print(f"[ERRO] place_stop_market {symbol}: {e}")
+    return None
+
 def close_position(symbol: str, qty: float, side: str):
     """Fecha posição — side da posição aberta (inverte para fechar)."""
     close_side = "SELL" if side == "LONG" else "BUY"
@@ -816,6 +846,10 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         fill_price = float(order.get("avgPrice", price))
         sl, tp = calc_sl_tp(direction, fill_price, atr_val, mode)
 
+        # Coloca STOP_MARKET real na Binance — protege mesmo se o bot cair
+        stop_side = "SELL" if direction == "LONG" else "BUY"
+        stop_id = place_stop_market(symbol, stop_side, sl, qty)
+
         mem.setdefault("trades_abertos", {})[symbol] = {
             "direction": direction,
             "entry": fill_price,
@@ -824,6 +858,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             "qty": qty,
             "mode": mode,
             "opened_at": time.time(),
+            "stop_order_id": stop_id,
             "pnl_estimado": RISCO_USDC * RATIO_ALVO
         }
         mem["total_trades"] = mem.get("total_trades", 0) + 1
@@ -832,12 +867,13 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
         modo_icon = "📊" if mode == "RANGING" else "📈"
         dir_icon  = "🟢 LONG" if direction == "LONG" else "🔴 SHORT"
+        stop_txt  = f" | Stop#{stop_id}" if stop_id else " | ⚠️ stop falhou"
 
         tg(
             f"{modo_icon} <b>{dir_icon}</b> — {symbol}\n"
             f"Entrada: {fill_price:.4f}\n"
             f"SL: {sl:.4f} | TP: {tp:.4f}\n"
-            f"Qty: {qty:.4f} | Modo: {mode}\n"
+            f"Qty: {qty:.4f} | Modo: {mode}{stop_txt}\n"
             f"Detalhe: {detalhe}"
         )
     else:
