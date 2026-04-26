@@ -41,14 +41,14 @@ BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET", "SECRET_AQUI")
 SYMBOLS = [
     "BTCUSDC", "ETHUSDC", "BNBUSDC", "SOLUSDC",
     "XRPUSDC", "DOGEUSDC", "AVAXUSDC", "LINKUSDC",
-    "SUIUSDC",  "PEPEUSDC"
+    "SUIUSDC",  "1000PEPEUSDC"
 ]
 
 # Precisão de quantidade por par (casas decimais aceites pela Binance)
 SYMBOL_PRECISION = {
     "BTCUSDC": 3, "ETHUSDC": 3, "BNBUSDC": 2, "SOLUSDC": 1,
     "XRPUSDC": 1, "DOGEUSDC": 0, "AVAXUSDC": 2, "LINKUSDC": 2,
-    "SUIUSDC": 1, "PEPEUSDC": 0,
+    "SUIUSDC": 1, "1000PEPEUSDC": 0,
 }
 
 # ─────────────────────────────────────────────
@@ -75,7 +75,7 @@ SCORE_ALERTA      = 4       # era 5 — threshold mais acessível
 SCORE_FORTE       = 6       # era 7
 
 # ATR — volatilidade mínima (-20% vs v6)
-ATR_MIN_PCT       = 0.0024  # era 0.003 — aceita mercados mais calmos
+ATR_MIN_PCT       = 0.0008  # 0.08% — filtra só mercados verdadeiramente mortos
 
 # Ranging mode (Bollinger Bands)
 BB_PERIOD         = 20
