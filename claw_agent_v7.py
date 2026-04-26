@@ -117,7 +117,7 @@ def _headers() -> dict:
     return {"X-MBX-APIKEY": BINANCE_API_KEY}
 
 def get_balance() -> float | None:
-    """Saldo disponível USDC na conta Futures (Cross)."""
+    """Saldo disponível USDC ou BNFCR na conta Futures (Cross)."""
     try:
         r = requests.get(
             f"{BASE_URL}/fapi/v2/balance",
@@ -126,7 +126,7 @@ def get_balance() -> float | None:
             timeout=10
         )
         for a in r.json():
-            if a["asset"] == "USDC":
+            if a["asset"] in ("USDC", "BNFCR"):
                 return float(a["availableBalance"])
     except Exception as e:
         print(f"[ERRO] get_balance: {e}")
