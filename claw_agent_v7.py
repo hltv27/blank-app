@@ -93,7 +93,8 @@ LOOKBACK          = 220     # Velas históricas (precisa de 220 para EMA99)
 
 # Sessões (UTC) — manhã europeia + abertura NY
 SESSOES_UTC       = [(7, 20)]
-CHECK_EVERY       = 240     # 4 minutos entre ciclos
+CHECK_EVERY       = 240     # 4 minutos entre scans de novos sinais
+CHECK_POSICOES    = 30      # 30 segundos entre verificações de SL/TP
 
 # Ficheiros de estado
 MEMORY_FILE = "claw_memory_v7.json"
@@ -724,39 +725,45 @@ def run():
     )
     print(f"[v7] Claw Agent a correr — {len(SYMBOLS)} pares")
 
+    ultimo_scan = 0.0
+
     while True:
         try:
+            now     = time.time()
             now_utc = datetime.now(timezone.utc)
             hora    = now_utc.strftime("%H:%M")
             mem     = load_memory()
 
-            # Gerir posições abertas (SL/TP manual Cross)
+            # ── Gestão de posições abertas — a cada 30 segundos ──
             if mem.get("trades_abertos"):
                 gerir_posicoes(mem)
-                mem = load_memory()  # recarrega após gestão
+                mem = load_memory()
+
+            # ── Scan de novos sinais — a cada 4 minutos ──
+            if now - ultimo_scan < CHECK_EVERY:
+                time.sleep(CHECK_POSICOES)
+                continue
+
+            ultimo_scan = now
 
             # Fora de sessão
             if not em_sessao():
                 print(f"[{hora}] Fora sessão")
-                time.sleep(CHECK_EVERY)
                 continue
 
             # Circuit breaker
             bloqueado, motivo = circuit_breaker_activo(mem)
             if bloqueado:
                 print(f"[{hora}] BLOQUEADO: {motivo}")
-                time.sleep(CHECK_EVERY)
                 continue
 
             # Máximo trades abertos (cautela Cross Margin)
             if len(mem.get("trades_abertos", {})) >= MAX_TRADES_ABERTOS:
                 print(f"[{hora}] Max trades abertos atingido")
-                time.sleep(CHECK_EVERY)
                 continue
 
             # ── Scan dos 10 pares ──
             for symbol in SYMBOLS:
-                # Skip se já tem posição neste par
                 if symbol in mem.get("trades_abertos", {}):
                     continue
 
@@ -776,10 +783,9 @@ def run():
                     print(f"[{hora}] {symbol} MERCADO_MORTO ATR {atr_val/closes[-1]*100:.3f}%")
                     continue
 
-                # Sinal conforme modo
                 if mode == "TRENDING":
                     direction, score, detalhe = signal_trending(closes, highs, lows, volumes)
-                else:  # RANGING
+                else:
                     direction, score, detalhe = signal_ranging(closes)
 
                 print(f"[{hora}] {symbol} {mode} {detalhe}")
@@ -790,7 +796,7 @@ def run():
                         atr_val, mode, detalhe, mem
                     )
                     mem = load_memory()
-                    time.sleep(2)  # pausa entre trades
+                    time.sleep(2)
 
         except KeyboardInterrupt:
             tg("⛔ Claw Agent v7 parado manualmente.")
