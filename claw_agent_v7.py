@@ -135,6 +135,13 @@ def _sign(params: dict) -> dict:
 def _headers() -> dict:
     return {"X-MBX-APIKEY": BINANCE_API_KEY}
 
+def get_public_ip() -> str:
+    """Devolve o IP público actual."""
+    try:
+        return requests.get("https://api.ipify.org", timeout=5).text.strip()
+    except Exception:
+        return "desconhecido"
+
 def get_balance() -> float | None:
     """Saldo disponível USDC ou BNFCR na conta Futures (Cross)."""
     try:
@@ -146,7 +153,11 @@ def get_balance() -> float | None:
         )
         data = r.json()
         if isinstance(data, dict):
-            print(f"[ERRO] get_balance: {data.get('msg', data)}")
+            msg = data.get("msg", "")
+            print(f"[ERRO] get_balance: {msg}")
+            if "Invalid API-key, IP" in msg:
+                ip = get_public_ip()
+                tg(f"🔒 <b>IP bloqueado</b>\nNovo IP: <code>{ip}</code>\nAdiciona à whitelist da Binance.")
             return None
         for a in data:
             if a["asset"] in ("USDC", "BNFCR"):
@@ -183,7 +194,11 @@ def get_positions() -> dict | None:
         )
         data = r.json()
         if isinstance(data, dict):
-            print(f"[ERRO] get_positions: {data.get('msg', data)}")
+            msg = data.get("msg", "")
+            print(f"[ERRO] get_positions: {msg}")
+            if "Invalid API-key, IP" in msg:
+                ip = get_public_ip()
+                tg(f"🔒 <b>IP bloqueado</b>\nNovo IP: <code>{ip}</code>\nAdiciona à whitelist da Binance.")
             return None
         pos = {}
         for p in data:
@@ -915,12 +930,14 @@ def _validate_credentials():
 # ─────────────────────────────────────────────
 def run():
     _validate_credentials()
-    _sync_time()  # sincroniza relógio com Binance no arranque
+    _sync_time()
+    ip_atual = get_public_ip()
     tg(
         "🤖 <b>Claw Agent v7 iniciado</b>\n"
         f"Pares: {len(SYMBOLS)} | Capital máx: {CAPITAL_MAX_BOT} USDC\n"
         f"Cross Margin | Alavancagem: {ALAVANCAGEM}x\n"
-        f"Modos: TRENDING + RANGING (BB)"
+        f"Modos: TRENDING + RANGING (BB)\n"
+        f"IP: <code>{ip_atual}</code>"
     )
     print(f"[v7] Claw Agent a correr — {len(SYMBOLS)} pares")
 
