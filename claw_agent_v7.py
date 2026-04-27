@@ -286,6 +286,41 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
         print(f"[ERRO] place_stop_market {symbol}: {e}")
     return None
 
+def place_trailing_stop(symbol: str, side: str, callback_rate: float, activation_price: float) -> int | None:
+    """
+    TRAILING_STOP_MARKET — segue o preço a uma distância % fixa (callback_rate).
+    Protege o capital E maximiza lucro em tendências fortes.
+    Em caso de falha, cai para STOP_MARKET fixo como backup.
+    """
+    try:
+        decimals = SYMBOL_PRECISION.get(symbol, 4)
+        r = requests.post(
+            f"{BASE_URL}/fapi/v1/order",
+            params=_sign({
+                "symbol":          symbol,
+                "side":            side,
+                "type":            "TRAILING_STOP_MARKET",
+                "callbackRate":    f"{callback_rate}",
+                "activationPrice": f"{activation_price:.{decimals}f}",
+                "closePosition":   "true",
+            }),
+            headers=_headers(),
+            timeout=10
+        )
+        data = r.json()
+        if "orderId" in data:
+            print(f"[OK] Trailing stop {symbol}: callback {callback_rate}%")
+            return data["orderId"]
+        msg = data.get("msg", str(data))
+        print(f"[AVISO] trailing_stop {symbol}: {msg} — a tentar STOP_MARKET fixo")
+        # Fallback: STOP_MARKET fixo no preço de SL calculado
+        sl_price = activation_price * (1 - callback_rate / 100) if side == "SELL" \
+                   else activation_price * (1 + callback_rate / 100)
+        return place_stop_market(symbol, side, sl_price, 0)
+    except Exception as e:
+        print(f"[ERRO] place_trailing_stop {symbol}: {e}")
+    return None
+
 def close_position(symbol: str, qty: float, side: str):
     """Fecha posição — side da posição aberta (inverte para fechar)."""
     close_side = "SELL" if side == "LONG" else "BUY"
@@ -410,6 +445,60 @@ def funding_rate_ok(symbol: str, direction: str) -> bool:
     except Exception:
         pass
     return True
+
+def market_conditions_ok(symbol: str, direction: str) -> bool:
+    """
+    Filtro composto: Funding Rate + Open Interest + Long/Short Ratio.
+    Veta entradas com sentimento de mercado desfavorável.
+    """
+    try:
+        # Funding rate
+        r = requests.get(f"{BASE_URL}/fapi/v1/fundingRate",
+                         params={"symbol": symbol, "limit": 1}, timeout=5)
+        fr_data = r.json()
+        if fr_data:
+            rate = float(fr_data[-1]["fundingRate"])
+            if direction == "LONG"  and rate >  0.001:
+                return False
+            if direction == "SHORT" and rate < -0.001:
+                return False
+
+        # Open Interest — queda >5% nas últimas 4h = sinal fraco
+        r = requests.get(f"{BASE_URL}/futures/data/openInterestHist",
+                         params={"symbol": symbol, "period": "1h", "limit": 5}, timeout=5)
+        oi_data = r.json()
+        if isinstance(oi_data, list) and len(oi_data) >= 5:
+            oi_now   = float(oi_data[-1]["sumOpenInterest"])
+            oi_4h    = float(oi_data[0]["sumOpenInterest"])
+            oi_chg   = (oi_now / oi_4h - 1) * 100 if oi_4h > 0 else 0
+            if oi_chg < -5:
+                return False
+
+        # Long/Short Ratio — extremos indicam risco de squeeze
+        r = requests.get(f"{BASE_URL}/futures/data/globalLongShortAccountRatio",
+                         params={"symbol": symbol, "period": "1h", "limit": 1}, timeout=5)
+        lsr_data = r.json()
+        if isinstance(lsr_data, list) and lsr_data:
+            lsr = float(lsr_data[-1]["longShortRatio"])
+            if direction == "LONG"  and lsr > 2.5:
+                return False
+            if direction == "SHORT" and lsr < 0.4:
+                return False
+
+    except Exception:
+        pass
+    return True
+
+def get_daily_vwap(klines: list) -> float | None:
+    """VWAP desde meia-noite UTC. Bias filter: só long acima, só short abaixo."""
+    midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    midnight_ms = int(midnight.timestamp() * 1000)
+    today = [k for k in klines if int(k[0]) >= midnight_ms]
+    if len(today) < 5:
+        return None
+    cum_pv = sum((float(k[2]) + float(k[3]) + float(k[4])) / 3 * float(k[5]) for k in today)
+    cum_vol = sum(float(k[5]) for k in today)
+    return cum_pv / cum_vol if cum_vol > 0 else None
 
 def bollinger_bands(closes: list, period: int = BB_PERIOD, std_mult: float = BB_STD):
     """Retorna (upper, middle, lower)."""
@@ -849,9 +938,9 @@ def circuit_breaker_activo(mem: dict) -> tuple[bool, str]:
 def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
                 lows: list, atr_val: float, mode: str, detalhe: str, mem: dict):
 
-    # Funding rate — não entrar contra sentimento extremo
-    if not funding_rate_ok(symbol, direction):
-        print(f"[AVISO] {symbol}: funding rate desfavorável para {direction}")
+    # Filtro de mercado: Funding Rate + OI + Long/Short Ratio
+    if not market_conditions_ok(symbol, direction):
+        print(f"[AVISO] {symbol}: condições de mercado desfavoráveis para {direction}")
         return
 
     saldo = get_balance()
@@ -890,9 +979,10 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         fill_price = float(order.get("avgPrice", price))
         sl, tp = calc_sl_tp(direction, fill_price, atr_val, mode)
 
-        # Coloca STOP_MARKET real na Binance — protege mesmo se o bot cair
-        stop_side = "SELL" if direction == "LONG" else "BUY"
-        stop_id = place_stop_market(symbol, stop_side, sl, qty)
+        # Trailing Stop na Binance — segue o preço e maximiza lucro
+        stop_side     = "SELL" if direction == "LONG" else "BUY"
+        callback_rate = max(0.1, min(5.0, round((atr_val * 1.5 / fill_price) * 100, 1)))
+        stop_id       = place_trailing_stop(symbol, stop_side, callback_rate, fill_price)
 
         mem.setdefault("trades_abertos", {})[symbol] = {
             "direction": direction,
@@ -1038,6 +1128,7 @@ def run():
                 volumes = [float(k[5]) for k in klines]
 
                 atr_val = atr(highs, lows, closes)
+                vwap    = get_daily_vwap(klines)
 
                 # ── Modo ORB: segunda a sexta, 13:35–17:00 UTC ──
                 em_janela_orb = (
@@ -1072,6 +1163,16 @@ def run():
                 print(f"[{hora}] {symbol} {mode} {detalhe}")
 
                 if direction:
+                    # Filtro VWAP: só long acima do VWAP do dia, só short abaixo
+                    if vwap is not None:
+                        price_now = closes[-1]
+                        if direction == "LONG" and price_now < vwap:
+                            print(f"[{hora}] {symbol} VETO_VWAP LONG abaixo {vwap:.4f}")
+                            continue
+                        if direction == "SHORT" and price_now > vwap:
+                            print(f"[{hora}] {symbol} VETO_VWAP SHORT acima {vwap:.4f}")
+                            continue
+
                     abrir_trade(
                         symbol, direction, closes, highs, lows,
                         atr_val, mode, detalhe, mem
