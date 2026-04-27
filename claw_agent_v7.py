@@ -257,8 +257,9 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
     """
-    Coloca STOP_MARKET reduceOnly na Binance.
-    A Binance cancela-a automaticamente se a posição fechar por outro motivo.
+    Coloca STOP_MARKET closePosition na Binance.
+    Não usa timeInForce (inválido para STOP_MARKET) nem quantity — fecha posição inteira.
+    Binance cancela automaticamente quando a posição fecha por outro motivo.
     Retorna o orderId ou None se falhar.
     """
     try:
@@ -266,13 +267,11 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
         r = requests.post(
             f"{BASE_URL}/fapi/v1/order",
             params=_sign({
-                "symbol":     symbol,
-                "side":       side,
-                "type":       "STOP_MARKET",
-                "stopPrice":  f"{stop_price:.{decimals}f}",
-                "quantity":   f"{qty:.{decimals}f}",
-                "reduceOnly": "true",
-                "timeInForce":"GTC",
+                "symbol":        symbol,
+                "side":          side,
+                "type":          "STOP_MARKET",
+                "stopPrice":     f"{stop_price:.{decimals}f}",
+                "closePosition": "true",
             }),
             headers=_headers(),
             timeout=10
@@ -280,7 +279,9 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
         data = r.json()
         if "orderId" in data:
             return data["orderId"]
-        print(f"[AVISO] stop_market {symbol}: {data.get('msg', data)}")
+        msg = data.get("msg", str(data))
+        print(f"[AVISO] stop_market {symbol}: {msg}")
+        tg(f"⚠️ STOP falhou em {symbol}: {msg}")
     except Exception as e:
         print(f"[ERRO] place_stop_market {symbol}: {e}")
     return None
