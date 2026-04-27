@@ -82,10 +82,9 @@ BB_PERIOD         = 20
 BB_STD            = 2.0
 RANGING_ATR_MAX   = 0.006   # Se ATR < 0.6% → modo ranging
 
-# ORB — Opening Range Breakout (abertura NY, 9:30 ET = 13:30 UTC)
-ORB_HORA_UTC      = 13      # Hora da vela de referência
-ORB_MIN_UTC       = 30      # Minuto da vela de referência
-ORB_FIM_UTC       = 17      # Fim da janela de entrada ORB
+# ORB — Opening Range Breakout (abertura NY, 9:30 ET)
+# Hora UTC calculada dinamicamente via ny_open_utc() — vê função abaixo
+ORB_FIM_HORAS     = 3       # Janela de entrada: 3h após abertura NY
 
 # Indicadores base
 EMA_FAST          = 9
@@ -654,15 +653,15 @@ def signal_ranging(closes: list):
 # ─────────────────────────────────────────────
 def signal_orb(closes: list, highs: list, lows: list, klines: list):
     """
-    Opening Range Breakout — vela das 13:30 UTC (9:30 ET).
+    Opening Range Breakout — primeira vela de 5min da abertura de NY (09:30 ET).
+    Hora UTC ajustada automaticamente ao DST americano (13:30 verão / 14:30 inverno).
     LONG se fecha acima do máximo; SHORT se fecha abaixo do mínimo.
-    Filtros: RSI + EMA20.
     """
-    # Localizar a vela das 13:30 UTC
+    orb_hora, orb_min = ny_open_utc()
     orb_high = orb_low = None
     for k in klines:
         ts = datetime.fromtimestamp(k[0] / 1000, tz=timezone.utc)
-        if ts.hour == ORB_HORA_UTC and ts.minute == ORB_MIN_UTC:
+        if ts.hour == orb_hora and ts.minute == orb_min:
             orb_high = float(k[2])
             orb_low  = float(k[3])
             break
@@ -781,6 +780,30 @@ def log_trade(symbol: str, direction: str, entry: float, sl: float, tp: float,
 def em_sessao() -> bool:
     hora = datetime.now(timezone.utc).hour
     return any(inicio <= hora < fim for inicio, fim in SESSOES_UTC)
+
+def ny_open_utc() -> tuple[int, int]:
+    """
+    Hora e minuto UTC da abertura de NY (09:30 ET).
+    Ajusta automaticamente ao horário de verão americano (DST):
+      - EDT (Março 2º domingo → Novembro 1º domingo): UTC-4 → 13:30 UTC
+      - EST (resto do ano): UTC-5 → 14:30 UTC
+    """
+    from datetime import timedelta
+    now = datetime.now(timezone.utc)
+    year = now.year
+
+    # 2º domingo de Março — DST começa às 02:00 EST = 07:00 UTC
+    mar1 = datetime(year, 3, 1, tzinfo=timezone.utc)
+    dst_start = mar1 + timedelta(days=(6 - mar1.weekday()) % 7 + 7, hours=7)
+
+    # 1º domingo de Novembro — DST termina às 02:00 EDT = 06:00 UTC
+    nov1 = datetime(year, 11, 1, tzinfo=timezone.utc)
+    dst_end = nov1 + timedelta(days=(6 - nov1.weekday()) % 7, hours=6)
+
+    if dst_start <= now < dst_end:
+        return 13, 30   # EDT (UTC-4): 09:30 ET = 13:30 UTC
+    else:
+        return 14, 30   # EST (UTC-5): 09:30 ET = 14:30 UTC
 
 # ─────────────────────────────────────────────
 #  GESTÃO DE POSIÇÕES ABERTAS (SL/TP manual)
@@ -1130,11 +1153,13 @@ def run():
                 atr_val = atr(highs, lows, closes)
                 vwap    = get_daily_vwap(klines)
 
-                # ── Modo ORB: segunda a sexta, 13:35–17:00 UTC ──
+                # ── Modo ORB: segunda a sexta, 5min após abertura NY até 3h depois ──
+                orb_h, orb_m = ny_open_utc()
+                orb_fim_h    = (orb_h + ORB_FIM_HORAS) % 24
                 em_janela_orb = (
                     now_utc.weekday() < 5 and (
-                        (now_utc.hour == ORB_HORA_UTC and now_utc.minute >= ORB_MIN_UTC + 5) or
-                        (ORB_HORA_UTC < now_utc.hour < ORB_FIM_UTC)
+                        (now_utc.hour == orb_h and now_utc.minute >= orb_m + 5) or
+                        (orb_h < now_utc.hour < orb_fim_h)
                     )
                 )
 
