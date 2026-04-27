@@ -256,28 +256,28 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
     """
-    Coloca STOP_MARKET closePosition na Binance.
-    Não usa timeInForce (inválido para STOP_MARKET) nem quantity — fecha posição inteira.
-    Binance cancela automaticamente quando a posição fecha por outro motivo.
-    Retorna o orderId ou None se falhar.
+    Coloca STOP_MARKET via /fapi/v1/algoOrder (obrigatório desde 2025-12-09).
+    /fapi/v1/order retorna -4120 para ordens condicionais desde essa data.
+    Retorna algoId ou None se falhar.
     """
     try:
         decimals = SYMBOL_PRECISION.get(symbol, 4)
         r = requests.post(
-            f"{BASE_URL}/fapi/v1/order",
+            f"{BASE_URL}/fapi/v1/algoOrder",
             params=_sign({
                 "symbol":        symbol,
                 "side":          side,
                 "type":          "STOP_MARKET",
                 "stopPrice":     f"{stop_price:.{decimals}f}",
                 "closePosition": "true",
+                "timeInForce":   "GTC",
             }),
             headers=_headers(),
             timeout=10
         )
         data = r.json()
-        if "orderId" in data:
-            return data["orderId"]
+        if "algoId" in data:
+            return data["algoId"]
         msg = data.get("msg", str(data))
         print(f"[AVISO] stop_market {symbol}: {msg}")
         tg(f"⚠️ STOP falhou em {symbol}: {msg}")
@@ -287,14 +287,14 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
 
 def place_trailing_stop(symbol: str, side: str, callback_rate: float, activation_price: float) -> int | None:
     """
-    TRAILING_STOP_MARKET — segue o preço a uma distância % fixa (callback_rate).
-    Protege o capital E maximiza lucro em tendências fortes.
+    TRAILING_STOP_MARKET via /fapi/v1/algoOrder (obrigatório desde 2025-12-09).
+    Segue o preço a uma distância % fixa (callback_rate) e maximiza lucro.
     Em caso de falha, cai para STOP_MARKET fixo como backup.
     """
     try:
         decimals = SYMBOL_PRECISION.get(symbol, 4)
         r = requests.post(
-            f"{BASE_URL}/fapi/v1/order",
+            f"{BASE_URL}/fapi/v1/algoOrder",
             params=_sign({
                 "symbol":          symbol,
                 "side":            side,
@@ -307,9 +307,9 @@ def place_trailing_stop(symbol: str, side: str, callback_rate: float, activation
             timeout=10
         )
         data = r.json()
-        if "orderId" in data:
+        if "algoId" in data:
             print(f"[OK] Trailing stop {symbol}: callback {callback_rate}%")
-            return data["orderId"]
+            return data["algoId"]
         msg = data.get("msg", str(data))
         print(f"[AVISO] trailing_stop {symbol}: {msg} — a tentar STOP_MARKET fixo")
         # Fallback: STOP_MARKET fixo no preço de SL calculado
