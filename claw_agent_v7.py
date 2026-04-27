@@ -61,7 +61,7 @@ RATIO_ALVO        = 2.0     # RR mínimo 2:1
 MAX_LOSS_DIA      = 9.0     # Circuit breaker diário (USDC) — 3x risco por trade
 MAX_PERDAS_SEGUIDAS = 4     # Circuit breaker por série negativa
 COOLDOWN_MIN      = 15      # Minutos bloqueado após circuit breaker
-MAX_TRADES_ABERTOS = 3      # Máximo posições simultâneas (cross = cuidado)
+MAX_TRADES_ABERTOS = 5      # Máximo posições simultâneas (cross = cuidado)
 
 # ─────────────────────────────────────────────
 #  PARÂMETROS DA ESTRATÉGIA — v7 CALIBRADO
