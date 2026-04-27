@@ -109,8 +109,21 @@ BASE_URL    = "https://fapi.binance.com"
 # ─────────────────────────────────────────────
 #  BINANCE — FUNÇÕES BASE
 # ─────────────────────────────────────────────
+_time_offset_ms = 0  # diferença entre relógio local e servidor Binance
+
+def _sync_time():
+    """Calcula offset entre relógio local e Binance para evitar erros de timestamp."""
+    global _time_offset_ms
+    try:
+        r = requests.get(f"{BASE_URL}/fapi/v1/time", timeout=5)
+        server_time = r.json()["serverTime"]
+        _time_offset_ms = server_time - int(time.time() * 1000)
+        print(f"[v7] Time offset Binance: {_time_offset_ms:+d}ms")
+    except Exception as e:
+        print(f"[AVISO] sync_time: {e}")
+
 def _sign(params: dict) -> dict:
-    params["timestamp"] = int(time.time() * 1000)
+    params["timestamp"] = int(time.time() * 1000) + _time_offset_ms
     query = urlencode(params)
     params["signature"] = hmac.new(
         BINANCE_API_SECRET.encode(),
@@ -902,6 +915,7 @@ def _validate_credentials():
 # ─────────────────────────────────────────────
 def run():
     _validate_credentials()
+    _sync_time()  # sincroniza relógio com Binance no arranque
     tg(
         "🤖 <b>Claw Agent v7 iniciado</b>\n"
         f"Pares: {len(SYMBOLS)} | Capital máx: {CAPITAL_MAX_BOT} USDC\n"
@@ -911,12 +925,18 @@ def run():
     print(f"[v7] Claw Agent a correr — {len(SYMBOLS)} pares")
 
     ultimo_minuto_scan = -1
+    ultima_sync_hora   = -1  # re-sincroniza relógio a cada hora
 
     while True:
         try:
             now_utc = datetime.now(timezone.utc)
             hora    = now_utc.strftime("%H:%M")
             mem     = load_memory()
+
+            # Re-sincroniza relógio com Binance uma vez por hora
+            if now_utc.hour != ultima_sync_hora:
+                _sync_time()
+                ultima_sync_hora = now_utc.hour
 
             # ── Gestão de posições abertas — a cada 30 segundos ──
             if mem.get("trades_abertos"):
