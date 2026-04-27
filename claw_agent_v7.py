@@ -752,6 +752,21 @@ def gerir_posicoes(mem: dict):
             log_trade(symbol, side, entry, sl, tp, qty, pos["pnl"], "TIME_TP")
             continue
 
+        # ── Corte de emergência: ROI ≤ -5% (backup quando STOP_MARKET falha) ──
+        if roi <= -5.0:
+            close_position(symbol, pos["qty"], side)
+            mem["losses"] = mem.get("losses", 0) + 1
+            mem["perdas_seguidas"] = mem.get("perdas_seguidas", 0) + 1
+            mem["loss_dia"] = mem.get("loss_dia", 0) + abs(pos["pnl"])
+            mem["trades_abertos"].pop(symbol, None)
+            tg(
+                f"🛑 <b>CORTE EMERGÊNCIA</b> — {symbol}\n"
+                f"Direcção: {side} | ROI: {roi:.1f}%\n"
+                f"PnL: {pos['pnl']:+.2f} USDC"
+            )
+            log_trade(symbol, side, entry, sl, tp, qty, pos["pnl"], "EMERGENCY_SL")
+            continue
+
         # Posições sem SL/TP válidos (sincronizadas) — não gerir SL/TP automaticamente
         if sl <= 0 or tp <= 0:
             continue
