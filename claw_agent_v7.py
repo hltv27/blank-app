@@ -40,7 +40,7 @@ BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET", "SECRET_AQUI")
 # ─────────────────────────────────────────────
 SYMBOLS = [
     "BTCUSDC", "ETHUSDC", "BNBUSDC", "SOLUSDC",
-    "XRPUSDC", "DOGEUSDC", "AVAXUSDC", "LINKUSDC",
+    "XRPUSDC", "DOGEUSDC", "LINKUSDC",
     "SUIUSDC",  "1000PEPEUSDC"
 ]
 
