@@ -1206,9 +1206,33 @@ def run():
                 print(f"[{hora}] Saldo insuficiente: {saldo_pre if saldo_pre is not None else 'N/A'}")
                 continue
 
-            # ── Scan dos 10 pares ──
+            # ── Scan dos 9 pares ──
             for symbol in SYMBOLS:
+                # ── Reversão de sinal: fecha posição se mercado inverteu ──
                 if symbol in posicoes_reais:
+                    pos_aberta = posicoes_reais[symbol]
+                    klines_rev = get_klines(symbol)
+                    if klines_rev and len(klines_rev) >= LOOKBACK // 2:
+                        c = [float(k[4]) for k in klines_rev]
+                        h = [float(k[2]) for k in klines_rev]
+                        l = [float(k[3]) for k in klines_rev]
+                        v = [float(k[5]) for k in klines_rev]
+                        dir_rev, score_rev, _ = signal_trending(c, h, l, v)
+                        lado = pos_aberta["side"]
+                        oposto = (lado == "LONG" and dir_rev == "SHORT") or \
+                                 (lado == "SHORT" and dir_rev == "LONG")
+                        if oposto and score_rev >= SCORE_FORTE:
+                            close_position(symbol, pos_aberta["qty"], lado)
+                            pnl_est = pos_aberta.get("pnl", 0)
+                            mem["trades_abertos"].pop(symbol, None)
+                            atualizar_stats_simbolo(symbol, pnl_est >= 0, pnl_est, mem)
+                            save_memory(mem)
+                            tg(
+                                f"🔄 <b>REVERSÃO DE SINAL — {symbol}</b>\n"
+                                f"Posição {lado} fechada — sinal inverteu para {dir_rev}\n"
+                                f"Score: {score_rev} | PnL est.: {pnl_est:+.2f} USDC"
+                            )
+                            print(f"[{hora}] {symbol} REVERSAO {lado}→{dir_rev} score={score_rev}")
                     continue
 
                 klines = get_klines(symbol)
