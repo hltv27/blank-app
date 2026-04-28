@@ -742,8 +742,74 @@ def load_memory() -> dict:
             "bloqueado_ate": 0,
             "total_trades": 0,
             "wins": 0,
-            "losses": 0
+            "losses": 0,
+            "simbolos_stats": {}
         }
+
+def atualizar_stats_simbolo(symbol: str, won: bool, pnl: float, mem: dict):
+    """Actualiza estatísticas por símbolo e veta automaticamente se necessário."""
+    stats = mem.setdefault("simbolos_stats", {}).setdefault(symbol, {
+        "wins": 0, "losses": 0, "perdas_seguidas": 0,
+        "pnl_total": 0.0, "vetado_ate": 0
+    })
+    stats["pnl_total"] = round(stats.get("pnl_total", 0) + pnl, 4)
+    stats["ultima_trade"] = datetime.now(timezone.utc).isoformat()
+
+    if won:
+        stats["wins"] = stats.get("wins", 0) + 1
+        stats["perdas_seguidas"] = 0
+    else:
+        stats["losses"] = stats.get("losses", 0) + 1
+        stats["perdas_seguidas"] = stats.get("perdas_seguidas", 0) + 1
+
+    total   = stats["wins"] + stats["losses"]
+    wr      = stats["wins"] / total * 100 if total > 0 else 100
+    ps      = stats["perdas_seguidas"]
+    motivo  = None
+
+    if ps >= 3:
+        motivo = f"3 perdas seguidas ({ps}x)"
+        stats["vetado_ate"] = time.time() + 24 * 3600  # veto 24h
+    elif total >= 5 and wr < 30:
+        motivo = f"win rate crítico {wr:.0f}% em {total} trades"
+        stats["vetado_ate"] = time.time() + 12 * 3600  # veto 12h
+
+    if motivo:
+        h_veto = 24 if ps >= 3 else 12
+        tg(
+            f"🚫 <b>VETO AUTOMÁTICO — {symbol}</b>\n"
+            f"Motivo: {motivo}\n"
+            f"Stats: {stats['wins']}W / {stats['losses']}L | "
+            f"WR: {wr:.0f}% | PnL: {stats['pnl_total']:+.2f}\n"
+            f"Bot não abre {symbol} durante {h_veto}h.\n"
+            f"<i>Reavaliação automática após esse período.</i>"
+        )
+
+def verificar_veto_simbolo(symbol: str, mem: dict) -> tuple[bool, str]:
+    """Verifica se o símbolo está vetado. Se o veto expirou, notifica e limpa."""
+    stats = mem.get("simbolos_stats", {}).get(symbol)
+    if not stats:
+        return False, ""
+    vetado_ate = stats.get("vetado_ate", 0)
+    if vetado_ate <= 0:
+        return False, ""
+    if time.time() < vetado_ate:
+        mins = int((vetado_ate - time.time()) / 60)
+        return True, f"vetado ainda {mins}min"
+    # Veto expirou — reset perdas seguidas e notifica
+    stats["perdas_seguidas"] = 0
+    stats["vetado_ate"] = 0
+    total = stats.get("wins", 0) + stats.get("losses", 0)
+    wr    = stats.get("wins", 0) / total * 100 if total > 0 else 0
+    tg(
+        f"🔓 <b>VETO EXPIRADO — {symbol}</b>\n"
+        f"Bot volta a observar {symbol}.\n"
+        f"Stats acumuladas: {stats.get('wins',0)}W / {stats.get('losses',0)}L | "
+        f"WR: {wr:.0f}% | PnL: {stats.get('pnl_total',0):+.2f}\n"
+        f"<i>Perdas seguidas reiniciadas. A monitorizar com cautela.</i>"
+    )
+    save_memory(mem)
+    return False, ""
 
 def save_memory(m: dict):
     with open(MEMORY_FILE, "w") as f:
@@ -856,6 +922,7 @@ def gerir_posicoes(mem: dict):
             mem["wins"] = mem.get("wins", 0) + 1
             mem["perdas_seguidas"] = 0
             mem["trades_abertos"].pop(symbol, None)
+            atualizar_stats_simbolo(symbol, True, pos["pnl"], mem)
             tg(
                 f"⏱️ <b>TEMPO+LUCRO</b> — {symbol}\n"
                 f"Direcção: {side} | ROI: {roi:.1f}%\n"
@@ -871,6 +938,7 @@ def gerir_posicoes(mem: dict):
             mem["perdas_seguidas"] = mem.get("perdas_seguidas", 0) + 1
             mem["loss_dia"] = mem.get("loss_dia", 0) + abs(pos["pnl"])
             mem["trades_abertos"].pop(symbol, None)
+            atualizar_stats_simbolo(symbol, False, pos["pnl"], mem)
             tg(
                 f"🛑 <b>CORTE EMERGÊNCIA</b> — {symbol}\n"
                 f"Direcção: {side} | ROI: {roi:.1f}%\n"
@@ -896,6 +964,7 @@ def gerir_posicoes(mem: dict):
             if hit_tp:
                 mem["wins"] = wins + 1
                 mem["perdas_seguidas"] = 0
+                atualizar_stats_simbolo(symbol, True, pnl, mem)
                 tg(
                     f"✅ <b>TP ATINGIDO</b> — {symbol}\n"
                     f"Direcção: {side} | Entrada: {trade.get('entry', 0):.4f}\n"
@@ -906,6 +975,7 @@ def gerir_posicoes(mem: dict):
                 mem["losses"] = losses + 1
                 mem["perdas_seguidas"] = mem.get("perdas_seguidas", 0) + 1
                 mem["loss_dia"] = mem.get("loss_dia", 0) + abs(pnl)
+                atualizar_stats_simbolo(symbol, False, pnl, mem)
                 tg(
                     f"🔴 <b>SL ATINGIDO</b> — {symbol}\n"
                     f"Direcção: {side} | Entrada: {trade.get('entry', 0):.4f}\n"
@@ -1188,6 +1258,12 @@ def run():
                 print(f"[{hora}] {symbol} {mode} {detalhe}")
 
                 if direction:
+                    # Filtro performance: veta símbolo com histórico negativo
+                    vetado, motivo_veto = verificar_veto_simbolo(symbol, mem)
+                    if vetado:
+                        print(f"[{hora}] {symbol} VETO_SIMBOLO {motivo_veto}")
+                        continue
+
                     # Filtro VWAP: só long acima do VWAP do dia, só short abaixo
                     if vwap is not None:
                         price_now = closes[-1]
