@@ -58,10 +58,10 @@ CAPITAL_MAX_BOT   = 50.0    # USDC — bot nunca usa mais que isto
 RISCO_USDC        = 3.0     # USDC por trade (fixo)
 ALAVANCAGEM       = 10      # 10x Cross Margin
 RATIO_ALVO        = 2.0     # RR mínimo 2:1
-MAX_LOSS_DIA      = 9.0     # Circuit breaker diário (USDC) — 3x risco por trade
-MAX_PERDAS_SEGUIDAS = 4     # Circuit breaker por série negativa
-COOLDOWN_MIN      = 15      # Minutos bloqueado após circuit breaker
-MAX_TRADES_ABERTOS = 5      # Máximo posições simultâneas (cross = cuidado)
+MAX_LOSS_DIA      = 7.5     # Circuit breaker diário — reduzido para 2.5x risco
+MAX_PERDAS_SEGUIDAS = 3     # Circuit breaker por série negativa (era 4)
+COOLDOWN_MIN      = 120     # 2 horas bloqueado após circuit breaker (era 15 min!)
+MAX_TRADES_ABERTOS = 4      # Máximo posições simultâneas — reduzido de 5 para 4
 
 # ─────────────────────────────────────────────
 #  PARÂMETROS DA ESTRATÉGIA — v7 CALIBRADO
@@ -343,8 +343,13 @@ def estornar_posicao(symbol: str, qty: float, side: str, closes: list,
         return False
 
     fill_price    = float(order.get("avgPrice", closes[-1]))
-    callback_rate = max(0.1, min(5.0, round((atr_val * 1.5 / fill_price) * 100, 1)))
-    stop_id       = place_trailing_stop(symbol, nova_side, callback_rate, fill_price)
+    decimals_sym  = SYMBOL_PRECISION.get(symbol, 4)
+    callback_rate = max(0.5, min(5.0, round((atr_val * 1.5 / fill_price) * 100, 1)))
+    if nova_dir == "SHORT":
+        activation = round(fill_price * (1 - callback_rate / 200), decimals_sym)
+    else:
+        activation = fill_price
+    stop_id = place_trailing_stop(symbol, nova_side, callback_rate, activation)
     sl, tp        = calc_sl_tp(nova_dir, fill_price, atr_val, "TRENDING")
 
     mem["trades_abertos"][symbol] = {
@@ -928,9 +933,37 @@ def gerir_posicoes(mem: dict):
 
     for symbol, trade in list(trades_abertos.items()):
         if symbol not in posicoes_binance:
-            # Posição fechou externamente (liquidação ou intervenção manual)
+            # Posição fechou externamente — trailing stop Binance ou manual
+            # Usa o último PnL guardado para contabilizar correctamente
+            pnl_ext  = trade.get("pnl_ultimo", None)
+            side_ext = trade.get("direction", "LONG")
+            entry_ext = trade.get("entry", 0)
+            sl_ext    = trade.get("sl", 0)
+            tp_ext    = trade.get("tp", 0)
+            qty_ext   = abs(trade.get("qty", 0))
+
+            if pnl_ext is None:
+                # Fallback: estima pelo SL (pessimista)
+                pnl_ext = -abs(entry_ext - sl_ext) * qty_ext if sl_ext > 0 else 0.0
+
+            won = pnl_ext > 0
+            if won:
+                mem["wins"] = mem.get("wins", 0) + 1
+                mem["perdas_seguidas"] = 0
+            else:
+                mem["losses"] = mem.get("losses", 0) + 1
+                mem["perdas_seguidas"] = mem.get("perdas_seguidas", 0) + 1
+                mem["loss_dia"] = mem.get("loss_dia", 0) + abs(pnl_ext)
+
+            atualizar_stats_simbolo(symbol, won, pnl_ext, mem)
             mem["trades_abertos"].pop(symbol, None)
-            tg(f"⚠️ {symbol} fechada externamente")
+            icon = "✅" if won else "🔴"
+            tg(
+                f"{icon} <b>{symbol}</b> fechada pelo stop Binance\n"
+                f"Direcção: {side_ext} | PnL: {pnl_ext:+.2f} USDC\n"
+                f"Perdas hoje: {mem.get('loss_dia', 0):.2f} USDC"
+            )
+            log_trade(symbol, side_ext, entry_ext, sl_ext, tp_ext, qty_ext, pnl_ext, "ALGO_STOP")
             continue
 
         pos   = posicoes_binance[symbol]
@@ -948,6 +981,9 @@ def gerir_posicoes(mem: dict):
             price = float(r.json()["price"])
         except Exception:
             continue
+
+        # ── Guarda PnL actual para usar se fechar externamente no próximo ciclo ──
+        mem["trades_abertos"][symbol]["pnl_ultimo"] = pos["pnl"]
 
         # ── Saída por tempo: 30 min + ROI ≥ 5% (funciona mesmo sem SL/TP definidos) ──
         entry  = trade.get("entry", 0)
@@ -1115,8 +1151,16 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
         # Trailing Stop na Binance — segue o preço e maximiza lucro
         stop_side     = "SELL" if direction == "LONG" else "BUY"
-        callback_rate = max(0.1, min(5.0, round((atr_val * 1.5 / fill_price) * 100, 1)))
-        stop_id       = place_trailing_stop(symbol, stop_side, callback_rate, fill_price)
+        # Mínimo 0.5% para dar margem de respiração — 0.1% disparava em segundos
+        callback_rate = max(0.5, min(5.0, round((atr_val * 1.5 / fill_price) * 100, 1)))
+        # SHORT: activação ligeiramente abaixo da entrada (não dispara na primeira oscilação)
+        # LONG:  activação na entrada (protecção imediata)
+        decimals_sym  = SYMBOL_PRECISION.get(symbol, 4)
+        if direction == "SHORT":
+            activation = round(fill_price * (1 - callback_rate / 200), decimals_sym)
+        else:
+            activation = fill_price
+        stop_id = place_trailing_stop(symbol, stop_side, callback_rate, activation)
 
         mem.setdefault("trades_abertos", {})[symbol] = {
             "direction": direction,
