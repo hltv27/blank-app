@@ -325,6 +325,47 @@ def close_position(symbol: str, qty: float, side: str):
     close_side = "SELL" if side == "LONG" else "BUY"
     return place_order(symbol, close_side, abs(qty))
 
+def estornar_posicao(symbol: str, qty: float, side: str, closes: list,
+                     highs: list, lows: list, atr_val: float, mem: dict):
+    """
+    Inverte posição como o botão 'Estornar' da Binance:
+    ordem de 2× qty na direcção oposta fecha a actual e abre nova.
+    Coloca trailing stop para a nova posição.
+    """
+    nova_side   = "SELL" if side == "LONG" else "BUY"
+    nova_dir    = "SHORT" if side == "LONG" else "LONG"
+    decimals    = SYMBOL_PRECISION.get(symbol, 4)
+    qty_estorno = round(abs(qty) * 2, decimals)
+
+    order = place_order(symbol, nova_side, qty_estorno)
+    if not order or order.get("status") != "FILLED":
+        print(f"[AVISO] estornar_posicao {symbol}: ordem não confirmada")
+        return False
+
+    fill_price    = float(order.get("avgPrice", closes[-1]))
+    callback_rate = max(0.1, min(5.0, round((atr_val * 1.5 / fill_price) * 100, 1)))
+    stop_id       = place_trailing_stop(symbol, nova_side, callback_rate, fill_price)
+    sl, tp        = calc_sl_tp(nova_dir, fill_price, atr_val, "TRENDING")
+
+    mem["trades_abertos"][symbol] = {
+        "direction":     nova_dir,
+        "entry":         fill_price,
+        "sl":            sl,
+        "tp":            tp,
+        "qty":           abs(qty),
+        "mode":          "REVERSAO",
+        "opened_at":     time.time(),
+        "stop_order_id": stop_id,
+    }
+    save_memory(mem)
+    stop_txt = f"Stop#{stop_id}" if stop_id else "⚠️ stop falhou"
+    tg(
+        f"🔄 <b>ESTORNO — {symbol}</b>\n"
+        f"{side} → {nova_dir} | Entrada: {fill_price:.4f}\n"
+        f"SL: {sl:.4f} | TP: {tp:.4f} | {stop_txt}"
+    )
+    return True
+
 # ─────────────────────────────────────────────
 #  TELEGRAM
 # ─────────────────────────────────────────────
@@ -1222,17 +1263,14 @@ def run():
                         oposto = (lado == "LONG" and dir_rev == "SHORT") or \
                                  (lado == "SHORT" and dir_rev == "LONG")
                         if oposto and score_rev >= SCORE_FORTE:
-                            close_position(symbol, pos_aberta["qty"], lado)
                             pnl_est = pos_aberta.get("pnl", 0)
-                            mem["trades_abertos"].pop(symbol, None)
                             atualizar_stats_simbolo(symbol, pnl_est >= 0, pnl_est, mem)
-                            save_memory(mem)
-                            tg(
-                                f"🔄 <b>REVERSÃO DE SINAL — {symbol}</b>\n"
-                                f"Posição {lado} fechada — sinal inverteu para {dir_rev}\n"
-                                f"Score: {score_rev} | PnL est.: {pnl_est:+.2f} USDC"
+                            mem["trades_abertos"].pop(symbol, None)
+                            print(f"[{hora}] {symbol} ESTORNO {lado}→{dir_rev} score={score_rev}")
+                            estornar_posicao(
+                                symbol, pos_aberta["qty"], lado,
+                                c, h, l, atr(h, l, c), mem
                             )
-                            print(f"[{hora}] {symbol} REVERSAO {lado}→{dir_rev} score={score_rev}")
                     continue
 
                 klines = get_klines(symbol)
