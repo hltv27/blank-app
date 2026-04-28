@@ -1204,6 +1204,10 @@ def run():
                     )
                     mem = load_memory()
                     time.sleep(2)
+                    # Re-verifica limite após cada abertura
+                    if len(mem.get("trades_abertos", {})) >= MAX_TRADES_ABERTOS:
+                        print(f"[{hora}] Limite {MAX_TRADES_ABERTOS} trades atingido — scan parado")
+                        break
 
         except KeyboardInterrupt:
             tg("⛔ Claw Agent v7 parado manualmente.")
