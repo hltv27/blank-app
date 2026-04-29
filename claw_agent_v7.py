@@ -63,6 +63,12 @@ MAX_PERDAS_SEGUIDAS = 3     # Circuit breaker por série negativa (era 4)
 COOLDOWN_MIN      = 120     # 2 horas bloqueado após circuit breaker (era 15 min!)
 MAX_TRADES_ABERTOS = 4      # Máximo posições simultâneas — reduzido de 5 para 4
 
+# Tecto direcional — evita correlação (BTC é tratado separadamente)
+BTC_SYMBOLS       = {"BTCUSDC"}
+MAX_LONGS_ALT     = 2       # máx LONGs simultâneas em altcoins
+MAX_SHORTS_ALT    = 2       # máx SHORTs simultâneas em altcoins
+# Pior caso: 2 alts × 3 USDC + 1 BTC × 3 USDC = 9 USDC de risco simultâneo máximo
+
 # ─────────────────────────────────────────────
 #  PARÂMETROS DA ESTRATÉGIA — v7 CALIBRADO
 # ─────────────────────────────────────────────
@@ -1392,6 +1398,28 @@ def run():
                             continue
                         if direction == "SHORT" and price_now > vwap:
                             print(f"[{hora}] {symbol} VETO_VWAP SHORT acima {vwap:.4f}")
+                            continue
+
+                    # Tecto direcional — evita correlação simultânea
+                    longs_reais  = [s for s, p in posicoes_reais.items() if p["side"] == "LONG"]
+                    shorts_reais = [s for s, p in posicoes_reais.items() if p["side"] == "SHORT"]
+                    longs_alt    = [s for s in longs_reais  if s not in BTC_SYMBOLS]
+                    shorts_alt   = [s for s in shorts_reais if s not in BTC_SYMBOLS]
+
+                    if direction == "LONG":
+                        if symbol in BTC_SYMBOLS and any(s in BTC_SYMBOLS for s in longs_reais):
+                            print(f"[{hora}] {symbol} TECTO_DIR BTC LONG já aberto")
+                            continue
+                        if symbol not in BTC_SYMBOLS and len(longs_alt) >= MAX_LONGS_ALT:
+                            print(f"[{hora}] {symbol} TECTO_DIR {len(longs_alt)}/{MAX_LONGS_ALT} LONGs alt abertas")
+                            continue
+
+                    if direction == "SHORT":
+                        if symbol in BTC_SYMBOLS and any(s in BTC_SYMBOLS for s in shorts_reais):
+                            print(f"[{hora}] {symbol} TECTO_DIR BTC SHORT já aberto")
+                            continue
+                        if symbol not in BTC_SYMBOLS and len(shorts_alt) >= MAX_SHORTS_ALT:
+                            print(f"[{hora}] {symbol} TECTO_DIR {len(shorts_alt)}/{MAX_SHORTS_ALT} SHORTs alt abertas")
                             continue
 
                     abrir_trade(
