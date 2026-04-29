@@ -736,20 +736,29 @@ def signal_orb(closes: list, highs: list, lows: list, klines: list):
 # ─────────────────────────────────────────────
 #  GESTÃO DE POSIÇÃO — SL/TP DINÂMICOS
 # ─────────────────────────────────────────────
-def calc_sl_tp(direction: str, price: float, atr_val: float, mode: str):
+def calc_sl_tp(direction: str, price: float, atr_val: float, mode: str,
+               score: int = 0, adx_val: float = 0.0):
     """
-    Trending: SL = 1.5 * ATR, TP = SL * RATIO_ALVO
-    Ranging:  SL = 1.0 * ATR (mais apertado), TP = SL * 1.5
+    Trending: SL = 1.5 * ATR, TP dinâmico por força do sinal:
+      - Sinal normal (score < SCORE_FORTE):        RR 2:1
+      - Sinal forte  (score >= SCORE_FORTE, ADX>35): RR 3:1  (~9% ROI a 10x)
+      - Sinal muito forte (score >= SCORE_FORTE, ADX>45): RR 4:1 (~12% ROI a 10x)
+    Ranging: SL = 1.0 * ATR, TP = 1.5× (reversão à média — não esticar)
     """
     if mode == "RANGING":
         sl_dist = atr_val * 1.0
         ratio   = 1.5
     elif mode == "ORB":
-        sl_dist = atr_val * 1.2   # ≈ tamanho do range de abertura
-        ratio   = 2.0             # TP = 2× o SL (RR 1:2)
+        sl_dist = atr_val * 1.2
+        ratio   = 2.0
     else:
         sl_dist = atr_val * 1.5
-        ratio   = RATIO_ALVO
+        if score >= SCORE_FORTE and adx_val > 45:
+            ratio = 4.0
+        elif score >= SCORE_FORTE and adx_val > 35:
+            ratio = 3.0
+        else:
+            ratio = RATIO_ALVO
 
     if direction == "LONG":
         sl = price - sl_dist
@@ -1106,7 +1115,8 @@ def circuit_breaker_activo(mem: dict) -> tuple[bool, str]:
 #  ABERTURA DE TRADE
 # ─────────────────────────────────────────────
 def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
-                lows: list, atr_val: float, mode: str, detalhe: str, mem: dict):
+                lows: list, atr_val: float, mode: str, detalhe: str, mem: dict,
+                score: int = 0):
 
     # Filtro de mercado: Funding Rate + OI + Long/Short Ratio
     if not market_conditions_ok(symbol, direction):
@@ -1121,9 +1131,10 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     if capital_bot < RISCO_USDC * 3:
         return
 
-    price = closes[-1]
-    sl, tp = calc_sl_tp(direction, price, atr_val, mode)
-    qty    = calc_qty(price, sl, symbol)
+    price    = closes[-1]
+    adx_val  = adx(highs, lows, closes)
+    sl, tp   = calc_sl_tp(direction, price, atr_val, mode, score, adx_val)
+    qty      = calc_qty(price, sl, symbol)
 
     if qty <= 0:
         return
@@ -1147,14 +1158,16 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
     if order and order.get("status") == "FILLED":
         fill_price = float(order.get("avgPrice", price))
-        sl, tp = calc_sl_tp(direction, fill_price, atr_val, mode)
+        sl, tp     = calc_sl_tp(direction, fill_price, atr_val, mode, score, adx_val)
+
+        # Ratio efectivo para log
+        sl_dist    = abs(fill_price - sl)
+        tp_dist    = abs(tp - fill_price)
+        rr_actual  = round(tp_dist / sl_dist, 1) if sl_dist > 0 else RATIO_ALVO
 
         # Trailing Stop na Binance — segue o preço e maximiza lucro
         stop_side     = "SELL" if direction == "LONG" else "BUY"
-        # Mínimo 0.5% para dar margem de respiração — 0.1% disparava em segundos
         callback_rate = max(0.5, min(5.0, round((atr_val * 1.5 / fill_price) * 100, 1)))
-        # SHORT: activação ligeiramente abaixo da entrada (não dispara na primeira oscilação)
-        # LONG:  activação na entrada (protecção imediata)
         decimals_sym  = SYMBOL_PRECISION.get(symbol, 4)
         if direction == "SHORT":
             activation = round(fill_price * (1 - callback_rate / 200), decimals_sym)
@@ -1171,7 +1184,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             "mode": mode,
             "opened_at": time.time(),
             "stop_order_id": stop_id,
-            "pnl_estimado": RISCO_USDC * RATIO_ALVO
+            "pnl_estimado": RISCO_USDC * rr_actual
         }
         mem["total_trades"] = mem.get("total_trades", 0) + 1
         save_memory(mem)
@@ -1180,12 +1193,13 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         modo_icon = "📊" if mode == "RANGING" else "📈"
         dir_icon  = "🟢 LONG" if direction == "LONG" else "🔴 SHORT"
         stop_txt  = f" | Stop#{stop_id}" if stop_id else " | ⚠️ stop falhou"
+        rr_icon   = f" | RR {rr_actual}:1" + (" 🚀" if rr_actual >= 3 else "")
 
         tg(
             f"{modo_icon} <b>{dir_icon}</b> — {symbol}\n"
             f"Entrada: {fill_price:.4f}\n"
-            f"SL: {sl:.4f} | TP: {tp:.4f}\n"
-            f"Qty: {qty:.4f} | Modo: {mode}{stop_txt}\n"
+            f"SL: {sl:.4f} | TP: {tp:.4f}{rr_icon}\n"
+            f"Qty: {qty:.4f} | Modo: {mode} | ADX: {adx_val:.0f}{stop_txt}\n"
             f"Detalhe: {detalhe}"
         )
     else:
@@ -1382,7 +1396,7 @@ def run():
 
                     abrir_trade(
                         symbol, direction, closes, highs, lows,
-                        atr_val, mode, detalhe, mem
+                        atr_val, mode, detalhe, mem, score
                     )
                     mem = load_memory()
                     time.sleep(2)
