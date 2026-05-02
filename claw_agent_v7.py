@@ -61,6 +61,7 @@ RATIO_ALVO        = 2.0     # RR mínimo 2:1
 MAX_LOSS_DIA      = 7.5     # Circuit breaker diário — reduzido para 2.5x risco
 MAX_PERDAS_SEGUIDAS = 3     # Circuit breaker por série negativa (era 4)
 COOLDOWN_MIN      = 120     # 2 horas bloqueado após circuit breaker (era 15 min!)
+MARGIN_RATIO_MAX  = 75.0    # % rácio de margem Cross — fecha tudo acima disto (liq a 100%)
 MAX_TRADES_ABERTOS = 4      # Máximo posições simultâneas — reduzido de 5 para 4
 
 # Tecto direcional — evita correlação (BTC é tratado separadamente)
@@ -218,6 +219,24 @@ def get_positions() -> dict | None:
         return pos
     except Exception as e:
         print(f"[ERRO] get_positions: {e}")
+    return None
+
+def get_margin_ratio() -> float | None:
+    """Rácio de margem da conta Cross Futures (%). Liquidação ocorre a 100%."""
+    try:
+        r = requests.get(
+            f"{BASE_URL}/fapi/v2/account",
+            params=_sign({}),
+            headers=_headers(),
+            timeout=10
+        )
+        data = r.json()
+        maint   = float(data.get("totalMaintMargin",  0))
+        balance = float(data.get("totalMarginBalance", 0))
+        if balance > 0:
+            return round(maint / balance * 100, 2)
+    except Exception as e:
+        print(f"[ERRO] get_margin_ratio: {e}")
     return None
 
 def set_leverage(symbol: str):
@@ -940,6 +959,22 @@ def gerir_posicoes(mem: dict):
     Verifica posições abertas contra SL/TP definidos.
     Cross margin — SL manual para evitar liquidação da conta toda.
     """
+    # ── Salvaguarda de margem — fecha tudo se rácio > 75% ──
+    ratio = get_margin_ratio()
+    if ratio is not None and ratio >= MARGIN_RATIO_MAX:
+        posicoes_todas = get_positions() or {}
+        for sym, pos in posicoes_todas.items():
+            close_position(sym, pos["qty"], pos["side"])
+            mem.get("trades_abertos", {}).pop(sym, None)
+        save_memory(mem)
+        tg(
+            f"🚨 <b>MARGEM CRÍTICA — TUDO FECHADO</b>\n"
+            f"Rácio de margem: {ratio:.1f}% (limite: {MARGIN_RATIO_MAX:.0f}%)\n"
+            f"Todas as posições fechadas para evitar liquidação."
+        )
+        print(f"[CRÍTICO] Margem {ratio:.1f}% — todas as posições fechadas")
+        return
+
     posicoes_binance = get_positions()
     if posicoes_binance is None:
         print("[AVISO] gerir_posicoes: API falhou, ciclo ignorado")
