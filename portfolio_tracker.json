@@ -1,0 +1,71 @@
+{
+  "snapshots": [
+    {
+      "data": "2026-05-03",
+      "hora": "14:22",
+      "carteiras": {
+        "binance_spot": {
+          "moeda": "USD",
+          "total": 220.14,
+          "pl_dia": -0.84,
+          "pl_dia_pct": -0.38,
+          "ativos": {
+            "USDC": { "qtd": 118.98, "valor_usd": 118.98 },
+            "BTC":  { "qtd": 0.00128541, "valor_usd": 101.14, "preco_custo": 78893.60 }
+          }
+        },
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3749.82,
+          "ativos": {
+            "BTC":  { "qtd": 0.03012858, "valor_usd": 2369.94 },
+            "ETH":  { "qtd": 0.43951384, "valor_usd": 1021.76 },
+            "SOL":  { "qtd": 2.73638237, "valor_usd": 230.10, "staking_apy": 5.83 },
+            "XRP":  { "qtd": 84.566087,  "valor_usd": 117.96 },
+            "LINK": { "qtd": 0.96250677, "valor_usd": 8.82 },
+            "DOT":  { "qtd": 1.00,       "valor_usd": 1.21 },
+            "HBAR": { "qtd": 0.36102351, "valor_usd": 0.03 },
+            "TON":  { "qtd": 0.0041635,  "valor_usd": 0.01, "staking_apy": 19.44 }
+          }
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 882.36,
+          "ativos": {
+            "VWCE": { "qtd": 1.77969297, "valor_eur": 274.00, "pl_pct": 0.14 },
+            "CEG":  { "qtd": 0.91517839, "valor_eur": 240.95, "pl_pct": 5.62 },
+            "HO":   { "qtd": 0.64406921, "valor_eur": 150.65, "pl_pct": -11.03 },
+            "LEU":  { "qtd": 0.55160035, "valor_eur": 97.18,  "pl_pct": -4.00 },
+            "LHX":  { "qtd": 0.33411293, "valor_eur": 91.16,  "pl_pct": -8.84 },
+            "Z4Q":  { "qtd": 3.69385342, "valor_eur": 20.43,  "pl_pct": 100.00 },
+            "META": { "qtd": 0.01538492, "valor_eur": 7.99,   "pl_pct": -9.31 }
+          }
+        },
+        "invest_crypto": {
+          "moeda": "EUR",
+          "total": 5993.52,
+          "ativos": {
+            "PAXG": { "qtd": 0.162139,  "valor_eur": 3937.45 },
+            "ETH":  { "qtd": 0.00351,   "valor_eur": 1983.14 },
+            "SOL":  { "qtd": 0.0026,    "valor_eur": 71.74 },
+            "XRP":  { "qtd": 6.438534,  "valor_eur": 1.19 }
+          }
+        },
+        "invest_etf_stocks": {
+          "moeda": "USD",
+          "ativos": {
+            "ETN": { "qtd": 0.28942, "valor_usd": 426.79 }
+          }
+        }
+      },
+      "resumo": {
+        "binance_spot_usd": 220.14,
+        "tangem_usd": 3749.82,
+        "invest_stocks_eur": 882.36,
+        "invest_crypto_eur": 5993.52,
+        "invest_etf_usd": 426.79,
+        "nota": "Binance Futuros gerido pelo Claw Agent v7 (separado)"
+      }
+    }
+  ]
+}
