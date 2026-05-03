@@ -116,7 +116,7 @@ ROC_PERIOD = 10      # Rate of Change — velocidade do momentum (Mudrex, Zignal
 CVD_PERIOD = 20      # Cumulative Volume Delta (Phemex, Bookmap, CoinGlass 2025)
 
 # Sessões (UTC) — manhã europeia + abertura NY
-SESSOES_UTC       = [(7, 20)]
+SESSOES_UTC       = [(5, 23)]
 CHECK_EVERY       = 240     # 4 minutos entre scans de novos sinais
 CHECK_POSICOES    = 30      # 30 segundos entre verificações de SL/TP
 
