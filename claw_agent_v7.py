@@ -1246,6 +1246,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     else:
         erro = order.get("msg", "?") if order else "sem resposta"
         print(f"[ERRO] Ordem {symbol}: {erro}")
+        tg(f"⚠️ <b>Ordem falhou</b> — {symbol}\nDirecção: {direction} | Erro: {erro}")
 
 # ─────────────────────────────────────────────
 #  VALIDAÇÃO DE CREDENCIAIS
