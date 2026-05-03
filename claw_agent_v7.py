@@ -102,6 +102,13 @@ ATR_PERIOD        = 14
 STOCH_PERIOD      = 14
 LOOKBACK          = 220     # Velas históricas (precisa de 220 para EMA99)
 
+# Supertrend — confirmação de tendência (add-on pesquisa 2025)
+SUPERTREND_PERIOD = 10
+SUPERTREND_MULT   = 3.0
+
+# Partial TP — fecha 50% a meio caminho do TP, deixa o resto correr
+PARTIAL_TP_RATIO  = 0.5    # fecha 50% quando preço atinge 50% do TP
+
 # Sessões (UTC) — manhã europeia + abertura NY
 SESSOES_UTC       = [(7, 20)]
 CHECK_EVERY       = 240     # 4 minutos entre scans de novos sinais
@@ -496,6 +503,68 @@ def adx(highs: list, lows: list, closes: list, period: int = 14) -> float:
         return 25.0
     return sum(dx_list[-period:]) / period
 
+def supertrend(highs: list, lows: list, closes: list,
+               period: int = SUPERTREND_PERIOD, mult: float = SUPERTREND_MULT) -> bool | None:
+    """
+    Supertrend ATR-based trend indicator.
+    True=bullish (preço acima da linha), False=bearish, None=dados insuficientes.
+    Fonte validada: goodcrypto.app + GitHub yeong-hwan/supertrend-cloud.
+    """
+    need = period * 2 + 2
+    if len(closes) < need:
+        return None
+    h, l, c = highs[-need:], lows[-need:], closes[-need:]
+    trs = [max(h[i]-l[i], abs(h[i]-c[i-1]), abs(l[i]-c[i-1])) for i in range(1, len(c))]
+
+    direction = True
+    prev_ub = prev_lb = None
+
+    for i in range(1, len(c)):
+        start = max(0, i - period)
+        atr_i = sum(trs[start:i]) / max(i - start, 1)
+        hl2 = (h[i] + l[i]) / 2
+        basic_ub = hl2 + mult * atr_i
+        basic_lb = hl2 - mult * atr_i
+
+        if prev_ub is None:
+            prev_ub, prev_lb = basic_ub, basic_lb
+            continue
+
+        final_ub = basic_ub if basic_ub < prev_ub or c[i-1] > prev_ub else prev_ub
+        final_lb = basic_lb if basic_lb > prev_lb or c[i-1] < prev_lb else prev_lb
+
+        if c[i] > prev_ub:
+            direction = True
+        elif c[i] < prev_lb:
+            direction = False
+
+        prev_ub, prev_lb = final_ub, final_lb
+
+    return direction
+
+
+def htf_confirmacao(symbol: str, direction: str) -> bool:
+    """
+    Confirma direcção no 1H antes de entrar no 5min (MTF filter).
+    EMA9 > EMA21 na 1H → só LONG; EMA9 < EMA21 → só SHORT.
+    Falha da API → fail-open (não veta).
+    Fonte: TrendRider MTF (80% redução de falsos sinais).
+    """
+    try:
+        klines_1h = get_klines(symbol, interval="1h", limit=50)
+        if not klines_1h or len(klines_1h) < 30:
+            return True
+        c1h = [float(k[4]) for k in klines_1h]
+        ema9_1h  = ema(c1h, 9)
+        ema21_1h = ema(c1h, 21)
+        if direction == "LONG":
+            return ema9_1h[-1] > ema21_1h[-1]
+        else:
+            return ema9_1h[-1] < ema21_1h[-1]
+    except Exception:
+        return True
+
+
 def funding_rate_ok(symbol: str, direction: str) -> bool:
     """Veta entradas contra funding rate extremo (>0.1% ou <-0.1%)."""
     try:
@@ -680,6 +749,13 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list):
     if atr_val / price > ATR_MIN_PCT * 1.5:
         score_long  += 1
         score_short += 1
+
+    # Supertrend (ATR-based trend confirmation)
+    st_bull = supertrend(highs, lows, closes)
+    if st_bull is True:
+        score_long  += 2
+    elif st_bull is False:
+        score_short += 2
 
     # Decisão
     if score_long >= SCORE_ALERTA and price > ema99[-1]:
@@ -1058,6 +1134,31 @@ def gerir_posicoes(mem: dict):
             log_trade(symbol, side, entry, sl, tp, qty, pos["pnl"], "TIME_TP")
             continue
 
+        # ── Partial TP: fecha 50% quando atinge metade do caminho para o TP ──
+        entry_trade = trade.get("entry", 0)
+        if sl > 0 and tp > 0 and not trade.get("partial_tp_done") and entry_trade > 0:
+            if side == "LONG":
+                mid_tp = entry_trade + (tp - entry_trade) * PARTIAL_TP_RATIO
+                hit_partial = price >= mid_tp
+            else:
+                mid_tp = entry_trade - (entry_trade - tp) * PARTIAL_TP_RATIO
+                hit_partial = price <= mid_tp
+            if hit_partial:
+                decimals_p = SYMBOL_PRECISION.get(symbol, 4)
+                qty_total  = abs(pos["qty"])
+                qty_parcial = round(qty_total * 0.5, decimals_p)
+                if qty_parcial > 0:
+                    close_position(symbol, qty_parcial, side)
+                    mem["trades_abertos"][symbol]["partial_tp_done"] = True
+                    mem["trades_abertos"][symbol]["qty"] = round(qty_total - qty_parcial, decimals_p)
+                    pnl_parcial = round(abs(mid_tp - entry_trade) * qty_parcial * ALAVANCAGEM, 2)
+                    tg(
+                        f"📊 <b>PARTIAL TP</b> — {symbol}\n"
+                        f"50% fechado a {price:.4f}\n"
+                        f"PnL estimado: +{pnl_parcial:.2f} USDC | Resto a correr com trailing"
+                    )
+                    save_memory(mem)
+
         # ── Corte de emergência: ROI ≤ -5% (backup quando STOP_MARKET falha) ──
         if roi <= -5.0:
             close_position(symbol, pos["qty"], side)
@@ -1162,6 +1263,20 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     # Filtro de mercado: Funding Rate + OI + Long/Short Ratio
     if not market_conditions_ok(symbol, direction):
         print(f"[AVISO] {symbol}: condições de mercado desfavoráveis para {direction}")
+        return
+
+    # MTF 1H — confirma direcção no timeframe superior
+    if not htf_confirmacao(symbol, direction):
+        print(f"[AVISO] {symbol}: HTF 1H contra {direction} — veto MTF")
+        return
+
+    # Supertrend — veto se tendência ATR contradiz sinal
+    st_bull = supertrend(highs, lows, closes)
+    if direction == "LONG" and st_bull is False:
+        print(f"[AVISO] {symbol}: Supertrend bearish — LONG vetado")
+        return
+    if direction == "SHORT" and st_bull is True:
+        print(f"[AVISO] {symbol}: Supertrend bullish — SHORT vetado")
         return
 
     saldo = get_balance()
