@@ -109,6 +109,12 @@ SUPERTREND_MULT   = 3.0
 # Partial TP — fecha 50% a meio caminho do TP, deixa o resto correr
 PARTIAL_TP_RATIO  = 0.5    # fecha 50% quando preço atinge 50% do TP
 
+# Novos indicadores — pesquisa 2025-2026 (3 fontes confirmadas por indicador)
+CMF_PERIOD = 20      # Chaikin Money Flow (LuxAlgo, Kavout, Phemex 2025)
+MFI_PERIOD = 10      # Money Flow Index — RSI+volume (Zignaly, TradeSanta 2025)
+ROC_PERIOD = 10      # Rate of Change — velocidade do momentum (Mudrex, Zignaly)
+CVD_PERIOD = 20      # Cumulative Volume Delta (Phemex, Bookmap, CoinGlass 2025)
+
 # Sessões (UTC) — manhã europeia + abertura NY
 SESSOES_UTC       = [(7, 20)]
 CHECK_EVERY       = 240     # 4 minutos entre scans de novos sinais
@@ -118,6 +124,7 @@ CHECK_POSICOES    = 30      # 30 segundos entre verificações de SL/TP
 MEMORY_FILE = "claw_memory_v7.json"
 PNL_FILE    = "claw_pnl_v7.json"
 BASE_URL    = "https://fapi.binance.com"
+_fg_cache: dict = {"value": 50, "ts": 0.0}   # cache Fear & Greed Index (1h)
 
 # ─────────────────────────────────────────────
 #  BINANCE — FUNÇÕES BASE
@@ -657,6 +664,138 @@ def volume_ok(volumes: list, lookback: int = 20) -> bool:
     avg = sum(volumes[-lookback-1:-1]) / lookback
     return volumes[-1] > avg * 0.9  # 90% da média (era 100% — mais permissivo)
 
+def cmf_val(closes: list, highs: list, lows: list, volumes: list,
+            period: int = CMF_PERIOD) -> float:
+    """
+    Chaikin Money Flow. > 0 = capital a entrar, < 0 = capital a sair.
+    Confirma se o volume suporta a direcção do trade.
+    Fonte: Kavout, Phemex Academy, Oanda (2025).
+    """
+    if len(closes) < period + 1:
+        return 0.0
+    mfm_sum = vol_sum = 0.0
+    for i in range(-period, 0):
+        hl = highs[i] - lows[i]
+        mfm = ((closes[i] - lows[i]) - (highs[i] - closes[i])) / hl if hl > 0 else 0.0
+        mfm_sum += mfm * volumes[i]
+        vol_sum  += volumes[i]
+    return mfm_sum / vol_sum if vol_sum > 0 else 0.0
+
+def mfi_val(closes: list, highs: list, lows: list, volumes: list,
+            period: int = MFI_PERIOD) -> float:
+    """
+    Money Flow Index (0-100). RSI com volume — > 80 overbought, < 20 oversold.
+    Mais fiável que RSI simples para crypto (inclui pressão de volume real).
+    Fonte: Zignaly, TradeSanta, Mudrex (2025).
+    """
+    if len(closes) < period + 2:
+        return 50.0
+    tp = [(highs[i] + lows[i] + closes[i]) / 3 for i in range(len(closes))]
+    mf = [tp[i] * volumes[i] for i in range(len(tp))]
+    pos = neg = 0.0
+    for i in range(-period, 0):
+        if tp[i] > tp[i - 1]:
+            pos += mf[i]
+        else:
+            neg += mf[i]
+    if neg == 0:
+        return 100.0
+    return 100 - (100 / (1 + pos / neg))
+
+def roc_val(closes: list, period: int = ROC_PERIOD) -> float:
+    """
+    Rate of Change (%). Mede a velocidade do momentum.
+    Positivo e crescente = momentum saudável para long.
+    Fonte: Mudrex, Zignaly indicators guide (2025).
+    """
+    if len(closes) < period + 1:
+        return 0.0
+    prev = closes[-period - 1]
+    return (closes[-1] - prev) / prev * 100 if prev != 0 else 0.0
+
+def bb_squeeze(closes: list, period: int = BB_PERIOD, lookback: int = 50) -> bool:
+    """
+    Detecta Bollinger Band squeeze (volatilidade nos 20% mais baixos históricos).
+    Durante squeeze: não entrar — aguardar breakout com volume.
+    Fonte: LuxAlgo Squeeze Strategy, ainvest.com Bitcoin BB 2025.
+    """
+    if len(closes) < period + lookback:
+        return False
+    upper, mid, lower = bollinger_bands(closes, period)
+    if mid == 0:
+        return False
+    current_width = (upper - lower) / mid
+    widths = []
+    for i in range(1, lookback + 1):
+        sub = closes[:len(closes) - i]
+        if len(sub) < period:
+            break
+        u, m, l = bollinger_bands(sub, period)
+        if m > 0:
+            widths.append((u - l) / m)
+    if not widths:
+        return False
+    rank = sum(1 for w in widths if current_width > w) / len(widths)
+    return rank < 0.2   # width nos 20% mais baixos = squeeze
+
+def cvd_bias(taker_buy_vols: list, volumes: list, period: int = CVD_PERIOD) -> float:
+    """
+    CVD ratio centrado em 0. > 0 = mais compras agressivas, < 0 = mais vendas.
+    Usa takerBuyBaseAssetVolume (índice 9 dos klines Binance Futures).
+    Fonte: Phemex CVD Guide, Bookmap CVD strategy, CoinGlass (2025).
+    """
+    if len(taker_buy_vols) < period or len(volumes) < period:
+        return 0.0
+    buy   = sum(taker_buy_vols[-period:])
+    total = sum(volumes[-period:])
+    return (buy / total - 0.5) if total > 0 else 0.0
+
+def get_daily_vwap_bands(klines: list) -> tuple:
+    """
+    VWAP diário com bandas ±1σ e ±2σ (desde meia-noite UTC).
+    Retorna (vwap, upper_1σ, lower_1σ, upper_2σ, lower_2σ).
+    Preço acima de upper_2σ = sobre-estendido → veto long.
+    Preço abaixo de lower_2σ = sobre-estendido → veto short.
+    Fonte: FXNX VWAP Scalping, Mudrex VWAP guide (2025).
+    """
+    midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    midnight_ms = int(midnight.timestamp() * 1000)
+    today = [k for k in klines if int(k[0]) >= midnight_ms]
+    if len(today) < 5:
+        return None, None, None, None, None
+    tps  = [(float(k[2]) + float(k[3]) + float(k[4])) / 3 for k in today]
+    vols = [float(k[5]) for k in today]
+    cum_vol = sum(vols)
+    if cum_vol == 0:
+        return None, None, None, None, None
+    vwap     = sum(tp * v for tp, v in zip(tps, vols)) / cum_vol
+    variance = sum((tp - vwap) ** 2 * v for tp, v in zip(tps, vols)) / cum_vol
+    std      = variance ** 0.5
+    return vwap, vwap + std, vwap - std, vwap + 2 * std, vwap - 2 * std
+
+def get_fear_greed() -> int:
+    """
+    Fear & Greed Index (0=Extreme Fear, 100=Extreme Greed). Cache de 1h.
+    < 20: Extreme Fear → não abrir longs (capitulação).
+    > 80: Extreme Greed → não abrir shorts (euforia).
+    API gratuita: alternative.me.
+    Fonte: Bitcoin Magazine backtest, cfgi.io M.A.E.V.E. 84% WR (2025).
+    """
+    global _fg_cache
+    if time.time() - _fg_cache["ts"] < 3600:
+        return _fg_cache["value"]
+    try:
+        r = requests.get(
+            "https://api.alternative.me/fng/?limit=1&format=json",
+            timeout=8
+        )
+        val = int(r.json()["data"][0]["value"])
+        _fg_cache = {"value": val, "ts": time.time()}
+        print(f"[F&G] Fear & Greed Index: {val}")
+        return val
+    except Exception:
+        return _fg_cache["value"]   # fallback: último valor ou 50 neutro
+
 # ─────────────────────────────────────────────
 #  DETECÇÃO DE MODO DE MERCADO
 # ─────────────────────────────────────────────
@@ -756,6 +895,33 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list):
         score_long  += 2
     elif st_bull is False:
         score_short += 2
+
+    # StochRSI zona (oversold/overbought claro = confirmação adicional)
+    if sr_val < 30:
+        score_long  += 1
+    elif sr_val > 70:
+        score_short += 1
+
+    # CMF — confirma se há capital real a entrar na direcção
+    cmf_v = cmf_val(closes, highs, lows, volumes)
+    if cmf_v > 0.05:
+        score_long  += 1
+    elif cmf_v < -0.05:
+        score_short += 1
+
+    # MFI — Money Flow Index (RSI com volume, mais fiável em crypto)
+    mfi_v = mfi_val(closes, highs, lows, volumes)
+    if mfi_v < 45:
+        score_long  += 1
+    elif mfi_v > 55:
+        score_short += 1
+
+    # ROC — momentum a acelerar na direcção certa
+    roc_v = roc_val(closes)
+    if roc_v > 0.3:
+        score_long  += 1
+    elif roc_v < -0.3:
+        score_short += 1
 
     # Decisão
     if score_long >= SCORE_ALERTA and price > ema99[-1]:
@@ -1258,7 +1424,8 @@ def circuit_breaker_activo(mem: dict) -> tuple[bool, str]:
 # ─────────────────────────────────────────────
 def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
                 lows: list, atr_val: float, mode: str, detalhe: str, mem: dict,
-                score: int = 0):
+                score: int = 0, volumes: list = None,
+                taker_buy_vols: list = None, klines: list = None):
 
     # Filtro de mercado: Funding Rate + OI + Long/Short Ratio
     if not market_conditions_ok(symbol, direction):
@@ -1278,6 +1445,43 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     if direction == "SHORT" and st_bull is True:
         print(f"[AVISO] {symbol}: Supertrend bullish — SHORT vetado")
         return
+
+    # Fear & Greed macro-filter (API gratuita, cache 1h)
+    # Extreme Fear (<20): longs em capitulação — risco alto
+    # Extreme Greed (>80): shorts contra euforia — risco alto
+    fg_val = get_fear_greed()
+    if direction == "LONG" and fg_val < 20:
+        print(f"[AVISO] {symbol}: F&G {fg_val} — Extreme Fear, LONG vetado")
+        return
+    if direction == "SHORT" and fg_val > 80:
+        print(f"[AVISO] {symbol}: F&G {fg_val} — Extreme Greed, SHORT vetado")
+        return
+
+    # BB Squeeze: não entrar em volatilidade comprimida (aguardar breakout)
+    if volumes and bb_squeeze(closes):
+        print(f"[AVISO] {symbol}: BB squeeze — volatilidade comprimida, aguardar breakout")
+        return
+
+    # CVD: veta se pressão de volume contradiz fortemente a direcção
+    if taker_buy_vols and volumes:
+        cvd_v = cvd_bias(taker_buy_vols, volumes)
+        if direction == "LONG" and cvd_v < -0.15:
+            print(f"[AVISO] {symbol}: CVD {cvd_v:.2f} — pressão vendedora dominante, LONG vetado")
+            return
+        if direction == "SHORT" and cvd_v > 0.15:
+            print(f"[AVISO] {symbol}: CVD {cvd_v:.2f} — pressão compradora dominante, SHORT vetado")
+            return
+
+    # VWAP ±2σ: não entrar quando preço está extremamente sobre-estendido
+    if klines:
+        _, _, _, upper_2, lower_2 = get_daily_vwap_bands(klines)
+        price_now = closes[-1]
+        if direction == "LONG" and upper_2 is not None and price_now > upper_2:
+            print(f"[AVISO] {symbol}: preço acima VWAP+2σ ({upper_2:.4f}) — sobre-estendido, LONG vetado")
+            return
+        if direction == "SHORT" and lower_2 is not None and price_now < lower_2:
+            print(f"[AVISO] {symbol}: preço abaixo VWAP-2σ ({lower_2:.4f}) — sobre-estendido, SHORT vetado")
+            return
 
     saldo = get_balance()
     if saldo is None:
@@ -1498,10 +1702,11 @@ def run():
                 if not klines or len(klines) < LOOKBACK // 2:
                     continue
 
-                closes  = [float(k[4]) for k in klines]
-                highs   = [float(k[2]) for k in klines]
-                lows    = [float(k[3]) for k in klines]
-                volumes = [float(k[5]) for k in klines]
+                closes         = [float(k[4])  for k in klines]
+                highs          = [float(k[2])  for k in klines]
+                lows           = [float(k[3])  for k in klines]
+                volumes        = [float(k[5])  for k in klines]
+                taker_buy_vols = [float(k[9])  for k in klines]  # CVD
 
                 atr_val = atr(highs, lows, closes)
                 vwap    = get_daily_vwap(klines)
@@ -1581,7 +1786,10 @@ def run():
 
                     abrir_trade(
                         symbol, direction, closes, highs, lows,
-                        atr_val, mode, detalhe, mem, score
+                        atr_val, mode, detalhe, mem, score,
+                        volumes=volumes,
+                        taker_buy_vols=taker_buy_vols,
+                        klines=klines
                     )
                     mem = load_memory()
                     time.sleep(2)
