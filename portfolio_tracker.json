@@ -43,18 +43,18 @@
         },
         "invest_crypto": {
           "moeda": "EUR",
-          "total": 5993.52,
+          "total": 718.33,
           "ativos": {
-            "PAXG": { "qtd": 0.162139,  "valor_eur": 3937.45 },
-            "ETH":  { "qtd": 0.00351,   "valor_eur": 1983.14 },
-            "SOL":  { "qtd": 0.0026,    "valor_eur": 71.74 },
-            "XRP":  { "qtd": 6.438534,  "valor_eur": 1.19 }
+            "PAXG": { "qtd": 0.162139, "valor_eur": 638.44, "preco_unitario": 3937.61 },
+            "ETH":  { "qtd": 0.00351,  "valor_eur": 6.96,   "preco_unitario": 1983.40 },
+            "SOL":  { "qtd": 0.0026,   "valor_eur": 71.74 },
+            "XRP":  { "qtd": 6.438534, "valor_eur": 1.19 }
           }
         },
         "invest_etf_stocks": {
-          "moeda": "USD",
+          "moeda": "EUR",
           "ativos": {
-            "ETN": { "qtd": 0.28942, "valor_usd": 426.79 }
+            "ETN": { "qtd": 0.28942, "valor_eur": 105.39, "preco_custo_eur": 343.72, "pl_total_pct": 5.94 }
           }
         }
       },
@@ -62,8 +62,8 @@
         "binance_spot_usd": 220.14,
         "tangem_usd": 3749.82,
         "invest_stocks_eur": 882.36,
-        "invest_crypto_eur": 5993.52,
-        "invest_etf_usd": 426.79,
+        "invest_crypto_eur": 718.33,
+        "invest_etf_eur": 105.39,
         "nota": "Binance Futuros gerido pelo Claw Agent v7 (separado)"
       }
     }
