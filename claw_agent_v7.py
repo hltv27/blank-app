@@ -1335,6 +1335,12 @@ def run():
                     }
                     save_memory(mem)
                     print(f"[{hora}] {symbol} sincronizado da Binance")
+                    dir_icon = "🟢 LONG" if pos["side"] == "LONG" else "🔴 SHORT"
+                    tg(
+                        f"🔄 <b>{dir_icon}</b> — {symbol} (sincronizada)\n"
+                        f"Entrada: {pos['entry']:.4f} | Qty: {abs(pos['qty'])}\n"
+                        f"<i>Posição já existia na Binance — bot a monitorizar</i>"
+                    )
 
             # Máximo trades abertos (usa posições reais)
             if len(posicoes_reais) >= MAX_TRADES_ABERTOS:
