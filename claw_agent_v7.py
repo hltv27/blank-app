@@ -54,7 +54,7 @@ SYMBOL_PRECISION = {
 # ─────────────────────────────────────────────
 #  CONFIGURAÇÃO DE RISCO
 # ─────────────────────────────────────────────
-CAPITAL_MAX_BOT   = 50.0    # USDC — bot nunca usa mais que isto
+CAPITAL_MAX_BOT   = 75.0    # USDC — bot nunca usa mais que isto
 RISCO_USDC        = 3.0     # USDC por trade (fixo)
 ALAVANCAGEM       = 10      # 10x Cross Margin
 RATIO_ALVO        = 2.0     # RR mínimo 2:1
