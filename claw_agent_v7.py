@@ -56,7 +56,7 @@ SYMBOL_PRECISION = {
 # ─────────────────────────────────────────────
 CAPITAL_MAX_BOT   = 75.0    # USDC — bot nunca usa mais que isto
 RISCO_USDC        = 3.0     # USDC por trade (fixo)
-ALAVANCAGEM       = 10      # 10x Cross Margin
+ALAVANCAGEM       = 5       # 5x Cross Margin (era 10x — reduzido para segurança)
 RATIO_ALVO        = 2.0     # RR mínimo 2:1
 MAX_LOSS_DIA      = 7.5     # Circuit breaker diário — reduzido para 2.5x risco
 MAX_PERDAS_SEGUIDAS = 3     # Circuit breaker por série negativa (era 4)
@@ -879,9 +879,9 @@ def get_fear_greed() -> int:
 # ─────────────────────────────────────────────
 def detect_market_mode(closes: list, atr_val: float) -> str:
     """
-    TRENDING: ATR >= ATR_MIN_PCT e MA99 com inclinação clara
-    RANGING:  ATR entre ATR_MIN_PCT e RANGING_ATR_MAX — usa BB
-    MORTO:    ATR < ATR_MIN_PCT — sem operação
+    TRENDING: ATR >= ATR_MIN_PCT e MA99 com inclinação clara.
+    MORTO:    tudo o resto — sem operação.
+    Modo RANGING removido: mean-reversion em alts com alavancagem é alto risco.
     """
     price = closes[-1]
     if atr_val == 0 or price == 0:
@@ -896,8 +896,8 @@ def detect_market_mode(closes: list, atr_val: float) -> str:
     ema_vals = ema(closes, EMA_TREND)
     slope = (ema_vals[-1] - ema_vals[-6]) / ema_vals[-6] if ema_vals[-6] != 0 else 0
 
-    if atr_pct <= RANGING_ATR_MAX and abs(slope) < 0.0008:
-        return "RANGING"
+    if abs(slope) < 0.0008:
+        return "MORTO"
 
     return "TRENDING"
 
@@ -1413,7 +1413,7 @@ def gerir_posicoes(mem: dict):
                     close_position(symbol, qty_parcial, side)
                     mem["trades_abertos"][symbol]["partial_tp_done"] = True
                     mem["trades_abertos"][symbol]["qty"] = round(qty_total - qty_parcial, decimals_p)
-                    pnl_parcial = round(abs(mid_tp - entry_trade) * qty_parcial * ALAVANCAGEM, 2)
+                    pnl_parcial = round(abs(mid_tp - entry_trade) * qty_parcial, 2)
                     tg(
                         f"📊 <b>PARTIAL TP</b> — {symbol}\n"
                         f"50% fechado a {price:.4f}\n"
@@ -1803,28 +1803,8 @@ def run():
 
             # ── Scan dos 9 pares ──
             for symbol in SYMBOLS:
-                # ── Reversão de sinal: fecha posição se mercado inverteu ──
+                # Posição já aberta neste símbolo — gerir_posicoes trata disso
                 if symbol in posicoes_reais:
-                    pos_aberta = posicoes_reais[symbol]
-                    klines_rev = get_klines(symbol)
-                    if klines_rev and len(klines_rev) >= LOOKBACK // 2:
-                        c = [float(k[4]) for k in klines_rev]
-                        h = [float(k[2]) for k in klines_rev]
-                        l = [float(k[3]) for k in klines_rev]
-                        v = [float(k[5]) for k in klines_rev]
-                        dir_rev, score_rev, _ = signal_trending(c, h, l, v)
-                        lado = pos_aberta["side"]
-                        oposto = (lado == "LONG" and dir_rev == "SHORT") or \
-                                 (lado == "SHORT" and dir_rev == "LONG")
-                        if oposto and score_rev >= SCORE_FORTE:
-                            pnl_est = pos_aberta.get("pnl", 0)
-                            atualizar_stats_simbolo(symbol, pnl_est >= 0, pnl_est, mem)
-                            mem["trades_abertos"].pop(symbol, None)
-                            print(f"[{hora}] {symbol} ESTORNO {lado}→{dir_rev} score={score_rev}")
-                            estornar_posicao(
-                                symbol, pos_aberta["qty"], lado,
-                                c, h, l, atr(h, l, c), mem
-                            )
                     continue
 
                 klines = get_klines(symbol)
@@ -1840,37 +1820,12 @@ def run():
                 atr_val = atr(highs, lows, closes)
                 vwap    = get_daily_vwap(klines)
 
-                # ── Modo ORB: segunda a sexta, 5min após abertura NY até 3h depois ──
-                orb_h, orb_m = ny_open_utc()
-                orb_fim_h    = (orb_h + ORB_FIM_HORAS) % 24
-                em_janela_orb = (
-                    now_utc.weekday() < 5 and (
-                        (now_utc.hour == orb_h and now_utc.minute >= orb_m + 5) or
-                        (orb_h < now_utc.hour < orb_fim_h)
-                    )
-                )
-
-                if em_janela_orb:
-                    direction, score, detalhe = signal_orb(closes, highs, lows, klines)
-                    mode = "ORB"
-                    if not direction:
-                        # Sem sinal ORB → tenta TRENDING (não RANGING durante abertura NY)
-                        mode_reg = detect_market_mode(closes, atr_val)
-                        if mode_reg == "TRENDING":
-                            direction, score, detalhe = signal_trending(closes, highs, lows, volumes)
-                            mode = "TRENDING"
-                        else:
-                            print(f"[{hora}] {symbol} ORB {detalhe}")
-                            continue
-                else:
-                    mode = detect_market_mode(closes, atr_val)
-                    if mode == "MORTO":
-                        print(f"[{hora}] {symbol} MERCADO_MORTO ATR {atr_val/closes[-1]*100:.3f}%")
-                        continue
-                    if mode == "TRENDING":
-                        direction, score, detalhe = signal_trending(closes, highs, lows, volumes)
-                    else:
-                        direction, score, detalhe = signal_ranging(closes)
+                # Só modo TRENDING — RANGING e ORB removidos
+                mode = detect_market_mode(closes, atr_val)
+                if mode != "TRENDING":
+                    print(f"[{hora}] {symbol} {mode} ATR {atr_val/closes[-1]*100:.3f}%")
+                    continue
+                direction, score, detalhe = signal_trending(closes, highs, lows, volumes)
 
                 print(f"[{hora}] {symbol} {mode} {detalhe}")
 
