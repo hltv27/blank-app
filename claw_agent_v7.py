@@ -1244,8 +1244,10 @@ def verificar_veto_simbolo(symbol: str, mem: dict) -> tuple[bool, str]:
     return False, ""
 
 def save_memory(m: dict):
-    with open(MEMORY_FILE, "w") as f:
+    tmp = MEMORY_FILE + ".tmp"
+    with open(tmp, "w") as f:
         json.dump(m, f, indent=2)
+    os.replace(tmp, MEMORY_FILE)
 
 def log_trade(symbol: str, direction: str, entry: float, sl: float, tp: float,
               qty: float, pnl: float | None = None, status: str = "OPEN"):
@@ -1267,8 +1269,10 @@ def log_trade(symbol: str, direction: str, entry: float, sl: float, tp: float,
             "pnl": pnl,
             "status": status
         })
-        with open(PNL_FILE, "w") as f:
+        tmp = PNL_FILE + ".tmp"
+        with open(tmp, "w") as f:
             json.dump(trades, f, indent=2)
+        os.replace(tmp, PNL_FILE)
     except Exception as e:
         print(f"[ERRO] log_trade: {e}")
 
