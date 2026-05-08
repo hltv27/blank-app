@@ -118,7 +118,16 @@ CVD_PERIOD = 20      # Cumulative Volume Delta (Phemex, Bookmap, CoinGlass 2025)
 # Sessões (UTC) — manhã europeia + abertura NY
 SESSOES_UTC       = [(5, 23)]
 CHECK_EVERY       = 240     # 4 minutos entre scans de novos sinais
-CHECK_POSICOES    = 30      # 30 segundos entre verificações de SL/TP
+CHECK_POSICOES    = 30      # 30 segundos entre verificações de SL/TP (sem posições)
+CHECK_POSICOES_FAST = 10   # 10 segundos quando há posições abertas
+
+# Proteções adicionais — eventos extremos
+SPREAD_MAX_PCT      = 0.05  # spread bid-ask máximo aceitável (%) antes de entrar
+ATR_REGIME_MULT     = 3.0   # ATR atual > 3× média = regime violento (CPI, flash crash)
+ATR_REGIME_LOOKBACK = 50    # velas históricas para calcular ATR médio
+BTC_CRASH_PCT       = 3.0   # se BTC caiu >3% na última vela fecha todos os longs
+STOP_RETRY_MAX      = 3     # tentativas de colocar stop order antes de desistir
+EMERGENCY_ROI_CUT   = -4.0  # corte emergência a -4% ROI (era -5%)
 
 # Ficheiros de estado
 MEMORY_FILE = "claw_memory_v7.json"
@@ -664,6 +673,75 @@ def volume_ok(volumes: list, lookback: int = 20) -> bool:
     avg = sum(volumes[-lookback-1:-1]) / lookback
     return volumes[-1] > avg * 0.9  # 90% da média (era 100% — mais permissivo)
 
+def spread_ok(symbol: str) -> bool:
+    """
+    Verifica spread bid-ask antes de entrar. Spread largo = slippage garantido.
+    Em eventos macro (CPI, notícias) o spread expande 5-20×.
+    """
+    try:
+        r = requests.get(
+            f"{BASE_URL}/fapi/v1/ticker/bookTicker",
+            params={"symbol": symbol},
+            timeout=5
+        )
+        data = r.json()
+        bid = float(data["bidPrice"])
+        ask = float(data["askPrice"])
+        if bid <= 0:
+            return True
+        spread_pct = (ask - bid) / bid * 100
+        if spread_pct > SPREAD_MAX_PCT:
+            print(f"[AVISO] {symbol}: spread {spread_pct:.3f}% > {SPREAD_MAX_PCT}% — skip")
+            return False
+    except Exception:
+        pass
+    return True
+
+def volatility_regime_ok(closes: list, highs: list, lows: list) -> bool:
+    """
+    Veta entradas quando volatilidade está em regime extremo.
+    Se ATR atual > 3× média dos últimos 50 períodos = CPI, flash crash, cascade.
+    Protege contra: eventos macro violentos, flash moves multi-sigma, cascade days.
+    """
+    if len(closes) < ATR_REGIME_LOOKBACK + ATR_PERIOD + 1:
+        return True
+    atr_atual = atr(highs, lows, closes)
+    atrs = []
+    for i in range(1, ATR_REGIME_LOOKBACK + 1):
+        sub_c = closes[:-i]
+        sub_h = highs[:-i]
+        sub_l = lows[:-i]
+        if len(sub_c) > ATR_PERIOD:
+            atrs.append(atr(sub_h, sub_l, sub_c))
+    if not atrs:
+        return True
+    atr_medio = sum(atrs) / len(atrs)
+    if atr_medio > 0 and atr_atual > atr_medio * ATR_REGIME_MULT:
+        print(f"[REGIME] ATR {atr_atual:.6f} > {ATR_REGIME_MULT}× média {atr_medio:.6f} — regime violento, sem entrada")
+        return False
+    return True
+
+def btc_crash_detectado() -> bool:
+    """
+    Deteta dump súbito de BTC ≥ 3% na última vela de 5min.
+    Sinal para fechar todos os longs de altcoins (correlação alta em crash).
+    """
+    try:
+        klines_btc = get_klines("BTCUSDC", interval="5m", limit=3)
+        if not klines_btc or len(klines_btc) < 2:
+            return False
+        open_price  = float(klines_btc[-2][1])
+        close_price = float(klines_btc[-2][4])
+        if open_price <= 0:
+            return False
+        variacao = (close_price - open_price) / open_price * 100
+        if variacao <= -BTC_CRASH_PCT:
+            print(f"[CRASH] BTC dump {variacao:.2f}% na última vela — a fechar longs")
+            return True
+    except Exception:
+        pass
+    return False
+
 def cmf_val(closes: list, highs: list, lows: list, volumes: list,
             period: int = CMF_PERIOD) -> float:
     """
@@ -1201,6 +1279,24 @@ def gerir_posicoes(mem: dict):
     Verifica posições abertas contra SL/TP definidos.
     Cross margin — SL manual para evitar liquidação da conta toda.
     """
+    # ── BTC crash guard — fecha longs de altcoins em dump súbito ──
+    if btc_crash_detectado():
+        posicoes_crash = get_positions() or {}
+        fechados = []
+        for sym, pos in posicoes_crash.items():
+            if pos["side"] == "LONG" and sym != "BTCUSDC":
+                close_position(sym, pos["qty"], "LONG")
+                mem.get("trades_abertos", {}).pop(sym, None)
+                fechados.append(sym)
+        if fechados:
+            save_memory(mem)
+            tg(
+                f"⚡ <b>BTC CRASH GUARD</b>\n"
+                f"BTC dump ≥{BTC_CRASH_PCT}% detectado.\n"
+                f"Longs fechados: {', '.join(fechados)}\n"
+                f"<i>Proteção anti-correlação ativada.</i>"
+            )
+
     # ── Salvaguarda de margem — fecha tudo se rácio > 75% ──
     ratio = get_margin_ratio()
     if ratio is not None and ratio >= MARGIN_RATIO_MAX:
@@ -1325,8 +1421,8 @@ def gerir_posicoes(mem: dict):
                     )
                     save_memory(mem)
 
-        # ── Corte de emergência: ROI ≤ -5% (backup quando STOP_MARKET falha) ──
-        if roi <= -5.0:
+        # ── Corte de emergência: ROI ≤ -4% (backup quando STOP_MARKET falha) ──
+        if roi <= EMERGENCY_ROI_CUT:
             close_position(symbol, pos["qty"], side)
             mem["losses"] = mem.get("losses", 0) + 1
             mem["perdas_seguidas"] = mem.get("perdas_seguidas", 0) + 1
@@ -1427,6 +1523,15 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
                 score: int = 0, volumes: list = None,
                 taker_buy_vols: list = None, klines: list = None):
 
+    # Regime de volatilidade — veta entradas em eventos extremos (CPI, flash crash)
+    if not volatility_regime_ok(closes, highs, lows):
+        tg(f"⚡ <b>REGIME VIOLENTO</b> — {symbol}\nATR >{ATR_REGIME_MULT}× média histórica. Sem entrada.")
+        return
+
+    # Spread bid-ask — veta se spread expandido (slippage extremo)
+    if not spread_ok(symbol):
+        return
+
     # Filtro de mercado: Funding Rate + OI + Long/Short Ratio
     if not market_conditions_ok(symbol, direction):
         print(f"[AVISO] {symbol}: condições de mercado desfavoráveis para {direction}")
@@ -1525,7 +1630,19 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         tp_dist    = abs(tp - fill_price)
         rr_actual  = round(tp_dist / sl_dist, 1) if sl_dist > 0 else RATIO_ALVO
 
-        # Trailing Stop na Binance — segue o preço e maximiza lucro
+        # Verificação: confirma que posição existe na Binance antes de registar
+        time.sleep(1)
+        pos_verificada = get_positions()
+        if pos_verificada is not None and symbol not in pos_verificada:
+            print(f"[AVISO] {symbol}: ordem FILLED mas posição não encontrada — possível lag API")
+            tg(f"⚠️ <b>Lag API</b> — {symbol}\nOrdem confirmada mas posição não visível. A verificar...")
+            time.sleep(3)
+            pos_verificada = get_positions()
+            if pos_verificada is not None and symbol not in pos_verificada:
+                print(f"[ERRO] {symbol}: posição não confirmada após retry — abort")
+                return
+
+        # Trailing Stop com retry (API instability protection)
         stop_side     = "SELL" if direction == "LONG" else "BUY"
         callback_rate = max(0.5, min(5.0, round((atr_val * 1.5 / fill_price) * 100, 1)))
         decimals_sym  = SYMBOL_PRECISION.get(symbol, 4)
@@ -1533,7 +1650,17 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             activation = round(fill_price * (1 - callback_rate / 200), decimals_sym)
         else:
             activation = fill_price
-        stop_id = place_trailing_stop(symbol, stop_side, callback_rate, activation)
+        stop_id = None
+        for tentativa in range(1, STOP_RETRY_MAX + 1):
+            stop_id = place_trailing_stop(symbol, stop_side, callback_rate, activation)
+            if stop_id:
+                break
+            print(f"[AVISO] {symbol}: stop falhou (tentativa {tentativa}/{STOP_RETRY_MAX})")
+            time.sleep(2)
+        if not stop_id:
+            tg(f"🚨 <b>STOP NÃO COLOCADO</b> — {symbol}\nFechando posição por segurança.")
+            close_position(symbol, qty, direction)
+            return
 
         mem.setdefault("trades_abertos", {})[symbol] = {
             "direction": direction,
@@ -1614,15 +1741,17 @@ def run():
                 _sync_time()
                 ultima_sync_hora = now_utc.hour
 
-            # ── Gestão de posições abertas — a cada 30 segundos ──
-            if mem.get("trades_abertos"):
+            # ── Gestão de posições abertas — 10s com posições, 30s sem ──
+            tem_posicoes = bool(mem.get("trades_abertos"))
+            if tem_posicoes:
                 gerir_posicoes(mem)
                 mem = load_memory()
 
             # ── Scan de novos sinais — alinhado com velas de 5 min ──
             minuto = now_utc.minute
+            sleep_interval = CHECK_POSICOES_FAST if tem_posicoes else CHECK_POSICOES
             if minuto % 5 != 0 or minuto == ultimo_minuto_scan:
-                time.sleep(CHECK_POSICOES)
+                time.sleep(sleep_interval)
                 continue
 
             ultimo_minuto_scan = minuto
@@ -1805,7 +1934,7 @@ def run():
             print(f"[ERRO GERAL] {e}")
             tg(f"⚠️ Claw Agent erro: {e}")
 
-        time.sleep(CHECK_POSICOES)
+        time.sleep(CHECK_POSICOES_FAST if mem.get("trades_abertos") else CHECK_POSICOES)
 
 # ─────────────────────────────────────────────
 #  ARRANQUE
