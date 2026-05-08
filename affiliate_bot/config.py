@@ -8,9 +8,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent.parent
 
 class Config:
-    # AliExpress
-    ALIEXPRESS_APP_KEY = os.getenv("ALIEXPRESS_APP_KEY", "")
-    ALIEXPRESS_APP_SECRET = os.getenv("ALIEXPRESS_APP_SECRET", "")
+    # AliExpress (via RapidAPI DataHub)
+    RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")
     ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "")
 
     # Amazon
@@ -50,8 +49,7 @@ class Config:
     def validate(cls) -> list[str]:
         missing = []
         required = {
-            "ALIEXPRESS_APP_KEY": cls.ALIEXPRESS_APP_KEY,
-            "ALIEXPRESS_APP_SECRET": cls.ALIEXPRESS_APP_SECRET,
+            "RAPIDAPI_KEY": cls.RAPIDAPI_KEY,
             "TELEGRAM_BOT_TOKEN": cls.TELEGRAM_BOT_TOKEN,
             "TELEGRAM_CHANNEL_ID": cls.TELEGRAM_CHANNEL_ID,
             "ANTHROPIC_API_KEY": cls.ANTHROPIC_API_KEY,
