@@ -24,7 +24,7 @@ import os
 import time
 import hmac
 import hashlib
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from urllib.parse import urlencode
 
 # ─────────────────────────────────────────────
@@ -128,6 +128,13 @@ ATR_REGIME_LOOKBACK = 50    # velas históricas para calcular ATR médio
 BTC_CRASH_PCT       = 3.0   # se BTC caiu >3% na última vela fecha todos os longs
 STOP_RETRY_MAX      = 3     # tentativas de colocar stop order antes de desistir
 EMERGENCY_ROI_CUT   = -4.0  # corte emergência a -4% ROI (era -5%)
+
+# Melhorias pesquisa 2025-2026 (confirmadas 3+ fontes)
+OBI_VETO         = 0.3    # |OBI| > 0.3 = pressão oposta domina livro — veto entrada
+EQUITY_EMA_N     = 20     # trades para EMA da curva de equity
+CORR_MAX         = 0.75   # correlação máxima entre par candidato e posições abertas
+MACRO_CACHE_MIN  = 60     # cache calendário macro (minutos)
+_macro_cache: dict = {"ts": 0.0, "bloqueado": False}
 
 # Ficheiros de estado
 MEMORY_FILE = "claw_memory_v7.json"
@@ -907,6 +914,226 @@ def get_fear_greed() -> int:
         return _fg_cache["value"]   # fallback: último valor ou 50 neutro
 
 # ─────────────────────────────────────────────
+#  MELHORIAS v7.1 — PESQUISA 2025-2026
+# ─────────────────────────────────────────────
+
+def _get_retry(url: str, params: dict = None, timeout: int = 10,
+               max_retries: int = 4, headers: dict = None):
+    """GET com exponential backoff (2, 4, 8, 16s) para 429/5xx."""
+    delay = 2
+    for attempt in range(max_retries):
+        try:
+            r = requests.get(url, params=params, headers=headers, timeout=timeout)
+            if r.status_code in (429, 500, 502, 503, 504):
+                print(f"[RETRY] HTTP {r.status_code} (tentativa {attempt+1}/{max_retries}) — {delay}s")
+                time.sleep(delay)
+                delay *= 2
+                continue
+            return r
+        except requests.exceptions.ConnectionError as e:
+            print(f"[RETRY] Ligação falhou ({e}) — {delay}s")
+            time.sleep(delay)
+            delay *= 2
+        except Exception as e:
+            print(f"[RETRY] Erro: {e}")
+            break
+    return None
+
+
+def htf_4h_confirmacao(symbol: str, direction: str) -> bool:
+    """
+    Confirma bias no 4H antes do 1H (3 camadas: 4H → 1H → 5min).
+    EMA9 > EMA21 no 4H → só LONG; EMA9 < EMA21 → só SHORT.
+    Fail-closed: API falha = veto por segurança.
+    Fonte: TrendRider MTF, LuxAlgo HTF filter (3 fontes confirmadas 2025).
+    """
+    try:
+        klines_4h = get_klines(symbol, interval="4h", limit=30)
+        if not klines_4h or len(klines_4h) < 25:
+            print(f"[HTF4H] {symbol}: dados 4H insuficientes — fail-closed")
+            return False
+        c4h      = [float(k[4]) for k in klines_4h]
+        ema9_4h  = ema(c4h, 9)
+        ema21_4h = ema(c4h, 21)
+        ok = ema9_4h[-1] > ema21_4h[-1] if direction == "LONG" else ema9_4h[-1] < ema21_4h[-1]
+        if not ok:
+            print(f"[HTF4H] {symbol}: 4H bias contra {direction} — veto")
+        return ok
+    except Exception as e:
+        print(f"[HTF4H] {symbol}: API falhou ({e}) — fail-closed")
+        return False
+
+
+def obi_ok(symbol: str, direction: str) -> bool:
+    """
+    Order Book Imbalance (OBI) = (bid_vol - ask_vol) / total (top 20 níveis).
+    LONG vetado se OBI < -0.3 (livro dominado por vendedores).
+    SHORT vetado se OBI > +0.3 (livro dominado por compradores).
+    Fonte: Bookmap OBI, Phemex order flow, CoinGlass (2025).
+    """
+    try:
+        r = requests.get(
+            f"{BASE_URL}/fapi/v1/depth",
+            params={"symbol": symbol, "limit": 20},
+            timeout=5
+        )
+        data    = r.json()
+        bids    = data.get("bids", [])
+        asks    = data.get("asks", [])
+        if not bids or not asks:
+            return True
+        bid_vol = sum(float(b[1]) for b in bids)
+        ask_vol = sum(float(a[1]) for a in asks)
+        total   = bid_vol + ask_vol
+        if total == 0:
+            return True
+        obi = (bid_vol - ask_vol) / total
+        if direction == "LONG" and obi < -OBI_VETO:
+            print(f"[OBI] {symbol}: OBI {obi:.2f} — pressão vendedora domina livro, LONG vetado")
+            return False
+        if direction == "SHORT" and obi > OBI_VETO:
+            print(f"[OBI] {symbol}: OBI {obi:.2f} — pressão compradora domina livro, SHORT vetado")
+            return False
+    except Exception:
+        pass
+    return True
+
+
+def macro_event_proximo(look_ahead_min: int = 60) -> bool:
+    """
+    Verifica se há evento macro de alto impacto nas próximas look_ahead_min.
+    Cache MACRO_CACHE_MIN minutos. Fail-open: erro de API = não bloqueia.
+    Fonte: ForexFactory XML calendar (uso documentado publicamente).
+    """
+    global _macro_cache
+    now = time.time()
+    if now - _macro_cache["ts"] < MACRO_CACHE_MIN * 60:
+        return _macro_cache["bloqueado"]
+    try:
+        import xml.etree.ElementTree as ET
+        r = requests.get(
+            "https://nfs.faireconomy.media/ff_calendar_thisweek.xml",
+            timeout=10
+        )
+        if r.status_code != 200:
+            _macro_cache = {"ts": now, "bloqueado": False}
+            return False
+        root    = ET.fromstring(r.text)
+        now_dt  = datetime.now(timezone.utc)
+        look_dt = now_dt + timedelta(minutes=look_ahead_min)
+        for event in root.findall(".//event"):
+            impact = event.find("impact")
+            if impact is None or (impact.text or "").strip().lower() != "high":
+                continue
+            date_el = event.find("date")
+            time_el = event.find("time")
+            if date_el is None or time_el is None:
+                continue
+            try:
+                evt_str = f"{date_el.text} {time_el.text}"
+                evt_dt  = datetime.strptime(evt_str, "%b %d, %Y %I:%M%p").replace(tzinfo=timezone.utc)
+                if now_dt <= evt_dt <= look_dt:
+                    name_el  = event.find("title")
+                    name     = name_el.text if name_el is not None else "evento"
+                    mins_away = int((evt_dt - now_dt).total_seconds() / 60)
+                    print(f"[MACRO] {name} em {mins_away}min — sem entrada")
+                    _macro_cache = {"ts": now, "bloqueado": True}
+                    return True
+            except ValueError:
+                continue
+        _macro_cache = {"ts": now, "bloqueado": False}
+        return False
+    except Exception as e:
+        print(f"[MACRO] Calendário indisponível: {e} — filtro ignorado")
+        _macro_cache = {"ts": now, "bloqueado": False}
+        return False
+
+
+def liquidity_sweep_detectado(closes: list, highs: list, lows: list,
+                               volumes: list, taker_buy_vols: list,
+                               direction: str, lookback: int = 20) -> bool:
+    """
+    Detecta liquidity sweep: wick fora do swing recente + spike de volume + CVD confirma.
+    LONG: wick abaixo do swing low + fecha acima + volume 2× + CVD > 0.
+    SHORT: wick acima do swing high + fecha abaixo + volume 2× + CVD < 0.
+    Alta probabilidade pós-reversão institucional (stop hunt confirmado).
+    Fonte: Phemex liquidity sweep, Smart Money Concepts (2025).
+    """
+    if len(closes) < lookback + 2 or len(volumes) < lookback + 2:
+        return False
+    last_close = closes[-2]
+    last_low   = lows[-2]
+    last_high  = highs[-2]
+    last_vol   = volumes[-2]
+    swing_low  = min(lows[-lookback - 2:-2])
+    swing_high = max(highs[-lookback - 2:-2])
+    avg_vol    = sum(volumes[-lookback - 2:-2]) / max(lookback, 1)
+    vol_spike  = last_vol > avg_vol * 2.0 if avg_vol > 0 else False
+    cvd_v      = cvd_bias(taker_buy_vols, volumes) if taker_buy_vols else 0.0
+    if direction == "LONG":
+        return last_low < swing_low and last_close > swing_low and vol_spike and cvd_v > 0
+    else:
+        return last_high > swing_high and last_close < swing_high and vol_spike and cvd_v < 0
+
+
+def equity_scale_factor(mem: dict) -> float:
+    """
+    Reduz qty 50% quando há 3+ perdas consecutivas (Equity Curve Feedback).
+    Protege a curva de equity: menos capital em risco em série negativa.
+    Fonte: Kelly Criterion adaptado, 3 fontes 2025-2026.
+    """
+    perdas = mem.get("perdas_seguidas", 0)
+    if perdas >= 3:
+        print(f"[EQUITY] {perdas} perdas seguidas — tamanho reduzido 50%")
+        return 0.5
+    return 1.0
+
+
+def calc_correlation(symbol: str, posicoes_reais: dict, lookback: int = 30) -> float:
+    """
+    Correlação de Pearson máxima entre o candidato e as posições abertas.
+    Evita abrir pares altamente correlacionados — risco concentrado mascarado.
+    Retorna correlação máxima encontrada (0.0 se sem posições abertas).
+    Fonte: Modern Portfolio Theory, CoinGlass correlation matrix (2025).
+    """
+    if not posicoes_reais:
+        return 0.0
+    try:
+        kl_novo = get_klines(symbol, limit=lookback + 1)
+        if not kl_novo or len(kl_novo) < lookback:
+            return 0.0
+        c_novo   = [float(k[4]) for k in kl_novo]
+        ret_novo = [(c_novo[i] - c_novo[i-1]) / c_novo[i-1]
+                    for i in range(1, len(c_novo)) if c_novo[i-1] != 0]
+        max_corr = 0.0
+        for sym_open in posicoes_reais:
+            if sym_open == symbol:
+                continue
+            kl_open = get_klines(sym_open, limit=lookback + 1)
+            if not kl_open or len(kl_open) < lookback:
+                continue
+            c_open   = [float(k[4]) for k in kl_open]
+            ret_open = [(c_open[i] - c_open[i-1]) / c_open[i-1]
+                        for i in range(1, len(c_open)) if c_open[i-1] != 0]
+            n = min(len(ret_novo), len(ret_open))
+            if n < 10:
+                continue
+            r_n    = ret_novo[-n:]
+            r_o    = ret_open[-n:]
+            mean_n = sum(r_n) / n
+            mean_o = sum(r_o) / n
+            cov    = sum((a - mean_n) * (b - mean_o) for a, b in zip(r_n, r_o)) / n
+            std_n  = (sum((a - mean_n) ** 2 for a in r_n) / n) ** 0.5
+            std_o  = (sum((b - mean_o) ** 2 for b in r_o) / n) ** 0.5
+            if std_n > 0 and std_o > 0:
+                corr     = abs(cov / (std_n * std_o))
+                max_corr = max(max_corr, corr)
+        return max_corr
+    except Exception as e:
+        print(f"[CORR] {symbol}: {e}")
+        return 0.0
+
+# ─────────────────────────────────────────────
 #  DETECÇÃO DE MODO DE MERCADO
 # ─────────────────────────────────────────────
 def detect_market_mode(closes: list, atr_val: float) -> str:
@@ -1290,7 +1517,6 @@ def ny_open_utc() -> tuple[int, int]:
       - EDT (Março 2º domingo → Novembro 1º domingo): UTC-4 → 13:30 UTC
       - EST (resto do ano): UTC-5 → 14:30 UTC
     """
-    from datetime import timedelta
     now = datetime.now(timezone.utc)
     year = now.year
 
@@ -1560,6 +1786,11 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
                 score: int = 0, volumes: list = None,
                 taker_buy_vols: list = None, klines: list = None):
 
+    # Evento macro de alto impacto (FOMC, CPI, NFP) — sem entrada 60min antes
+    if macro_event_proximo():
+        print(f"[AVISO] {symbol}: evento macro próximo — sem entrada")
+        return
+
     # Regime de volatilidade — veta entradas em eventos extremos (CPI, flash crash)
     if not volatility_regime_ok(closes, highs, lows):
         tg(f"⚡ <b>REGIME VIOLENTO</b> — {symbol}\nATR >{ATR_REGIME_MULT}× média histórica. Sem entrada.")
@@ -1572,6 +1803,10 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     # Filtro de mercado: Funding Rate + OI + Long/Short Ratio
     if not market_conditions_ok(symbol, direction):
         print(f"[AVISO] {symbol}: condições de mercado desfavoráveis para {direction}")
+        return
+
+    # MTF 4H — confirma bias de tendência de fundo (3 camadas: 4H → 1H → 5min)
+    if not htf_4h_confirmacao(symbol, direction):
         return
 
     # MTF 1H — confirma direcção no timeframe superior
@@ -1614,6 +1849,10 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             print(f"[AVISO] {symbol}: CVD {cvd_v:.2f} — pressão compradora dominante, SHORT vetado")
             return
 
+    # OBI — Order Book Imbalance: livro dominado por pressão oposta à direcção
+    if not obi_ok(symbol, direction):
+        return
+
     # VWAP ±2σ: não entrar quando preço está extremamente sobre-estendido
     if klines:
         _, _, _, upper_2, lower_2 = get_daily_vwap_bands(klines)
@@ -1624,6 +1863,12 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         if direction == "SHORT" and lower_2 is not None and price_now < lower_2:
             print(f"[AVISO] {symbol}: preço abaixo VWAP-2σ ({lower_2:.4f}) — sobre-estendido, SHORT vetado")
             return
+
+    # Liquidity Sweep — confirma reversão institucional (stop hunt detectado = alta prob.)
+    if volumes and taker_buy_vols:
+        if liquidity_sweep_detectado(closes, highs, lows, volumes, taker_buy_vols, direction):
+            detalhe += " | LIQ_SWEEP✓"
+            print(f"[LSweep] {symbol}: liquidity sweep confirmado")
 
     saldo = get_balance()
     if saldo is None:
@@ -1643,6 +1888,14 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
     # Limita qty ao capital disponível (margem máx = 80% do saldo)
     decimals = SYMBOL_PRECISION.get(symbol, 4)
+
+    # Equity Curve Feedback — reduz tamanho 50% em drawdown (3+ perdas consecutivas)
+    scale = equity_scale_factor(mem)
+    if scale < 1.0:
+        qty = round(qty * scale, decimals)
+        if qty <= 0:
+            return
+
     max_qty = round((capital_bot * ALAVANCAGEM * 0.8) / price, decimals)
     if max_qty <= 0:
         print(f"[AVISO] {symbol}: capital insuficiente para abrir posição")
@@ -1927,6 +2180,13 @@ def run():
                             continue
                         if symbol not in BTC_SYMBOLS and len(shorts_alt) >= MAX_SHORTS_ALT:
                             print(f"[{hora}] {symbol} TECTO_DIR {len(shorts_alt)}/{MAX_SHORTS_ALT} SHORTs alt abertas")
+                            continue
+
+                    # Correlação — evita pares altamente correlacionados com posições abertas
+                    if posicoes_reais:
+                        corr = calc_correlation(symbol, posicoes_reais)
+                        if corr > CORR_MAX:
+                            print(f"[{hora}] {symbol} CORR {corr:.2f} > {CORR_MAX} — skip")
                             continue
 
                     abrir_trade(
