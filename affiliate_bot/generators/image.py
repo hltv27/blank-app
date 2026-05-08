@@ -31,7 +31,14 @@ def _download_image(url: str) -> Image.Image | None:
 
 
 def _get_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
+    # Termux prefix path
+    termux_prefix = "/data/data/com.termux/files/usr"
+    suffix_bold = "-Bold.ttf" if bold else ".ttf"
     font_paths = [
+        # Termux (pkg install fontconfig / dejavu-fonts-ttf)
+        f"{termux_prefix}/share/fonts/truetype/dejavu/DejaVuSans{suffix_bold}",
+        f"{termux_prefix}/share/fonts/TTF/DejaVuSans{suffix_bold}",
+        # Standard Linux
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
         "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf" if bold else "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
