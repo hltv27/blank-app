@@ -172,7 +172,7 @@ def get_public_ip() -> str:
         return "desconhecido"
 
 def get_balance() -> float | None:
-    """Saldo disponível USDC na conta Futures (Cross). BNFCR excluído — não é margem."""
+    """Saldo disponível na conta Futures (Cross). BNFCR é a moeda de margem nesta conta."""
     try:
         r = requests.get(
             f"{BASE_URL}/fapi/v2/balance",
@@ -189,7 +189,7 @@ def get_balance() -> float | None:
                 tg(f"🔒 <b>IP bloqueado</b>\nNovo IP: <code>{ip}</code>\nAdiciona à whitelist da Binance.")
             return None
         for a in data:
-            if a["asset"] == "USDC":
+            if a["asset"] in ("USDC", "BNFCR"):
                 return float(a["availableBalance"])
     except Exception as e:
         print(f"[ERRO] get_balance: {e}")
