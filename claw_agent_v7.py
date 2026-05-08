@@ -333,6 +333,36 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
         print(f"[ERRO] place_stop_market {symbol}: {e}")
     return None
 
+def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
+    """
+    TAKE_PROFIT_MARKET via /fapi/v1/algoOrder — ordem real na Binance.
+    Fecha posição automaticamente se o bot morrer ou perder ligação.
+    side = SELL para LONG, BUY para SHORT.
+    """
+    try:
+        decimals = SYMBOL_PRECISION.get(symbol, 4)
+        r = requests.post(
+            f"{BASE_URL}/fapi/v1/algoOrder",
+            params=_sign({
+                "symbol":        symbol,
+                "side":          side,
+                "type":          "TAKE_PROFIT_MARKET",
+                "stopPrice":     f"{tp_price:.{decimals}f}",
+                "closePosition": "true",
+                "timeInForce":   "GTC",
+            }),
+            headers=_headers(),
+            timeout=10
+        )
+        data = r.json()
+        if "algoId" in data:
+            return data["algoId"]
+        msg = data.get("msg", str(data))
+        print(f"[AVISO] take_profit {symbol}: {msg}")
+    except Exception as e:
+        print(f"[ERRO] place_take_profit {symbol}: {e}")
+    return None
+
 def place_trailing_stop(symbol: str, side: str, callback_rate: float, activation_price: float) -> int | None:
     """
     TRAILING_STOP_MARKET via /fapi/v1/algoOrder (obrigatório desde 2025-12-09).
@@ -563,13 +593,14 @@ def htf_confirmacao(symbol: str, direction: str) -> bool:
     """
     Confirma direcção no 1H antes de entrar no 5min (MTF filter).
     EMA9 > EMA21 na 1H → só LONG; EMA9 < EMA21 → só SHORT.
-    Falha da API → fail-open (não veta).
+    Falha da API → fail-closed (veta por segurança).
     Fonte: TrendRider MTF (80% redução de falsos sinais).
     """
     try:
         klines_1h = get_klines(symbol, interval="1h", limit=50)
         if not klines_1h or len(klines_1h) < 30:
-            return True
+            print(f"[HTF] {symbol}: dados 1H insuficientes — fail-closed")
+            return False
         c1h = [float(k[4]) for k in klines_1h]
         ema9_1h  = ema(c1h, 9)
         ema21_1h = ema(c1h, 21)
@@ -577,8 +608,9 @@ def htf_confirmacao(symbol: str, direction: str) -> bool:
             return ema9_1h[-1] > ema21_1h[-1]
         else:
             return ema9_1h[-1] < ema21_1h[-1]
-    except Exception:
-        return True
+    except Exception as e:
+        print(f"[HTF] {symbol}: API falhou ({e}) — fail-closed")
+        return False
 
 
 def funding_rate_ok(symbol: str, direction: str) -> bool:
@@ -1662,6 +1694,12 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             close_position(symbol, qty, direction)
             return
 
+        # TP como ordem real na Binance — protege se bot morrer ou perder ligação
+        tp_side   = "SELL" if direction == "LONG" else "BUY"
+        tp_order_id = place_take_profit(symbol, tp_side, tp)
+        if not tp_order_id:
+            print(f"[AVISO] {symbol}: TP order falhou — SL/TP continuam em memória como backup")
+
         mem.setdefault("trades_abertos", {})[symbol] = {
             "direction": direction,
             "entry": fill_price,
@@ -1671,22 +1709,24 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             "mode": mode,
             "opened_at": time.time(),
             "stop_order_id": stop_id,
+            "tp_order_id": tp_order_id,
             "pnl_estimado": RISCO_USDC * rr_actual
         }
         mem["total_trades"] = mem.get("total_trades", 0) + 1
         save_memory(mem)
         log_trade(symbol, direction, fill_price, sl, tp, qty)
 
-        modo_icon = "📊" if mode == "RANGING" else "📈"
-        dir_icon  = "🟢 LONG" if direction == "LONG" else "🔴 SHORT"
-        stop_txt  = f" | Stop#{stop_id}" if stop_id else " | ⚠️ stop falhou"
-        rr_icon   = f" | RR {rr_actual}:1" + (" 🚀" if rr_actual >= 3 else "")
+        dir_icon   = "🟢 LONG" if direction == "LONG" else "🔴 SHORT"
+        stop_txt   = f"Stop#{stop_id}" if stop_id else "⚠️ stop falhou"
+        tp_txt     = f"TP#{tp_order_id}" if tp_order_id else "TP em memória"
+        rr_icon    = f"RR {rr_actual}:1" + (" 🚀" if rr_actual >= 3 else "")
 
         tg(
-            f"{modo_icon} <b>{dir_icon}</b> — {symbol}\n"
+            f"📈 <b>{dir_icon}</b> — {symbol}\n"
             f"Entrada: {fill_price:.4f}\n"
-            f"SL: {sl:.4f} | TP: {tp:.4f}{rr_icon}\n"
-            f"Qty: {qty:.4f} | Modo: {mode} | ADX: {adx_val:.0f}{stop_txt}\n"
+            f"SL: {sl:.4f} | TP: {tp:.4f} | {rr_icon}\n"
+            f"Qty: {qty:.4f} | ADX: {adx_val:.0f}\n"
+            f"🔒 {stop_txt} | 🎯 {tp_txt}\n"
             f"Detalhe: {detalhe}"
         )
     else:
