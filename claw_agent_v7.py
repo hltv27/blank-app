@@ -61,7 +61,7 @@ RATIO_ALVO        = 2.0     # RR mínimo 2:1
 MAX_LOSS_DIA      = 7.5     # Circuit breaker diário — reduzido para 2.5x risco
 MAX_PERDAS_SEGUIDAS = 3     # Circuit breaker por série negativa (era 4)
 COOLDOWN_MIN      = 120     # 2 horas bloqueado após circuit breaker (era 15 min!)
-MARGIN_RATIO_MAX  = 75.0    # % rácio de margem Cross — fecha tudo acima disto (liq a 100%)
+MARGIN_RATIO_MAX  = 50.0    # % rácio de margem Cross — fecha tudo acima disto (era 75%)
 MAX_TRADES_ABERTOS = 4      # Máximo posições simultâneas — reduzido de 5 para 4
 
 # Tecto direcional — evita correlação (BTC é tratado separadamente)
@@ -172,7 +172,7 @@ def get_public_ip() -> str:
         return "desconhecido"
 
 def get_balance() -> float | None:
-    """Saldo disponível USDC ou BNFCR na conta Futures (Cross)."""
+    """Saldo disponível USDC na conta Futures (Cross). BNFCR excluído — não é margem."""
     try:
         r = requests.get(
             f"{BASE_URL}/fapi/v2/balance",
@@ -189,7 +189,7 @@ def get_balance() -> float | None:
                 tg(f"🔒 <b>IP bloqueado</b>\nNovo IP: <code>{ip}</code>\nAdiciona à whitelist da Binance.")
             return None
         for a in data:
-            if a["asset"] in ("USDC", "BNFCR"):
+            if a["asset"] == "USDC":
                 return float(a["availableBalance"])
     except Exception as e:
         print(f"[ERRO] get_balance: {e}")
@@ -1410,10 +1410,11 @@ def gerir_posicoes(mem: dict):
         mem["trades_abertos"][symbol]["pnl_ultimo"] = pos["pnl"]
 
         # ── Saída por tempo: 30 min + ROI ≥ 5% (funciona mesmo sem SL/TP definidos) ──
-        entry  = trade.get("entry", 0)
-        qty    = abs(pos["qty"])
-        margin = (qty * entry) / ALAVANCAGEM if entry > 0 and qty > 0 else 0
-        roi    = (pos["pnl"] / margin * 100) if margin > 0 else 0
+        entry     = trade.get("entry", 0)
+        qty       = abs(pos["qty"])
+        qty_base  = trade.get("qty_inicial", qty)  # usa qty original para ROI correto após partial TP
+        margin    = (qty_base * entry) / ALAVANCAGEM if entry > 0 and qty_base > 0 else 0
+        roi       = (pos["pnl"] / margin * 100) if margin > 0 else 0
 
         opened_at = trade.get("opened_at")
         elapsed   = (time.time() - opened_at) if opened_at else 1800
@@ -1682,10 +1683,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         stop_side     = "SELL" if direction == "LONG" else "BUY"
         callback_rate = max(0.5, min(5.0, round((atr_val * 1.5 / fill_price) * 100, 1)))
         decimals_sym  = SYMBOL_PRECISION.get(symbol, 4)
-        if direction == "SHORT":
-            activation = round(fill_price * (1 - callback_rate / 200), decimals_sym)
-        else:
-            activation = fill_price
+        activation    = fill_price  # ativa imediatamente — protege SHORT e LONG desde a entrada
         stop_id = None
         for tentativa in range(1, STOP_RETRY_MAX + 1):
             stop_id = place_trailing_stop(symbol, stop_side, callback_rate, activation)
@@ -1710,6 +1708,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             "sl": sl,
             "tp": tp,
             "qty": qty,
+            "qty_inicial": qty,
             "mode": mode,
             "opened_at": time.time(),
             "stop_order_id": stop_id,
@@ -1818,20 +1817,38 @@ def run():
                 continue
             for symbol, pos in posicoes_reais.items():
                 if symbol in SYMBOLS and symbol not in mem.get("trades_abertos", {}):
+                    # Coloca trailing stop imediatamente — posição não pode ficar "nua"
+                    kl_sync = get_klines(symbol)
+                    sync_stop_id = None
+                    if kl_sync and len(kl_sync) > ATR_PERIOD:
+                        h_s = [float(k[2]) for k in kl_sync]
+                        l_s = [float(k[3]) for k in kl_sync]
+                        c_s = [float(k[4]) for k in kl_sync]
+                        atr_s      = atr(h_s, l_s, c_s)
+                        entry_s    = pos["entry"] if pos["entry"] > 0 else c_s[-1]
+                        cb_rate    = max(0.5, min(5.0, round((atr_s * 1.5 / entry_s) * 100, 1)))
+                        stop_side_s = "SELL" if pos["side"] == "LONG" else "BUY"
+                        sync_stop_id = place_trailing_stop(symbol, stop_side_s, cb_rate, c_s[-1])
+
                     mem.setdefault("trades_abertos", {})[symbol] = {
                         "direction": pos["side"],
                         "entry": pos["entry"],
                         "sl": 0, "tp": 0,
                         "qty": pos["qty"],
-                        "mode": "SYNC"
+                        "qty_inicial": abs(pos["qty"]),
+                        "mode": "SYNC",
+                        "opened_at": time.time(),
+                        "stop_order_id": sync_stop_id,
                     }
                     save_memory(mem)
                     print(f"[{hora}] {symbol} sincronizado da Binance")
-                    dir_icon = "🟢 LONG" if pos["side"] == "LONG" else "🔴 SHORT"
+                    dir_icon  = "🟢 LONG" if pos["side"] == "LONG" else "🔴 SHORT"
+                    stop_txt  = f"Stop#{sync_stop_id}" if sync_stop_id else "⚠️ stop falhou"
                     tg(
                         f"🔄 <b>{dir_icon}</b> — {symbol} (sincronizada)\n"
                         f"Entrada: {pos['entry']:.4f} | Qty: {abs(pos['qty'])}\n"
-                        f"<i>Posição já existia na Binance — bot a monitorizar</i>"
+                        f"🔒 {stop_txt}\n"
+                        f"<i>Trailing stop colocado automaticamente.</i>"
                     )
 
             # Máximo trades abertos (usa posições reais)
