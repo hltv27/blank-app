@@ -1,0 +1,62 @@
+import os
+import json
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+
+BASE_DIR = Path(__file__).parent.parent
+
+class Config:
+    # AliExpress
+    ALIEXPRESS_APP_KEY = os.getenv("ALIEXPRESS_APP_KEY", "")
+    ALIEXPRESS_APP_SECRET = os.getenv("ALIEXPRESS_APP_SECRET", "")
+    ALIEXPRESS_TRACKING_ID = os.getenv("ALIEXPRESS_TRACKING_ID", "")
+
+    # Amazon
+    AMAZON_ACCESS_KEY = os.getenv("AMAZON_ACCESS_KEY", "")
+    AMAZON_SECRET_KEY = os.getenv("AMAZON_SECRET_KEY", "")
+    AMAZON_PARTNER_TAG = os.getenv("AMAZON_PARTNER_TAG", "")
+    AMAZON_REGION = os.getenv("AMAZON_REGION", "ES")
+
+    # Telegram
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID", "")
+
+    # Instagram
+    INSTAGRAM_ACCESS_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
+    INSTAGRAM_BUSINESS_ACCOUNT_ID = os.getenv("INSTAGRAM_BUSINESS_ACCOUNT_ID", "")
+
+    # TikTok
+    TIKTOK_CLIENT_KEY = os.getenv("TIKTOK_CLIENT_KEY", "")
+    TIKTOK_CLIENT_SECRET = os.getenv("TIKTOK_CLIENT_SECRET", "")
+    TIKTOK_ACCESS_TOKEN = os.getenv("TIKTOK_ACCESS_TOKEN", "")
+
+    # Anthropic
+    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+
+    # General
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    DB_PATH = BASE_DIR / os.getenv("DB_PATH", "affiliate_bot.db")
+    IMAGES_DIR = BASE_DIR / os.getenv("IMAGES_DIR", "generated_images")
+
+    @classmethod
+    def load_niches(cls) -> dict:
+        niche_file = BASE_DIR / "affiliate_bot" / "niches" / "config.json"
+        with open(niche_file) as f:
+            return json.load(f)
+
+    @classmethod
+    def validate(cls) -> list[str]:
+        missing = []
+        required = {
+            "ALIEXPRESS_APP_KEY": cls.ALIEXPRESS_APP_KEY,
+            "ALIEXPRESS_APP_SECRET": cls.ALIEXPRESS_APP_SECRET,
+            "TELEGRAM_BOT_TOKEN": cls.TELEGRAM_BOT_TOKEN,
+            "TELEGRAM_CHANNEL_ID": cls.TELEGRAM_CHANNEL_ID,
+            "ANTHROPIC_API_KEY": cls.ANTHROPIC_API_KEY,
+        }
+        for name, value in required.items():
+            if not value:
+                missing.append(name)
+        return missing
