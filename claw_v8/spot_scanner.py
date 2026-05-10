@@ -9,20 +9,28 @@ Uso:
     python3 spot_scanner.py --all
     python3 spot_scanner.py --top 50
     python3 spot_scanner.py --top 100
+    python3 spot_scanner.py --daemon          # loop a cada 4h + Telegram
+    python3 spot_scanner.py --daemon --top 50 # daemon com top 50
 """
 import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
+import json
 import requests
 import time
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ─────────────────────────────────────────────
-#  CONFIGURAÇÃO
+#  CONFIGURAÇÃO DAEMON
 # ─────────────────────────────────────────────
-SPOT_URL = "https://api.binance.com"
+DAEMON_INTERVAL_H  = 4          # horas entre scans
+COMPRAR_SCORE      = 10         # score mínimo para alertar como COMPRAR
+AGUARDAR_SCORE     = 7          # score mínimo para incluir no resumo diário
+DAEMON_TOP_N       = 100        # default top N no daemon
+STATE_FILE         = os.path.join(os.path.dirname(__file__), "spot_scanner_state.json")
+SPOT_URL           = "https://api.binance.com"
 
 WATCHLIST = [
     "SUIUSDT", "BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT",
@@ -36,8 +44,48 @@ STABLECOINS = {
     "GBP", "BRL", "BIDR", "IDRT", "NGN", "RUB", "TRY", "VAI",
     "WBTC", "BETH", "WETH", "PAXG", "XAUT",
 }
-
 SKIP_CONTAINS = {"UP", "DOWN", "BEAR", "BULL", "3L", "3S", "2L", "2S"}
+
+
+# ─────────────────────────────────────────────
+#  TELEGRAM
+# ─────────────────────────────────────────────
+
+def _tg_send(text: str):
+    """Envia mensagem Telegram usando as credenciais do config do Claw."""
+    try:
+        from config import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
+        if TELEGRAM_TOKEN in {"TOKEN_AQUI"} or TELEGRAM_CHAT_ID in {"CHATID_AQUI"}:
+            print("[TG] Credenciais não configuradas — skip.")
+            return
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        requests.post(url, data={
+            "chat_id":    TELEGRAM_CHAT_ID,
+            "text":       text,
+            "parse_mode": "HTML",
+        }, timeout=10)
+    except Exception as e:
+        print(f"[TG ERRO] {e}")
+
+
+# ─────────────────────────────────────────────
+#  ESTADO PERSISTENTE
+# ─────────────────────────────────────────────
+
+def _load_state() -> dict:
+    try:
+        with open(STATE_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {"comprar": [], "last_daily_date": ""}
+
+
+def _save_state(state: dict):
+    try:
+        with open(STATE_FILE, "w") as f:
+            json.dump(state, f, indent=2)
+    except Exception as e:
+        print(f"[STATE ERRO] {e}")
 
 
 # ─────────────────────────────────────────────
@@ -72,7 +120,7 @@ def get_fear_greed() -> int:
 
 
 def get_top_symbols(n: int = 100) -> list:
-    """Top N coins por volume 24h em USDT (exclui stablecoins e tokens alavancados)."""
+    """Top N moedas por volume 24h em USDT (exclui stablecoins e tokens alavancados)."""
     try:
         r = requests.get(f"{SPOT_URL}/api/v3/ticker/24hr", timeout=15)
         tickers = r.json()
@@ -179,9 +227,9 @@ def supertrend(highs: list, lows: list, closes: list,
     direction = True
     prev_ub = prev_lb = None
     for i in range(1, len(c)):
-        start   = max(0, i - period)
-        atr_i   = sum(trs[start:i]) / max(i-start, 1)
-        hl2     = (h[i] + l[i]) / 2
+        start    = max(0, i - period)
+        atr_i    = sum(trs[start:i]) / max(i-start, 1)
+        hl2      = (h[i] + l[i]) / 2
         basic_ub = hl2 + mult * atr_i
         basic_lb = hl2 - mult * atr_i
         if prev_ub is None:
@@ -230,7 +278,6 @@ def variacao_periodo(closes: list, dias: int) -> float:
 # ─────────────────────────────────────────────
 
 def analisar(symbol: str, fg_val: int) -> dict:
-    """Análise completa em 3 timeframes: semanal, diário, 4H."""
     if not symbol.upper().endswith(("USDT", "USDC")):
         symbol = symbol.upper() + "USDT"
     else:
@@ -244,21 +291,19 @@ def analisar(symbol: str, fg_val: int) -> dict:
         return {"symbol": symbol, "erro": "dados insuficientes"}
 
     def parse(kl):
-        c = [float(k[4]) for k in kl]
-        h = [float(k[2]) for k in kl]
-        l = [float(k[3]) for k in kl]
-        v = [float(k[5]) for k in kl]
-        return c, h, l, v
+        return (
+            [float(k[4]) for k in kl],
+            [float(k[2]) for k in kl],
+            [float(k[3]) for k in kl],
+            [float(k[5]) for k in kl],
+        )
 
     c_d, h_d, l_d, v_d = parse(kl_d)
     price = c_d[-1]
+    score = 0
+    sinais, alertas = [], []
 
-    score   = 0
-    sinais  = []
-    alertas = []
-
-    # ── TIMEFRAME DIÁRIO ────────────────────────────────────────────────
-
+    # ── DIÁRIO ──────────────────────────────────────────────────────────
     ema9_d   = ema(c_d, 9)
     ema21_d  = ema(c_d, 21)
     ema50_d  = ema(c_d, 50)
@@ -273,49 +318,38 @@ def analisar(symbol: str, fg_val: int) -> dict:
     var_90d  = variacao_periodo(c_d, 90)
 
     if ema9_d[-1] > ema21_d[-1] > ema50_d[-1]:
-        score += 3
-        sinais.append("✅ EMA stack bullish (9>21>50) diário")
+        score += 3; sinais.append("✅ EMA stack bullish (9>21>50) diário")
     elif ema9_d[-1] < ema21_d[-1] < ema50_d[-1]:
-        score -= 3
-        alertas.append("🔴 EMA stack bearish (9<21<50) diário")
+        score -= 3; alertas.append("🔴 EMA stack bearish (9<21<50) diário")
     else:
         sinais.append("⚠️  EMA diário misto")
 
     if ema200_d:
         if price > ema200_d[-1]:
-            score += 2
-            sinais.append(f"✅ Preço acima EMA200 diária ({ema200_d[-1]:.4g})")
+            score += 2; sinais.append(f"✅ Preço acima EMA200 diária ({ema200_d[-1]:.4g})")
         else:
-            score -= 2
-            alertas.append(f"🔴 Preço abaixo EMA200 diária ({ema200_d[-1]:.4g})")
+            score -= 2; alertas.append(f"🔴 Preço abaixo EMA200 diária ({ema200_d[-1]:.4g})")
 
     if 40 <= rsi_d <= 60:
-        score += 1
-        sinais.append(f"✅ RSI diário neutro/saudável: {rsi_d:.1f}")
+        score += 1; sinais.append(f"✅ RSI diário neutro/saudável: {rsi_d:.1f}")
     elif rsi_d < 35:
-        score += 2
-        sinais.append(f"✅ RSI diário oversold: {rsi_d:.1f} — potencial entrada")
+        score += 2; sinais.append(f"✅ RSI diário oversold: {rsi_d:.1f} — potencial entrada")
     elif rsi_d > 70:
-        score -= 1
-        alertas.append(f"⚠️  RSI diário overbought: {rsi_d:.1f}")
+        score -= 1; alertas.append(f"⚠️  RSI diário overbought: {rsi_d:.1f}")
     else:
         sinais.append(f"   RSI diário: {rsi_d:.1f}")
 
     if adx_d >= 25:
-        score += 2
-        sinais.append(f"✅ ADX diário: {adx_d:.1f} — tendência forte")
+        score += 2; sinais.append(f"✅ ADX diário: {adx_d:.1f} — tendência forte")
     elif adx_d >= 15:
         sinais.append(f"⚠️  ADX diário: {adx_d:.1f} — tendência fraca")
     else:
-        score -= 1
-        alertas.append(f"🔴 ADX diário: {adx_d:.1f} — sem tendência")
+        score -= 1; alertas.append(f"🔴 ADX diário: {adx_d:.1f} — sem tendência")
 
     if st_d is True:
-        score += 2
-        sinais.append("✅ Supertrend diário: bullish")
+        score += 2; sinais.append("✅ Supertrend diário: bullish")
     elif st_d is False:
-        score -= 2
-        alertas.append("🔴 Supertrend diário: bearish")
+        score -= 2; alertas.append("🔴 Supertrend diário: bearish")
 
     sinais.append(f"   Volume diário: {vol_d}")
     if "CRESCENTE" in vol_d:
@@ -323,13 +357,11 @@ def analisar(symbol: str, fg_val: int) -> dict:
 
     sinais.append(f"   Drawdown vs ATH período: {dd:.1f}%")
     if dd < -60:
-        score += 1
-        sinais.append("✅ Desconto >60% do ATH — potencial acumulação")
+        score += 1; sinais.append("✅ Desconto >60% do ATH — potencial acumulação")
     elif dd > -15:
         alertas.append("⚠️  Próximo do ATH do período — risco de topo")
 
-    # ── TIMEFRAME SEMANAL ───────────────────────────────────────────────
-
+    # ── SEMANAL ─────────────────────────────────────────────────────────
     if kl_w and len(kl_w) >= 20:
         c_w, h_w, l_w, _ = parse(kl_w)
         ema9_w  = ema(c_w, 9)
@@ -338,30 +370,23 @@ def analisar(symbol: str, fg_val: int) -> dict:
         st_w    = supertrend(h_w, l_w, c_w)
 
         if ema9_w[-1] > ema21_w[-1]:
-            score += 2
-            sinais.append("✅ EMA 9>21 semanal: tendência alta")
+            score += 2; sinais.append("✅ EMA 9>21 semanal: tendência alta")
         else:
-            score -= 2
-            alertas.append("🔴 EMA 9<21 semanal: tendência baixa")
+            score -= 2; alertas.append("🔴 EMA 9<21 semanal: tendência baixa")
 
         if st_w is True:
-            score += 2
-            sinais.append("✅ Supertrend semanal: bullish")
+            score += 2; sinais.append("✅ Supertrend semanal: bullish")
         elif st_w is False:
-            score -= 2
-            alertas.append("🔴 Supertrend semanal: bearish")
+            score -= 2; alertas.append("🔴 Supertrend semanal: bearish")
 
         if rsi_w < 40:
-            score += 2
-            sinais.append(f"✅ RSI semanal oversold: {rsi_w:.1f}")
+            score += 2; sinais.append(f"✅ RSI semanal oversold: {rsi_w:.1f}")
         elif rsi_w > 65:
-            score -= 1
-            alertas.append(f"⚠️  RSI semanal elevado: {rsi_w:.1f}")
+            score -= 1; alertas.append(f"⚠️  RSI semanal elevado: {rsi_w:.1f}")
         else:
             sinais.append(f"   RSI semanal: {rsi_w:.1f}")
 
-    # ── TIMEFRAME 4H ────────────────────────────────────────────────────
-
+    # ── 4H ──────────────────────────────────────────────────────────────
     if kl_4h and len(kl_4h) >= 30:
         c_4h, h_4h, l_4h, _ = parse(kl_4h)
         ema9_4h  = ema(c_4h, 9)
@@ -369,22 +394,17 @@ def analisar(symbol: str, fg_val: int) -> dict:
         rsi_4h   = rsi(c_4h)
 
         if ema9_4h[-1] > ema21_4h[-1]:
-            score += 1
-            sinais.append("✅ EMA 9>21 no 4H: momentum positivo")
+            score += 1; sinais.append("✅ EMA 9>21 no 4H: momentum positivo")
         else:
-            score -= 1
-            alertas.append("⚠️  EMA 9<21 no 4H: momentum negativo")
+            score -= 1; alertas.append("⚠️  EMA 9<21 no 4H: momentum negativo")
 
         sinais.append(f"   RSI 4H: {rsi_4h:.1f}")
 
     # ── FEAR & GREED ────────────────────────────────────────────────────
-
     if fg_val < 25:
-        score += 2
-        sinais.append(f"✅ Fear & Greed: {fg_val} (Extreme Fear) — bom para comprar")
+        score += 2; sinais.append(f"✅ Fear & Greed: {fg_val} (Extreme Fear) — bom para comprar")
     elif fg_val > 75:
-        score -= 2
-        alertas.append(f"⚠️  Fear & Greed: {fg_val} (Extreme Greed) — mercado eufórico")
+        score -= 2; alertas.append(f"⚠️  Fear & Greed: {fg_val} (Extreme Greed) — mercado eufórico")
     else:
         sinais.append(f"   Fear & Greed: {fg_val}")
 
@@ -392,7 +412,7 @@ def analisar(symbol: str, fg_val: int) -> dict:
     sinais.append(f"   Variação 30d: {var_30d:+.1f}%")
     sinais.append(f"   Variação 90d: {var_90d:+.1f}%")
 
-    if score >= 10:
+    if score >= COMPRAR_SCORE:
         recomendacao = "🟢 COMPRAR"
         resumo = "Múltiplos timeframes alinhados. Momentum e tendência positivos."
     elif score >= 5:
@@ -422,6 +442,10 @@ def analisar(symbol: str, fg_val: int) -> dict:
     }
 
 
+# ─────────────────────────────────────────────
+#  OUTPUT
+# ─────────────────────────────────────────────
+
 def imprimir_detalhes(r: dict):
     print(f"\n{'='*58}")
     print(f"  {r['symbol']}  |  {r['price']:.6g}  |  Score: {r['score']}")
@@ -441,11 +465,11 @@ def imprimir_detalhes(r: dict):
 
 def imprimir_ranking(resultados: list, mostrar_detalhes_score: int = 5):
     ordenados = sorted(
-        [r for r in resultados if "erro" not in r],
+        [r for r in resultados if r and "erro" not in r],
         key=lambda x: x["score"],
         reverse=True
     )
-    erros = [r for r in resultados if "erro" in r]
+    erros = [r for r in resultados if r and "erro" in r]
 
     print(f"\n{'='*58}")
     print(f"  RANKING — {len(ordenados)} moedas analisadas")
@@ -462,12 +486,157 @@ def imprimir_ranking(resultados: list, mostrar_detalhes_score: int = 5):
         print(f"  Sem dados: {', '.join(r['symbol'] for r in erros)}")
     print(f"{'='*58}")
 
-    # Detalhes apenas para as moedas com score >= threshold
     top = [r for r in ordenados if r["score"] >= mostrar_detalhes_score]
     if top:
         print(f"\n  >>> Detalhes das moedas com score >= {mostrar_detalhes_score} <<<")
         for r in top:
             imprimir_detalhes(r)
+
+
+# ─────────────────────────────────────────────
+#  SCAN EM MASSA (paralelo)
+# ─────────────────────────────────────────────
+
+def run_scan(symbols: list, fg: int, verbose: bool = True) -> list:
+    """Corre análise em paralelo. Devolve lista de resultados."""
+    total      = len(symbols)
+    done       = [0]
+    resultados = [None] * total
+    idx_map    = {sym: i for i, sym in enumerate(symbols)}
+
+    def scan_one(sym):
+        res = analisar(sym, fg)
+        done[0] += 1
+        if verbose:
+            status = res.get("recomendacao", "ERRO")[:10] if "erro" not in res else "ERRO"
+            print(f"  [{done[0]:>3}/{total}] {sym:<14} score={res.get('score', '?'):>3}  {status}")
+        return sym, res
+
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futures = {ex.submit(scan_one, sym): sym for sym in symbols}
+        for fut in as_completed(futures):
+            sym, res = fut.result()
+            resultados[idx_map[sym]] = res
+
+    return resultados
+
+
+# ─────────────────────────────────────────────
+#  TELEGRAM — formatação
+# ─────────────────────────────────────────────
+
+def _tg_alerta_comprar(r: dict):
+    """Alerta imediato: nova moeda entrou em COMPRAR."""
+    top3 = [s for s in r["sinais"] if s.startswith("✅")][:3]
+    sinais_txt = "\n".join(f"  {s.strip()}" for s in top3)
+    _tg_send(
+        f"🟢 <b>SPOT — COMPRAR: {r['symbol']}</b>\n"
+        f"Preço: <code>{r['price']:.6g}</code> | Score: <b>{r['score']}</b>\n"
+        f"7d: {r['var_7d']:+.1f}% | RSI: {r['rsi_d']:.0f} | ADX: {r['adx_d']:.0f}\n"
+        f"DD ATH: {r['dd_ath']:.0f}%\n\n"
+        f"{sinais_txt}"
+    )
+
+
+def _tg_alerta_saiu(symbol: str, score: int):
+    """Alerta: moeda saiu de COMPRAR."""
+    _tg_send(
+        f"⚠️ <b>SPOT — Sinal expirou: {symbol}</b>\n"
+        f"Já não cumpre critérios de compra (score: {score})"
+    )
+
+
+def _tg_resumo_diario(comprar: list, aguardar: list, total: int, fg: int):
+    """Resumo diário às 8h UTC."""
+    hora = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    linhas = [f"📊 <b>Spot Scanner — Resumo Diário</b>", f"<i>{hora}</i>", f"F&G: {fg} | Analisadas: {total}"]
+
+    if comprar:
+        linhas.append("\n🟢 <b>COMPRAR:</b>")
+        for r in comprar:
+            linhas.append(f"  • {r['symbol']} score={r['score']} | {r['var_7d']:+.1f}% 7d | RSI {r['rsi_d']:.0f}")
+    else:
+        linhas.append("\n🟢 <b>COMPRAR:</b> nenhuma")
+
+    if aguardar:
+        linhas.append("\n🟡 <b>AGUARDAR (score 7-9):</b>")
+        for r in aguardar[:5]:  # máx 5
+            linhas.append(f"  • {r['symbol']} score={r['score']} | {r['var_7d']:+.1f}% 7d | RSI {r['rsi_d']:.0f}")
+
+    _tg_send("\n".join(linhas))
+
+
+# ─────────────────────────────────────────────
+#  DAEMON
+# ─────────────────────────────────────────────
+
+def run_daemon(top_n: int = DAEMON_TOP_N):
+    print(f"[SPOT DAEMON] Iniciado — scan a cada {DAEMON_INTERVAL_H}h | top {top_n}")
+    _tg_send(
+        f"🔍 <b>Spot Scanner iniciado</b>\n"
+        f"Scan a cada {DAEMON_INTERVAL_H}h | Top {top_n} moedas | Alertas: score ≥ {COMPRAR_SCORE}"
+    )
+
+    while True:
+        try:
+            now = datetime.now(timezone.utc)
+            hora_str = now.strftime("%Y-%m-%d %H:%M UTC")
+            today    = now.strftime("%Y-%m-%d")
+            print(f"\n[{hora_str}] A iniciar scan de {top_n} moedas...")
+
+            fg      = get_fear_greed()
+            symbols = get_top_symbols(top_n)
+            results = run_scan(symbols, fg, verbose=True)
+
+            state = _load_state()
+            prev_comprar = set(state.get("comprar", []))
+
+            ordenados = sorted(
+                [r for r in results if r and "erro" not in r],
+                key=lambda x: x["score"], reverse=True
+            )
+            comprar  = [r for r in ordenados if r["score"] >= COMPRAR_SCORE]
+            aguardar = [r for r in ordenados if AGUARDAR_SCORE <= r["score"] < COMPRAR_SCORE]
+
+            curr_comprar = {r["symbol"] for r in comprar}
+
+            # Alertas de mudança
+            novas = curr_comprar - prev_comprar
+            saidas = prev_comprar - curr_comprar
+
+            for sym in novas:
+                r = next(r for r in comprar if r["symbol"] == sym)
+                print(f"  🟢 NOVA: {sym} (score {r['score']})")
+                _tg_alerta_comprar(r)
+
+            for sym in saidas:
+                r_old = next((r for r in ordenados if r["symbol"] == sym), None)
+                score_old = r_old["score"] if r_old else "?"
+                print(f"  ⚠️  SAIU: {sym} (score {score_old})")
+                _tg_alerta_saiu(sym, score_old)
+
+            # Resumo diário (uma vez por dia às 8h UTC)
+            if now.hour == 8 and state.get("last_daily_date") != today:
+                _tg_resumo_diario(comprar, aguardar, len(ordenados), fg)
+                state["last_daily_date"] = today
+                print(f"  📊 Resumo diário enviado.")
+
+            # Actualiza estado
+            state["comprar"] = list(curr_comprar)
+            _save_state(state)
+
+            imprimir_ranking(results, mostrar_detalhes_score=AGUARDAR_SCORE)
+            print(f"\n[SPOT DAEMON] Próximo scan em {DAEMON_INTERVAL_H}h")
+
+        except KeyboardInterrupt:
+            print("\n[SPOT DAEMON] Parado.")
+            _tg_send("⛔ Spot Scanner parado manualmente.")
+            break
+        except Exception as e:
+            print(f"[SPOT DAEMON ERRO] {e}")
+            _tg_send(f"⚠️ Spot Scanner erro: {e}")
+
+        time.sleep(DAEMON_INTERVAL_H * 3600)
 
 
 # ─────────────────────────────────────────────
@@ -483,16 +652,23 @@ if __name__ == "__main__":
         print("     python3 spot_scanner.py --all")
         print("     python3 spot_scanner.py --top 50")
         print("     python3 spot_scanner.py --top 100")
+        print("     python3 spot_scanner.py --daemon")
+        print("     python3 spot_scanner.py --daemon --top 50")
         sys.exit(0)
 
-    # Determinar lista de símbolos
+    # Parse --top N
     top_n = None
     if "--top" in args:
         idx = args.index("--top")
         try:
             top_n = int(args[idx + 1])
         except (IndexError, ValueError):
-            top_n = 100
+            top_n = DAEMON_TOP_N
+
+    # Modo daemon
+    if "--daemon" in args:
+        run_daemon(top_n or DAEMON_TOP_N)
+        sys.exit(0)
 
     print(f"\n{'='*58}")
     print(f"  CLAW SPOT SCANNER")
@@ -512,7 +688,7 @@ if __name__ == "__main__":
     else:
         symbols = [a for a in args if not a.startswith("--")]
 
-    # Scan individual (sem --top): output detalhado imediato
+    # Scan individual: output detalhado imediato
     if top_n is None and "--all" not in args:
         resultados = []
         for sym in symbols:
@@ -527,26 +703,7 @@ if __name__ == "__main__":
             imprimir_ranking(resultados, mostrar_detalhes_score=999)
         sys.exit(0)
 
-    # Scan em massa: paralelo com 8 workers
-    workers = 8
-    total   = len(symbols)
-    done    = [0]
-    resultados = [None] * total
-    idx_map = {sym: i for i, sym in enumerate(symbols)}
-
-    print(f"\n  Scan em paralelo ({workers} workers)...\n")
-
-    def scan_one(sym):
-        res = analisar(sym, fg)
-        done[0] += 1
-        status = res.get("recomendacao", "ERRO")[:10] if "erro" not in res else "ERRO"
-        print(f"  [{done[0]:>3}/{total}] {sym:<14} score={res.get('score', '?'):>3}  {status}")
-        return sym, res
-
-    with ThreadPoolExecutor(max_workers=workers) as ex:
-        futures = {ex.submit(scan_one, sym): sym for sym in symbols}
-        for fut in as_completed(futures):
-            sym, res = fut.result()
-            resultados[idx_map[sym]] = res
-
-    imprimir_ranking(resultados, mostrar_detalhes_score=7)
+    # Scan em massa
+    print(f"\n  Scan em paralelo (8 workers)...\n")
+    resultados = run_scan(symbols, fg, verbose=True)
+    imprimir_ranking(resultados, mostrar_detalhes_score=AGUARDAR_SCORE)
