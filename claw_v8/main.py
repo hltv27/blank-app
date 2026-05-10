@@ -141,6 +141,81 @@ def run():
                         f"Entrada: {pos['entry']:.4f} | 🔒 {stop_txt}"
                     )
 
+                elif symbol not in SYMBOLS and symbol not in mem.get("trades_abertos", {}):
+                    # Posição manual fora da lista do bot — monitorizar sem gerir
+                    externas = mem.setdefault("posicoes_externas", {})
+                    if symbol not in externas:
+                        externas[symbol] = {
+                            "direction":  pos["side"],
+                            "entry":      pos["entry"],
+                            "qty":        pos["qty"],
+                            "opened_at":  time.time(),
+                            "alertas":    [],
+                        }
+                        save_memory(mem)
+                        dir_icon = "🟢 LONG" if pos["side"] == "LONG" else "🔴 SHORT"
+                        notional = abs(pos["qty"]) * pos["entry"] if pos["entry"] > 0 else 0
+                        print(f"[{hora}] EXTERNA detectada: {symbol} {pos['side']}")
+                        tg(
+                            f"👁 <b>Posição externa detectada</b>\n"
+                            f"{dir_icon} <b>{symbol}</b> (fora da lista do bot)\n"
+                            f"Entrada: <code>{pos['entry']:.6g}</code> | "
+                            f"Qty: {abs(pos['qty']):.4g} | "
+                            f"Notional: ~{notional:.1f} USDC\n"
+                            f"<i>Monitorizada — não gerida pelo bot</i>"
+                        )
+
+            # ── Monitorização de posições externas ───────────────────────
+            externas = mem.get("posicoes_externas", {})
+            fechadas_ext = []
+            for symbol, ext in externas.items():
+                if symbol in posicoes_reais:
+                    # Ainda aberta — verifica P&L
+                    preco_atual = get_price(symbol)
+                    if preco_atual and ext["entry"] > 0:
+                        if ext["direction"] == "LONG":
+                            roi = (preco_atual - ext["entry"]) / ext["entry"] * 100
+                        else:
+                            roi = (ext["entry"] - preco_atual) / ext["entry"] * 100
+                        niveis = [-5, -3, 3, 5, 10, 15, 20]
+                        for nivel in niveis:
+                            tag = f"alerta_{nivel}"
+                            if tag not in ext["alertas"]:
+                                if (nivel < 0 and roi <= nivel) or (nivel > 0 and roi >= nivel):
+                                    ext["alertas"].append(tag)
+                                    save_memory(mem)
+                                    icone = "🚨" if nivel < 0 else "💰"
+                                    print(f"[{hora}] EXTERNA {symbol} ROI {roi:+.1f}%")
+                                    tg(
+                                        f"{icone} <b>{symbol}</b> (externa) — "
+                                        f"ROI: <b>{roi:+.1f}%</b>\n"
+                                        f"Entrada: {ext['entry']:.6g} | "
+                                        f"Actual: {preco_atual:.6g}"
+                                    )
+                else:
+                    # Fechada — calcula P&L final
+                    fechadas_ext.append(symbol)
+                    preco_fecho = get_price(symbol)
+                    if preco_fecho and ext["entry"] > 0:
+                        if ext["direction"] == "LONG":
+                            roi = (preco_fecho - ext["entry"]) / ext["entry"] * 100
+                        else:
+                            roi = (ext["entry"] - preco_fecho) / ext["entry"] * 100
+                        icone = "✅" if roi > 0 else "❌"
+                        duracao_h = (time.time() - ext["opened_at"]) / 3600
+                        print(f"[{hora}] EXTERNA {symbol} fechada ROI {roi:+.1f}%")
+                        tg(
+                            f"{icone} <b>{symbol}</b> (externa) — fechada\n"
+                            f"ROI: <b>{roi:+.1f}%</b> | "
+                            f"Duração: {duracao_h:.1f}h\n"
+                            f"Entrada: {ext['entry']:.6g} | "
+                            f"Fecho: ~{preco_fecho:.6g}"
+                        )
+            for symbol in fechadas_ext:
+                del mem["posicoes_externas"][symbol]
+            if fechadas_ext:
+                save_memory(mem)
+
             if len(posicoes_reais) >= MAX_TRADES_ABERTOS:
                 print(f"[{hora}] Max trades abertos ({len(posicoes_reais)})")
                 continue
