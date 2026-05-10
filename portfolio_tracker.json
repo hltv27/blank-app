@@ -211,9 +211,9 @@
         "binance_eur": {
           "moeda": "EUR",
           "total": 770.00,
-          "nota": "Saldo EUR indisponível (congelamento levantamento fiat Binance). Bot Futures usa BNFCR separado.",
+          "nota": "Saldo EUR disponível a partir de 2026-05-11. Bot Futures usa BNFCR separado.",
           "ativos": {
-            "EUR": { "qtd": 770, "valor_eur": 770, "status": "indisponivel" }
+            "EUR": { "qtd": 770, "valor_eur": 770, "status": "disponivel" }
           }
         }
       },
@@ -225,8 +225,7 @@
         "invest_etf_usd_eur": 569.70,
         "nova_carteira_eur": 81.07,
         "binance_eur_frozen": 770.00,
-        "total_eur_sem_frozen": 5419.58,
-        "total_eur_com_frozen": 6189.58,
+        "total_eur_disponivel": 6189.58,
         "variacao_vs_06maio_eur": 423.58,
         "nota_variacao": "Aumento principal: RGTI compra significativa (+€437). PAXG quase totalmente vendido (-€256). Nova carteira crypto detectada (+€81). Tangem subiu +$73. EUR/USD praticamente estável (1.176→1.1781).",
         "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado)"
