@@ -25,8 +25,13 @@ def sync_time():
         print(f"[AVISO] sync_time: {e}")
 
 
+def _is_timestamp_error(data) -> bool:
+    return isinstance(data, dict) and data.get("code") in (-1021, -1022)
+
+
 def _sign(params: dict) -> dict:
-    params["timestamp"] = int(time.time() * 1000) + _time_offset_ms
+    params["timestamp"]  = int(time.time() * 1000) + _time_offset_ms
+    params["recvWindow"] = 10000
     query = urlencode(params)
     params["signature"] = hmac.new(
         BINANCE_API_SECRET.encode(), query.encode(), hashlib.sha256
@@ -81,23 +86,29 @@ def get_public_ip() -> str:
 
 def get_balance() -> float | None:
     """Saldo disponível. BNFCR é a moeda de margem nesta conta europeia."""
-    try:
-        r = requests.get(
-            f"{BASE_URL}/fapi/v2/balance",
-            params=_sign({}), headers=_headers(), timeout=10
-        )
-        data = r.json()
-        if isinstance(data, dict):
-            msg = data.get("msg", "")
-            print(f"[ERRO] get_balance: {msg}")
-            if "Invalid API-key, IP" in msg:
-                tg(f"🔒 <b>IP bloqueado</b>\nNovo IP: <code>{get_public_ip()}</code>")
-            return None
-        for a in data:
-            if a["asset"] in ("USDC", "BNFCR"):
-                return float(a["availableBalance"])
-    except Exception as e:
-        print(f"[ERRO] get_balance: {e}")
+    for attempt in range(2):
+        try:
+            r = requests.get(
+                f"{BASE_URL}/fapi/v2/balance",
+                params=_sign({}), headers=_headers(), timeout=10
+            )
+            data = r.json()
+            if _is_timestamp_error(data):
+                print("[AVISO] get_balance: timestamp desfasado — a resincronizar")
+                sync_time()
+                continue
+            if isinstance(data, dict):
+                msg = data.get("msg", "")
+                print(f"[ERRO] get_balance: {msg}")
+                if "Invalid API-key, IP" in msg:
+                    tg(f"🔒 <b>IP bloqueado</b>\nNovo IP: <code>{get_public_ip()}</code>")
+                return None
+            for a in data:
+                if a["asset"] in ("USDC", "BNFCR"):
+                    return float(a["availableBalance"])
+        except Exception as e:
+            print(f"[ERRO] get_balance: {e}")
+            break
     return None
 
 
@@ -120,47 +131,60 @@ def get_klines(symbol: str, interval: str = "5m", limit: int = 220) -> list | No
 
 
 def get_positions() -> dict | None:
-    try:
-        r = requests.get(
-            f"{BASE_URL}/fapi/v2/positionRisk",
-            params=_sign({}), headers=_headers(), timeout=10
-        )
-        data = r.json()
-        if isinstance(data, dict):
-            msg = data.get("msg", "")
-            print(f"[ERRO] get_positions: {msg}")
-            if "Invalid API-key, IP" in msg:
-                tg(f"🔒 <b>IP bloqueado</b>\nNovo IP: <code>{get_public_ip()}</code>")
-            return None
-        pos = {}
-        for p in data:
-            qty = float(p.get("positionAmt", 0))
-            if abs(qty) > 0:
-                pos[p["symbol"]] = {
-                    "qty":   qty,
-                    "entry": float(p.get("entryPrice", 0)),
-                    "pnl":   float(p.get("unRealizedProfit", 0)),
-                    "side":  "LONG" if qty > 0 else "SHORT"
-                }
-        return pos
-    except Exception as e:
-        print(f"[ERRO] get_positions: {e}")
+    for attempt in range(2):
+        try:
+            r = requests.get(
+                f"{BASE_URL}/fapi/v2/positionRisk",
+                params=_sign({}), headers=_headers(), timeout=10
+            )
+            data = r.json()
+            if _is_timestamp_error(data):
+                print("[AVISO] get_positions: timestamp desfasado — a resincronizar")
+                sync_time()
+                continue
+            if isinstance(data, dict):
+                msg = data.get("msg", "")
+                print(f"[ERRO] get_positions: {msg}")
+                if "Invalid API-key, IP" in msg:
+                    tg(f"🔒 <b>IP bloqueado</b>\nNovo IP: <code>{get_public_ip()}</code>")
+                return None
+            pos = {}
+            for p in data:
+                qty = float(p.get("positionAmt", 0))
+                if abs(qty) > 0:
+                    pos[p["symbol"]] = {
+                        "qty":   qty,
+                        "entry": float(p.get("entryPrice", 0)),
+                        "pnl":   float(p.get("unRealizedProfit", 0)),
+                        "side":  "LONG" if qty > 0 else "SHORT"
+                    }
+            return pos
+        except Exception as e:
+            print(f"[ERRO] get_positions: {e}")
+            break
     return None
 
 
 def get_margin_ratio() -> float | None:
-    try:
-        r = requests.get(
-            f"{BASE_URL}/fapi/v2/account",
-            params=_sign({}), headers=_headers(), timeout=10
-        )
-        data    = r.json()
-        maint   = float(data.get("totalMaintMargin",  0))
-        balance = float(data.get("totalMarginBalance", 0))
-        if balance > 0:
-            return round(maint / balance * 100, 2)
-    except Exception as e:
-        print(f"[ERRO] get_margin_ratio: {e}")
+    for attempt in range(2):
+        try:
+            r = requests.get(
+                f"{BASE_URL}/fapi/v2/account",
+                params=_sign({}), headers=_headers(), timeout=10
+            )
+            data = r.json()
+            if _is_timestamp_error(data):
+                print("[AVISO] get_margin_ratio: timestamp desfasado — a resincronizar")
+                sync_time()
+                continue
+            maint   = float(data.get("totalMaintMargin",  0))
+            balance = float(data.get("totalMarginBalance", 0))
+            if balance > 0:
+                return round(maint / balance * 100, 2)
+            break
+        except Exception as e:
+            print(f"[ERRO] get_margin_ratio: {e}")
+            break
     return None
 
 
