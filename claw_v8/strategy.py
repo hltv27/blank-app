@@ -45,7 +45,7 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list):
     atr_val  = atr(highs, lows, closes)
     adx_val  = adx(highs, lows, closes)
 
-    if adx_val < 25:
+    if adx_val < 22.5:
         return None, 0, f"VETO_ADX {adx_val:.1f}"
     if sr_val > STOCH_VETO_LONG:
         return None, 0, f"VETO_SR_LONG {sr_val:.1f}"
