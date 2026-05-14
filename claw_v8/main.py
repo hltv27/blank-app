@@ -59,8 +59,9 @@ def run():
     )
     print(f"[v8.0] Claw Agent a correr — {len(SYMBOLS)} pares")
 
-    ultimo_minuto_scan = -1
-    ultima_sync_hora   = -1
+    ultimo_minuto_scan  = -1
+    ultima_sync_hora    = -1
+    ultimo_resumo_hora  = -1
 
     while True:
         try:
@@ -71,6 +72,60 @@ def run():
             if now_utc.hour != ultima_sync_hora:
                 sync_time()
                 ultima_sync_hora = now_utc.hour
+
+            # ── Resumo horário de mercado ─────────────────────────────────
+            if now_utc.hour != ultimo_resumo_hora:
+                ultimo_resumo_hora = now_utc.hour
+                try:
+                    trades_abertos = mem.get("trades_abertos", {})
+                    n_abertos = len(trades_abertos)
+                    linhas_pos = []
+                    for sym, t in trades_abertos.items():
+                        preco_a = get_price(sym)
+                        if preco_a and t.get("entry", 0) > 0:
+                            if t["direction"] == "LONG":
+                                roi = (preco_a - t["entry"]) / t["entry"] * 100
+                            else:
+                                roi = (t["entry"] - preco_a) / t["entry"] * 100
+                            icone = "🟢" if t["direction"] == "LONG" else "🔴"
+                            linhas_pos.append(
+                                f"  {icone} {sym}: {roi:+.1f}% (entry {t['entry']:.4g})"
+                            )
+
+                    # Scan rápido de modo de mercado (BTC_SYMBOLS primeiro)
+                    sample = list(BTC_SYMBOLS) + [s for s in SYMBOLS if s not in BTC_SYMBOLS][:8]
+                    trending_list, morto_list = [], []
+                    for sym in sample:
+                        kl = get_klines(sym)
+                        if not kl or len(kl) < 30:
+                            continue
+                        h_r = [float(k[2]) for k in kl]
+                        l_r = [float(k[3]) for k in kl]
+                        c_r = [float(k[4]) for k in kl]
+                        from indicators import atr as _atr
+                        from strategy import detect_market_mode as _dmm
+                        atr_r = _atr(h_r, l_r, c_r)
+                        modo_r = _dmm(c_r, atr_r)
+                        if modo_r == "TRENDING":
+                            trending_list.append(sym.replace("USDC", ""))
+                        else:
+                            morto_list.append(sym.replace("USDC", ""))
+
+                    saldo = get_balance()
+                    saldo_txt = f"{saldo:.2f} USDC" if saldo else "n/d"
+
+                    pos_txt = "\n".join(linhas_pos) if linhas_pos else "  Nenhuma"
+                    trend_txt = ", ".join(trending_list) if trending_list else "nenhum"
+                    msg = (
+                        f"📊 <b>Status {hora} UTC</b>\n"
+                        f"Saldo: <b>{saldo_txt}</b> | Trades: {n_abertos}/{MAX_TRADES_ABERTOS}\n"
+                        f"\n<b>Posições abertas:</b>\n{pos_txt}\n"
+                        f"\n<b>TRENDING</b> ({len(trending_list)}/{len(sample)}): {trend_txt}"
+                    )
+                    tg(msg)
+                    print(f"[{hora}] Resumo horário enviado")
+                except Exception as _e:
+                    print(f"[{hora}] Resumo horário falhou: {_e}")
 
             # ── Gestão de posições abertas ────────────────────────────────
             tem_posicoes = bool(mem.get("trades_abertos"))

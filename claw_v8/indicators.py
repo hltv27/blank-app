@@ -136,10 +136,11 @@ def bollinger_bands(closes: list, period: int = BB_PERIOD, std_mult: float = BB_
 
 
 def volume_ok(volumes: list, lookback: int = 20) -> bool:
-    if len(volumes) < lookback + 1:
+    if len(volumes) < lookback + 2:
         return True
-    avg = sum(volumes[-lookback - 1:-1]) / lookback
-    return volumes[-1] > avg * 0.9
+    # usa volumes[-2] (última vela fechada) — volumes[-1] é a vela a formar
+    avg = sum(volumes[-lookback - 2:-2]) / lookback
+    return volumes[-2] > avg * 0.8
 
 
 def cmf_val(closes: list, highs: list, lows: list, volumes: list,
