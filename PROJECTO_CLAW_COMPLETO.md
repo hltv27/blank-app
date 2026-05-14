@@ -348,6 +348,42 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 | LINK | 0.96250677 | $10 |
 | DOT | 1.00 | $1 |
 
+### Snapshot 2026-05-14
+| Carteira | Moeda | Valor |
+|----------|-------|-------|
+| Tangem Wallet | USD | $4,290 (+5.6% vs 10 Mai) |
+| Invest Stocks | EUR | €1,323 |
+| Bux (ETF/Stocks: MU, ANET, ETN) | EUR | ~€491 |
+| Bux Crypto (PAXG recomprado) | EUR | ~€221 |
+| Binance EUR | EUR | ~€770 (sem actualização) |
+| **Total aprox.** | | **~€6,601** |
+
+### Activos Tangem (2026-05-14)
+| Activo | Qtd | Preço | Valor USD |
+|--------|-----|-------|-----------|
+| BTC | 0.0348942 | $81,522 | $2,845 |
+| ETH | 0.44191314 | $2,304 | $1,018 |
+| SOL | 3.11664982 | $92.87 | $289 (staking 5.83% APY) |
+| XRP | 84.566087 | $1.49 | $126 |
+| LINK | 0.96250677 | $10.64 | $10 |
+| DOT | 1.00 | $1.40 | $1 |
+| **Total** | | | **$4,290** |
+
+### Invest Stocks (2026-05-14)
+| Ticker | Qtd | Valor EUR | Variação |
+|--------|-----|-----------|----------|
+| VWCE | 1.843 | €296.79 | +4.65% |
+| CEG | 0.954 | €225.44 | -5.32% |
+| PLTR | 1.357 | €155.41 | -0.86% |
+| RGTI | 8.442 | €140.11 | +4.54% |
+| HO (Thales) | 0.644 | €143.63 | -15.17% |
+| LEU | 0.552 | €89.98 | -11.11% |
+| HRS | 0.334 | €88.40 | -11.60% |
+| CMP | 3.353 | €87.37 | +2.32% |
+| FTNT | 0.742 | €76.47 | +5.61% |
+| Kongsberg | 3.694 | €19.60 | novo |
+| **Total** | | **€1,323** | |
+
 ---
 
 ## 9. Infraestrutura e Operações
