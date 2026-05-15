@@ -101,3 +101,61 @@ select option { background: var(--surface2); color: var(--text); }
   gap: 6px;
 }
 .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+/* ── Layout responsivo ── */
+.desktop-sidebar {
+  display: flex;
+}
+.bottom-nav {
+  display: none;
+}
+.main-content {
+  flex: 1;
+  margin-left: 240px;
+  min-height: 100vh;
+  padding: 32px 36px;
+  overflow-x: hidden;
+  background: #0D0D1A;
+}
+
+/* ── Stats grid ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .desktop-sidebar {
+    display: none !important;
+  }
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 200;
+    padding: 4px 0 env(safe-area-inset-bottom, 8px);
+  }
+  .main-content {
+    margin-left: 0 !important;
+    padding: 20px 16px 90px;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

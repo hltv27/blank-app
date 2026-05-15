@@ -47,7 +47,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+      <div className="stats-grid">
         <StatCard
           label="Subscrições/mês"
           value={formatCurrency(totalSubs)}
@@ -83,7 +83,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Main content: 2 columns */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div className="dashboard-grid">
 
         {/* Upcoming renewals */}
         <div className="card" style={{ padding: 22 }}>

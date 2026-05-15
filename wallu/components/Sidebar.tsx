@@ -15,14 +15,13 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside style={{
+    <aside className="desktop-sidebar" style={{
       width: 240,
       minHeight: '100vh',
       background: 'var(--surface)',
       borderRight: '1px solid var(--border)',
       position: 'fixed',
       left: 0, top: 0, bottom: 0,
-      display: 'flex',
       flexDirection: 'column',
       padding: '24px 16px',
       gap: 4,
