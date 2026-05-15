@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CreditCard, BarChart2, Settings, PieChart } from 'lucide-react';
+import { LayoutDashboard, CreditCard, BarChart2, Settings, PieChart, Target } from 'lucide-react';
 
 const links = [
   { href: '/', label: 'Início', icon: LayoutDashboard },
-  { href: '/subscriptions', label: 'Subscrições', icon: CreditCard },
+  { href: '/subscriptions', label: 'Subscr.', icon: CreditCard },
   { href: '/portfolio', label: 'Carteira', icon: PieChart },
-  { href: '/finances', label: 'Finanças', icon: BarChart2 },
-  { href: '/settings', label: 'Definições', icon: Settings },
+  { href: '/goals', label: 'Metas', icon: Target },
+  { href: '/settings', label: 'Defin.', icon: Settings },
 ];
 
 export default function BottomNav() {

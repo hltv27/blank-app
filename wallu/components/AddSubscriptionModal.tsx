@@ -22,6 +22,21 @@ export default function AddSubscriptionModal({ onClose, onSave, existing }: Prop
   const [color, setColor] = useState(existing?.color ?? COLORS[0]);
   const [emoji, setEmoji] = useState(existing?.emoji ?? '📱');
   const [active, setActive] = useState(existing?.active ?? true);
+  const [cryptoPayment, setCryptoPayment] = useState(existing?.cryptoPayment ?? '');
+
+  const CRYPTO_OPTIONS = [
+    { id: '', label: 'Cartão / débito', emoji: '💳' },
+    { id: 'btc', label: 'Bitcoin (BTC)', emoji: '₿' },
+    { id: 'eth', label: 'Ethereum (ETH)', emoji: 'Ξ' },
+    { id: 'usdt', label: 'Tether (USDT)', emoji: '₮' },
+    { id: 'usdc', label: 'USD Coin (USDC)', emoji: '◎' },
+    { id: 'bnb', label: 'BNB', emoji: '⬡' },
+    { id: 'sol', label: 'Solana (SOL)', emoji: '◎' },
+    { id: 'xrp', label: 'XRP', emoji: '✕' },
+    { id: 'doge', label: 'Dogecoin (DOGE)', emoji: 'Ð' },
+    { id: 'ada', label: 'Cardano (ADA)', emoji: '₳' },
+    { id: 'avax', label: 'Avalanche (AVAX)', emoji: '▲' },
+  ];
 
   const handleQuickFill = (svc: typeof POPULAR_SERVICES[0]) => {
     setName(svc.name);
@@ -33,7 +48,7 @@ export default function AddSubscriptionModal({ onClose, onSave, existing }: Prop
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !amount) return;
-    onSave({ name, amount: parseFloat(amount), currency: 'EUR', billingCycle, nextBillingDate, category, color, emoji, active });
+    onSave({ name, amount: parseFloat(amount), currency: 'EUR', billingCycle, nextBillingDate, category, color, emoji, active, cryptoPayment: cryptoPayment || undefined });
     onClose();
   };
 
@@ -127,6 +142,16 @@ export default function AddSubscriptionModal({ onClose, onSave, existing }: Prop
                 }} />
               ))}
             </div>
+          </div>
+
+          {/* Crypto payment */}
+          <div>
+            <label>Método de pagamento</label>
+            <select value={cryptoPayment} onChange={e => setCryptoPayment(e.target.value)} style={{ marginTop: 4 }}>
+              {CRYPTO_OPTIONS.map(o => (
+                <option key={o.id} value={o.id}>{o.emoji} {o.label}</option>
+              ))}
+            </select>
           </div>
 
           {/* Active toggle */}

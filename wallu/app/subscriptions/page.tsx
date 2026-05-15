@@ -117,10 +117,16 @@ export default function SubscriptionsPage() {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, display: 'flex', gap: 10 }}>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ textTransform: 'capitalize' }}>{CATEGORY_LABELS[sub.category] || sub.category}</span>
                     <span>·</span>
                     <span>{sub.billingCycle === 'monthly' ? 'Mensal' : sub.billingCycle === 'yearly' ? 'Anual' : 'Semanal'}</span>
+                    {sub.cryptoPayment && (
+                      <>
+                        <span>·</span>
+                        <span style={{ color: '#F59E0B', fontWeight: 600 }}>⬡ {sub.cryptoPayment.toUpperCase()}</span>
+                      </>
+                    )}
                     {sub.active && (
                       <>
                         <span>·</span>

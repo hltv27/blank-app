@@ -24,6 +24,7 @@ export interface Subscription {
   emoji: string;
   active: boolean;
   notes?: string;
+  cryptoPayment?: string;
 }
 
 export interface Transaction {
