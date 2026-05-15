@@ -5,9 +5,20 @@ import { DEFAULT_SUBSCRIPTIONS, DEFAULT_TRANSACTIONS } from './data';
 
 const SUBS_KEY = 'wallu_subscriptions';
 const TXN_KEY = 'wallu_transactions';
+const INIT_KEY = 'wallu_seeded';
+
+function seedIfFirstRun() {
+  if (typeof window === 'undefined') return;
+  if (!localStorage.getItem(INIT_KEY)) {
+    localStorage.setItem(SUBS_KEY, JSON.stringify(DEFAULT_SUBSCRIPTIONS));
+    localStorage.setItem(TXN_KEY, JSON.stringify(DEFAULT_TRANSACTIONS));
+    localStorage.setItem(INIT_KEY, '1');
+  }
+}
 
 export function getSubscriptions(): Subscription[] {
   if (typeof window === 'undefined') return DEFAULT_SUBSCRIPTIONS;
+  seedIfFirstRun();
   try {
     const raw = localStorage.getItem(SUBS_KEY);
     return raw ? JSON.parse(raw) : DEFAULT_SUBSCRIPTIONS;
@@ -23,6 +34,7 @@ export function saveSubscriptions(subs: Subscription[]): void {
 
 export function getTransactions(): Transaction[] {
   if (typeof window === 'undefined') return DEFAULT_TRANSACTIONS;
+  seedIfFirstRun();
   try {
     const raw = localStorage.getItem(TXN_KEY);
     return raw ? JSON.parse(raw) : DEFAULT_TRANSACTIONS;
