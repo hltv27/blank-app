@@ -16,6 +16,8 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html, body { max-width: 100vw; overflow-x: hidden; }
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -116,6 +118,8 @@ select option { background: var(--surface2); color: var(--text); }
   padding: 32px 36px;
   overflow-x: hidden;
   background: #0D0D1A;
+  min-width: 0;
+  width: 0;
 }
 
 /* ── Stats grid ── */
@@ -156,6 +160,7 @@ select option { background: var(--surface2); color: var(--text); }
   .main-content {
     margin-left: 0 !important;
     padding: 20px 16px 90px;
+    width: 100vw !important;
   }
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
