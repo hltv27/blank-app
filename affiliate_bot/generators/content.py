@@ -32,6 +32,10 @@ PLATFORM_PROMPTS = {
 
 
 def generate_post_text(product: dict, platform: str) -> str:
+    # Use AI only if Anthropic key is configured, otherwise use fallback
+    if not Config.ANTHROPIC_API_KEY:
+        return _fallback_text(product, platform)
+
     style = PLATFORM_PROMPTS.get(platform, PLATFORM_PROMPTS["telegram"])
     niche_emoji = {
         "tech_gadgets": "📱⚡",

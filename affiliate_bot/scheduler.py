@@ -124,12 +124,24 @@ def start(use_apscheduler: bool = True):
         _run_once(niches)
 
 
+def _active_platforms() -> list[str]:
+    platforms = ["telegram"]
+    if Config.INSTAGRAM_ACCESS_TOKEN and Config.INSTAGRAM_BUSINESS_ACCOUNT_ID:
+        platforms.append("instagram")
+    if Config.TIKTOK_ACCESS_TOKEN:
+        platforms.append("tiktok")
+    return platforms
+
+
 def _start_with_apscheduler(niches: dict, schedule_cfg: dict):
     from apscheduler.schedulers.blocking import BlockingScheduler
     from apscheduler.triggers.cron import CronTrigger
 
+    active = _active_platforms()
+    logger.info("Active platforms: %s", active)
+
     scheduler = BlockingScheduler(timezone="UTC")
-    jobs = build_daily_schedule(niches, schedule_cfg)
+    jobs = [j for j in build_daily_schedule(niches, schedule_cfg) if j["platform"] in active]
 
     for job in jobs:
         niche_cfg = niches[job["niche"]]
@@ -158,7 +170,7 @@ def _start_with_apscheduler(niches: dict, schedule_cfg: dict):
 
 
 def _run_once(niches: dict):
-    """Run one post per platform per niche — useful for testing."""
-    for platform in ["telegram", "instagram", "tiktok"]:
-        for niche_key, niche_cfg in niches.items():
-            run_post_cycle(platform, niche_key, niche_cfg)
+    """Run one post per active platform — useful for testing."""
+    for platform in _active_platforms():
+        niche_key = list(niches.keys())[0]
+        run_post_cycle(platform, niche_key, niches[niche_key])

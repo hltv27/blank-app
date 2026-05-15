@@ -47,12 +47,12 @@ class Config:
 
     @classmethod
     def validate(cls) -> list[str]:
+        # Only these two are required to start — everything else is optional
         missing = []
         required = {
             "RAPIDAPI_KEY": cls.RAPIDAPI_KEY,
             "TELEGRAM_BOT_TOKEN": cls.TELEGRAM_BOT_TOKEN,
             "TELEGRAM_CHANNEL_ID": cls.TELEGRAM_CHANNEL_ID,
-            "ANTHROPIC_API_KEY": cls.ANTHROPIC_API_KEY,
         }
         for name, value in required.items():
             if not value:
