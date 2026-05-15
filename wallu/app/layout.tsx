@@ -1,22 +1,17 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Sidebar from '@/components/Sidebar';
-import BottomNav from '@/components/BottomNav';
+import Providers from '@/components/Providers';
 
 export const metadata: Metadata = {
-  title: 'Wallu — As tuas finanças, simples',
-  description: 'Controla as tuas subscrições e finanças num só lugar.',
+  title: 'Wallu — Your finances, simplified',
+  description: 'Track your subscriptions and finances in one place.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt" style={{ background: '#0D0D1A' }}>
+    <html lang="en" style={{ background: '#0D0D1A' }}>
       <body style={{ background: '#0D0D1A', color: '#F0F0FF', margin: 0, width: '100%' }}>
-        <Sidebar />
-        <main className="main-content">
-          {children}
-        </main>
-        <BottomNav />
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

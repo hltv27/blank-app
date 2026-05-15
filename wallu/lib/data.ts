@@ -27,15 +27,15 @@ export const POPULAR_SERVICES = [
 
 export const CATEGORY_LABELS: Record<string, string> = {
   streaming: 'Streaming',
-  music: 'Música',
+  music: 'Music',
   software: 'Software',
   gaming: 'Gaming',
   cloud: 'Cloud',
-  news: 'Notícias',
+  news: 'News',
   fitness: 'Fitness',
-  food: 'Alimentação',
-  finance: 'Finanças',
-  other: 'Outro',
+  food: 'Food',
+  finance: 'Finance',
+  other: 'Other',
 };
 
 export const CATEGORY_COLORS: Record<string, string> = {
@@ -115,12 +115,12 @@ export const DEFAULT_SUBSCRIPTIONS: Subscription[] = [
 ];
 
 export const DEFAULT_TRANSACTIONS: Transaction[] = [
-  { id: 't1', description: 'Salário', amount: 1800, type: 'income', category: 'Trabalho', date: '2026-05-01', emoji: '💰' },
-  { id: 't2', description: 'Renda', amount: 650, type: 'expense', category: 'Habitação', date: '2026-05-02', emoji: '🏠' },
-  { id: 't3', description: 'Supermercado Continente', amount: 87.50, type: 'expense', category: 'Alimentação', date: '2026-05-04', emoji: '🛒' },
-  { id: 't4', description: 'Electricidade EDP', amount: 45.20, type: 'expense', category: 'Serviços', date: '2026-05-06', emoji: '⚡' },
-  { id: 't5', description: 'Freelance Design', amount: 350, type: 'income', category: 'Trabalho', date: '2026-05-08', emoji: '💼' },
-  { id: 't6', description: 'Restaurante', amount: 32.00, type: 'expense', category: 'Alimentação', date: '2026-05-10', emoji: '🍽️' },
-  { id: 't7', description: 'Combustível', amount: 55.00, type: 'expense', category: 'Transporte', date: '2026-05-12', emoji: '⛽' },
-  { id: 't8', description: 'Farmácia', amount: 18.90, type: 'expense', category: 'Saúde', date: '2026-05-13', emoji: '💊' },
+  { id: 't1', description: 'Salary', amount: 1800, type: 'income', category: 'Work', date: '2026-05-01', emoji: '💰' },
+  { id: 't2', description: 'Rent', amount: 650, type: 'expense', category: 'Housing', date: '2026-05-02', emoji: '🏠' },
+  { id: 't3', description: 'Supermarket', amount: 87.50, type: 'expense', category: 'Food', date: '2026-05-04', emoji: '🛒' },
+  { id: 't4', description: 'Electricity', amount: 45.20, type: 'expense', category: 'Utilities', date: '2026-05-06', emoji: '⚡' },
+  { id: 't5', description: 'Freelance Design', amount: 350, type: 'income', category: 'Work', date: '2026-05-08', emoji: '💼' },
+  { id: 't6', description: 'Restaurant', amount: 32.00, type: 'expense', category: 'Food', date: '2026-05-10', emoji: '🍽️' },
+  { id: 't7', description: 'Fuel', amount: 55.00, type: 'expense', category: 'Transport', date: '2026-05-12', emoji: '⛽' },
+  { id: 't8', description: 'Pharmacy', amount: 18.90, type: 'expense', category: 'Health', date: '2026-05-13', emoji: '💊' },
 ];

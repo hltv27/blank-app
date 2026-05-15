@@ -2,10 +2,13 @@
 
 import { Subscription } from '@/lib/types';
 import { daysUntil, formatCurrency } from '@/lib/store';
+import { useT } from '@/lib/i18n';
 
 interface Props { subscriptions: Subscription[]; }
 
 export default function UpcomingRenewals({ subscriptions }: Props) {
+  const t = useT();
+
   const upcoming = subscriptions
     .filter(s => s.active)
     .map(s => ({ ...s, days: daysUntil(s.nextBillingDate) }))
@@ -20,15 +23,15 @@ export default function UpcomingRenewals({ subscriptions }: Props) {
   };
 
   const urgencyLabel = (days: number) => {
-    if (days === 0) return 'Hoje';
-    if (days === 1) return 'Amanhã';
-    return `${days} dias`;
+    if (days === 0) return t('common.today');
+    if (days === 1) return t('common.tomorrow');
+    return t('renewals.days', { n: days });
   };
 
   if (upcoming.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)', fontSize: 14 }}>
-        ✅ Sem renovações nos próximos 30 dias
+        {t('renewals.none')}
       </div>
     );
   }
@@ -44,15 +47,14 @@ export default function UpcomingRenewals({ subscriptions }: Props) {
             <div style={{
               width: 34, height: 34, borderRadius: 9,
               background: `${sub.color}22`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 16,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
             }}>
               {sub.emoji}
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{sub.name}</div>
               <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                {new Date(sub.nextBillingDate).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
+                {new Date(sub.nextBillingDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
               </div>
             </div>
           </div>

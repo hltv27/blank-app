@@ -66,5 +66,5 @@ export function daysUntil(dateStr: string): number {
 }
 
 export function formatCurrency(amount: number, currency = 'EUR'): string {
-  return new Intl.NumberFormat('pt-PT', { style: 'currency', currency }).format(amount);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
 }

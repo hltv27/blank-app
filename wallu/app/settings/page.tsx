@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle, Copy, ExternalLink } from 'lucide-react';
+import { CheckCircle, Copy } from 'lucide-react';
+import { useT, useLang, LANGUAGES } from '@/lib/i18n';
 
 const CRYPTO_WALLETS = [
   { id: 'btc', name: 'Bitcoin', symbol: 'BTC', emoji: '₿', color: '#F7931A', address: '3FZbgi29cpjq2GjdwV8eyHuJJnkLtktZc5' },
@@ -16,17 +17,19 @@ const CRYPTO_WALLETS = [
   { id: 'avax', name: 'Avalanche', symbol: 'AVAX', emoji: '▲', color: '#E84142', address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F' },
 ];
 
-const PLANS = [
-  { id: 'free', label: 'Grátis', price: 0, features: ['Subscrições (máx. 5)', 'Dashboard básico', 'Dados locais'] },
-  { id: 'pro', label: 'Pro', price: 4.99, features: ['Subscrições ilimitadas', 'Carteira completa', 'News feed', 'Insights AI', 'Converter', 'Metas ilimitadas'] },
-  { id: 'lifetime', label: 'Lifetime', price: 49, features: ['Tudo do Pro', 'Acesso vitalício', 'Atualizações gratuitas', 'Suporte prioritário'] },
-];
-
 export default function SettingsPage() {
+  const t = useT();
+  const { lang, setLang } = useLang();
   const [saved, setSaved] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('free');
   const [selectedCrypto, setSelectedCrypto] = useState('btc');
   const [copied, setCopied] = useState(false);
+
+  const PLANS = [
+    { id: 'free', label: t('settings.plan_free'), price: t('settings.price_free'), features: [t('settings.free_f1'), t('settings.free_f2'), t('settings.free_f3')] },
+    { id: 'pro', label: t('settings.plan_pro'), price: t('settings.price_pro'), features: [t('settings.pro_f1'), t('settings.pro_f2'), t('settings.pro_f3'), t('settings.pro_f4'), t('settings.pro_f5'), t('settings.pro_f6')] },
+    { id: 'lifetime', label: t('settings.plan_lifetime'), price: t('settings.price_lifetime'), features: [t('settings.life_f1'), t('settings.life_f2'), t('settings.life_f3'), t('settings.life_f4')] },
+  ];
 
   const handleSave = () => {
     setSaved(true);
@@ -44,54 +47,74 @@ export default function SettingsPage() {
   return (
     <div style={{ maxWidth: 600, margin: '0 auto' }}>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.4px' }}>Definições</h1>
-        <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 4 }}>Personaliza a tua experiência Wallu</p>
+        <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.4px' }}>{t('settings.title')}</h1>
+        <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 4 }}>{t('settings.subtitle')}</p>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Profile section */}
+        {/* Language */}
         <div className="card" style={{ padding: 22 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>👤 Perfil</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>{t('settings.language_section')}</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {LANGUAGES.map(l => (
+              <button key={l.code} onClick={() => setLang(l.code)}
+                style={{
+                  padding: '7px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer',
+                  background: lang === l.code ? 'rgba(124,58,237,0.15)' : 'var(--surface2)',
+                  border: lang === l.code ? '1.5px solid var(--accent)' : '1.5px solid var(--border)',
+                  color: lang === l.code ? 'var(--accent)' : 'var(--text)',
+                  fontWeight: lang === l.code ? 600 : 400,
+                  transition: 'all 0.15s',
+                }}>
+                {l.flag} {l.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Profile */}
+        <div className="card" style={{ padding: 22 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>{t('settings.profile')}</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
-              <label>Nome</label>
-              <input placeholder="O teu nome" defaultValue="Utilizador Wallu" />
+              <label>{t('settings.name_label')}</label>
+              <input placeholder={t('settings.name_placeholder')} defaultValue="Wallu User" />
             </div>
             <div>
-              <label>Email</label>
-              <input type="email" placeholder="email@exemplo.pt" />
+              <label>{t('settings.email_label')}</label>
+              <input type="email" placeholder={t('settings.email_placeholder')} />
             </div>
           </div>
         </div>
 
         {/* Preferences */}
         <div className="card" style={{ padding: 22 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>⚙️ Preferências</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>{t('settings.preferences')}</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
-              <label>Moeda</label>
+              <label>{t('settings.currency')}</label>
               <select defaultValue="EUR">
                 <option value="EUR">EUR — Euro €</option>
-                <option value="USD">USD — Dólar $</option>
-                <option value="GBP">GBP — Libra £</option>
+                <option value="USD">USD — Dollar $</option>
+                <option value="GBP">GBP — Pound £</option>
                 <option value="BRL">BRL — Real R$</option>
               </select>
             </div>
             <div>
-              <label>Dia de início do mês</label>
+              <label>{t('settings.month_start')}</label>
               <select defaultValue="1">
                 {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
-                  <option key={d} value={d}>Dia {d}</option>
+                  <option key={d} value={d}>{t('settings.day_n', { n: d })}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label>Lembrete de renovação (dias antes)</label>
+              <label>{t('settings.reminder')}</label>
               <select defaultValue="3">
-                <option value="1">1 dia antes</option>
-                <option value="3">3 dias antes</option>
-                <option value="7">7 dias antes</option>
-                <option value="14">14 dias antes</option>
+                <option value="1">{t('settings.day_1_before')}</option>
+                <option value="3">{t('settings.days_before', { n: 3 })}</option>
+                <option value="7">{t('settings.days_before', { n: 7 })}</option>
+                <option value="14">{t('settings.days_before', { n: 14 })}</option>
               </select>
             </div>
           </div>
@@ -99,7 +122,7 @@ export default function SettingsPage() {
 
         {/* Data */}
         <div className="card" style={{ padding: 22 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>💾 Dados</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>{t('settings.data_section')}</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button className="btn-ghost" style={{ textAlign: 'left', justifyContent: 'flex-start' }}
               onClick={() => {
@@ -112,25 +135,25 @@ export default function SettingsPage() {
                 const a = document.createElement('a');
                 a.href = url; a.download = 'wallu-backup.json'; a.click();
               }}>
-              📤 Exportar dados (JSON)
+              {t('settings.export')}
             </button>
             <button className="btn-ghost" style={{ textAlign: 'left', justifyContent: 'flex-start', color: 'var(--red)', borderColor: '#EF444433' }}
               onClick={() => {
-                if (confirm('Apagar todos os dados? Esta ação não pode ser revertida.')) {
+                if (confirm(t('settings.confirm_delete'))) {
                   localStorage.removeItem('wallu_subscriptions');
                   localStorage.removeItem('wallu_transactions');
                   window.location.reload();
                 }
               }}>
-              🗑️ Apagar todos os dados
+              {t('settings.delete_data')}
             </button>
           </div>
         </div>
 
         {/* Subscription Plans */}
         <div className="card" style={{ padding: 22 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>💎 Plano Wallu</h2>
-          <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>Escolhe o teu plano. Paga com cripto ou cartão.</p>
+          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{t('settings.plan_title')}</h2>
+          <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>{t('settings.plan_sub')}</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
             {PLANS.map(plan => (
               <button key={plan.id} onClick={() => setSelectedPlan(plan.id)}
@@ -140,9 +163,7 @@ export default function SettingsPage() {
                   borderRadius: 12, padding: '14px 12px', cursor: 'pointer', textAlign: 'left',
                 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: selectedPlan === plan.id ? 'var(--accent)' : 'var(--text)', marginBottom: 4 }}>{plan.label}</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
-                  {plan.price === 0 ? 'Grátis' : plan.id === 'lifetime' ? `${plan.price}€` : `${plan.price}€/mês`}
-                </div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>{plan.price}</div>
                 {plan.features.map(f => (
                   <div key={f} style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.7 }}>✓ {f}</div>
                 ))}
@@ -151,8 +172,7 @@ export default function SettingsPage() {
           </div>
           {selectedPlan !== 'free' && (
             <div style={{ background: 'var(--surface2)', borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>💳 Pagar com Cripto</div>
-              {/* Crypto selector */}
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{t('settings.pay_crypto')}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
                 {CRYPTO_WALLETS.map(c => (
                   <button key={c.id} onClick={() => setSelectedCrypto(c.id)}
@@ -166,9 +186,8 @@ export default function SettingsPage() {
                   </button>
                 ))}
               </div>
-              {/* Address display */}
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>Endereço {activeCrypto.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>{activeCrypto.name} address</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{
                     flex: 1, background: 'var(--surface)', border: '1px solid var(--border)',
@@ -182,7 +201,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.6, padding: '10px 12px', background: 'rgba(124,58,237,0.08)', borderRadius: 8 }}>
-                ℹ️ Após o pagamento, envia o comprovativo para <strong style={{ color: 'var(--accent)' }}>suporte@wallu.pt</strong> para ativar o plano.
+                {t('settings.crypto_note')} <strong style={{ color: 'var(--accent)' }}>support@wallu.app</strong> {t('settings.crypto_activate')}
               </div>
             </div>
           )}
@@ -190,17 +209,17 @@ export default function SettingsPage() {
 
         {/* About */}
         <div className="card" style={{ padding: 22 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>ℹ️ Sobre o Wallu</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{t('settings.about_title')}</h2>
           <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.8 }}>
-            <p><strong style={{ color: 'var(--text)' }}>Wallu</strong> é uma app de gestão financeira pessoal.</p>
-            <p>Controla as tuas subscrições e finanças de forma simples e visual.</p>
-            <p style={{ marginTop: 8 }}>Versão: <strong style={{ color: 'var(--accent)' }}>0.1.0 MVP</strong></p>
-            <p>Feito com ❤️ em Portugal</p>
+            <p><strong style={{ color: 'var(--text)' }}>Wallu</strong> {t('settings.about_desc1')}</p>
+            <p>{t('settings.about_desc2')}</p>
+            <p style={{ marginTop: 8 }}>{t('settings.version')} <strong style={{ color: 'var(--accent)' }}>0.1.0 MVP</strong></p>
+            <p>{t('settings.made_with')}</p>
           </div>
         </div>
 
         <button className="btn-primary" style={{ justifyContent: 'center', padding: '12px 24px' }} onClick={handleSave}>
-          {saved ? <><CheckCircle size={16} /> Guardado!</> : 'Guardar alterações'}
+          {saved ? <><CheckCircle size={16} /> {t('settings.saved')}</> : t('settings.save_btn')}
         </button>
       </div>
     </div>
