@@ -35,48 +35,62 @@ export interface PortfolioSnapshot {
 const CRYPTO_KEY = 'wallu_crypto';
 const STOCKS_KEY = 'wallu_stocks';
 const SNAPSHOTS_KEY = 'wallu_snapshots';
-const PORTFOLIO_SEEDED = 'wallu_portfolio_seeded';
+const PORTFOLIO_SEEDED = 'wallu_portfolio_seeded_v2';
 
-// Generate realistic historical data for demo
 function generateSnapshots(): PortfolioSnapshot[] {
   const snaps: PortfolioSnapshot[] = [];
   const today = new Date();
-  let cash = 1100, crypto = 420, etf = 2800, stock = 950;
+  // Seed based on real current values: crypto ~€4100, etf ~€294, stock ~€1950, cash ~€75
+  let cash = 600, crypto = 3200, etf = 260, stock = 1600;
 
   for (let i = 89; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    cash   += (Math.random() - 0.45) * 60;
-    crypto += (Math.random() - 0.48) * 85;
-    etf    += (Math.random() - 0.46) * 45;
+    cash   += (Math.random() - 0.45) * 40;
+    crypto += (Math.random() - 0.48) * 120;
+    etf    += (Math.random() - 0.46) * 8;
     stock  += (Math.random() - 0.47) * 55;
     snaps.push({
       date: d.toISOString().split('T')[0],
-      cash:   Math.max(cash, 200),
-      crypto: Math.max(crypto, 50),
-      etf:    Math.max(etf, 500),
-      stock:  Math.max(stock, 100),
+      cash:   Math.max(cash, 75),
+      crypto: Math.max(crypto, 800),
+      etf:    Math.max(etf, 100),
+      stock:  Math.max(stock, 300),
     });
   }
   return snaps;
 }
 
 export const DEFAULT_CRYPTO: CryptoAsset[] = [
-  { id: 'c1', symbol: 'BTC', name: 'Bitcoin', amount: 0.012, emoji: '₿', exchange: 'Binance', currentPrice: 62400 },
-  { id: 'c2', symbol: 'ETH', name: 'Ethereum', amount: 0.45, emoji: '⟠', exchange: 'Binance', currentPrice: 3180 },
-  { id: 'c3', symbol: 'SOL', name: 'Solana', amount: 3.2, emoji: '◎', exchange: 'Coinbase', currentPrice: 148 },
+  { id: 'c1', symbol: 'BTC',  name: 'Bitcoin',    amount: 0.0348942,   emoji: '₿',  exchange: 'Tangem',  currentPrice: 71700 },
+  { id: 'c2', symbol: 'ETH',  name: 'Ethereum',   amount: 0.44542,     emoji: '⟠',  exchange: 'Tangem',  currentPrice: 1874  },
+  { id: 'c3', symbol: 'SOL',  name: 'Solana',     amount: 3.11745595,  emoji: '◎',  exchange: 'Tangem',  currentPrice: 79    },
+  { id: 'c4', symbol: 'XRP',  name: 'XRP',        amount: 84.566087,   emoji: '✕',  exchange: 'Tangem',  currentPrice: 1.30  },
+  { id: 'c5', symbol: 'LINK', name: 'Chainlink',  amount: 0.96250677,  emoji: '🔗', exchange: 'Tangem',  currentPrice: 8.87  },
+  { id: 'c6', symbol: 'DOT',  name: 'Polkadot',   amount: 1.00,        emoji: '●',  exchange: 'Tangem',  currentPrice: 1.16  },
+  { id: 'c7', symbol: 'PAXG', name: 'PAX Gold',   amount: 0.052037,    emoji: '🥇', exchange: 'Wallet',  currentPrice: 3895  },
 ];
 
 export const DEFAULT_STOCKS: StockAsset[] = [
-  { id: 's1', ticker: 'VWCE', name: 'Vanguard FTSE All-World', shares: 12, emoji: '🌍', broker: 'DEGIRO', type: 'etf', currentPrice: 114 },
-  { id: 's2', ticker: 'CSPX', name: 'iShares S&P 500', shares: 8, emoji: '🇺🇸', broker: 'DEGIRO', type: 'etf', currentPrice: 520 },
-  { id: 's3', ticker: 'AAPL', name: 'Apple Inc.', shares: 5, emoji: '🍎', broker: 'Trading 212', type: 'stock', currentPrice: 189 },
-  { id: 's4', ticker: 'MSFT', name: 'Microsoft', shares: 3, emoji: '🪟', broker: 'Trading 212', type: 'stock', currentPrice: 415 },
+  // ETFs
+  { id: 's1', ticker: 'VWCE', name: 'Vanguard FTSE All-World',  shares: 1.84316891, emoji: '🌍', broker: 'Trading 212', type: 'etf',   currentPrice: 159.43 },
+  // Stocks — Trading 212
+  { id: 's2', ticker: 'PLTR', name: 'Palantir',                  shares: 1.35703569, emoji: '🔭', broker: 'Trading 212', type: 'stock', currentPrice: 114.43 },
+  { id: 's3', ticker: 'RGTI', name: 'Rigetti Computing',         shares: 8.44222677, emoji: '⚛️', broker: 'Trading 212', type: 'stock', currentPrice: 15.37  },
+  { id: 's4', ticker: 'HRS',  name: 'L3Harris Technologies',     shares: 0.33411293, emoji: '📡', broker: 'Trading 212', type: 'stock', currentPrice: 261.10 },
+  { id: 's5', ticker: 'CMP',  name: 'Compass Minerals',          shares: 3.35250836, emoji: '⛏️', broker: 'Trading 212', type: 'stock', currentPrice: 25.99  },
+  { id: 's6', ticker: 'FTNT', name: 'Fortinet',                  shares: 0.74235807, emoji: '🔐', broker: 'Trading 212', type: 'stock', currentPrice: 105.35 },
+  { id: 's7', ticker: 'Z4Q',  name: 'Kongsberg Maritime',        shares: 3.69385342, emoji: '⚓', broker: 'Trading 212', type: 'stock', currentPrice: 5.43   },
+  // Stocks — Robinhood
+  { id: 's8', ticker: 'ANET', name: 'Arista Networks',           shares: 2.0376,     emoji: '🌐', broker: 'Robinhood',   type: 'stock', currentPrice: 130.00 },
+  { id: 's9', ticker: 'ETN',  name: 'Eaton Corporation',         shares: 0.4549,     emoji: '⚡', broker: 'Robinhood',   type: 'stock', currentPrice: 367.00 },
 ];
 
 export function seedPortfolioIfNeeded() {
   if (typeof window === 'undefined') return;
   if (localStorage.getItem(PORTFOLIO_SEEDED)) return;
+  // Clear any previous seed so fresh data is written
+  localStorage.removeItem('wallu_portfolio_seeded');
   localStorage.setItem(CRYPTO_KEY, JSON.stringify(DEFAULT_CRYPTO));
   localStorage.setItem(STOCKS_KEY, JSON.stringify(DEFAULT_STOCKS));
   localStorage.setItem(SNAPSHOTS_KEY, JSON.stringify(generateSnapshots()));
