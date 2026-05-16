@@ -384,6 +384,52 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 | Kongsberg | 3.694 | €19.60 | novo |
 | **Total** | | **€1,323** | |
 
+### Snapshot 2026-05-16
+| Carteira | Moeda | Valor | Δ vs 14 Mai |
+|----------|-------|-------|-------------|
+| Tangem Wallet | USD | $4,080 | -$210 (-4.9%) |
+| Invest Stocks | EUR | €1,299 | -€24 (-1.8%) |
+| Robinhood (ANET+ETN+PAXG) | EUR | €695 | -€17 (-2.4%) |
+| Binance EUR | EUR | ~€770 | — |
+| **Total aprox.** | | **~€6,393** | **-€208 (-3.2%)** |
+
+*Nota: queda por correção cripto generalizada hoje (-3% a -6% em todos os activos).*
+*MU (Micron) vendido. ANET aumentado (1.24→2.04), ETN aumentado (0.31→0.45).*
+
+### Activos Tangem (2026-05-16)
+| Activo | Qtd | Preço | Valor USD | Δ vs 14 Mai |
+|--------|-----|-------|-----------|-------------|
+| BTC | 0.0348942 | $77,960 | $2,720 | -$125 |
+| ETH | 0.44191314 | $2,176 | $961 | -$57 |
+| SOL | 3.11745595 | $86.05 | $268 | -$21 |
+| XRP | 84.566087 | $1.41 | $119 | -$7 |
+| LINK | 0.96250677 | $9.64 | $9 | -$1 |
+| DOT | 1.00 | $1.26 | $1 | — |
+| **Total** | | | **$4,080** | **-$210** |
+
+### Invest Stocks (2026-05-16)
+| Ticker | Qtd | Valor EUR | Var hoje |
+|--------|-----|-----------|----------|
+| VWCE | 1.843 | €293.87 | +3.62% |
+| PLTR | 1.357 | €155.29 | -0.94% |
+| RGTI | 8.442 | €129.75 | -3.19% |
+| HRS | 0.334 | €87.24 | -12.76% |
+| CMP | 3.353 | €87.16 | +2.07% |
+| FTNT | 0.742 | €78.21 | +8.01% |
+| Kongsberg | 3.694 | €20.06 | novo |
+| + CEG, HO, LEU | — | (scrolled) | — |
+| **Total** | | **€1,299** | |
+
+### Robinhood (2026-05-16)
+| Activo | Qtd | Preço | Valor |
+|--------|-----|-------|-------|
+| ANET (Arista) | 2.0376 | $141.31 | ~€255 |
+| ETN (Eaton) | 0.4549 | $398.80 | ~€161 |
+| PAXG | 0.052037 | €3,895 | €202.68 |
+| ETH | 0.00351 | €1,874 | €6.58 |
+| Buying power | — | — | €75.17 |
+| **Total** | | | **€695.06** |
+
 ---
 
 ## 9. Infraestrutura e Operações
