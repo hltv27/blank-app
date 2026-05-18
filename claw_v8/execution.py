@@ -236,15 +236,12 @@ def gerir_posicoes(mem: dict):
     # ── Guarda de 25% — fecha tudo se perdas abertas > 25% do saldo ────
     saldo_atual = get_balance()
     if saldo_atual and saldo_atual > 0:
-        pnl_total_aberto = sum(
-            posicoes_crash.get(s, {}).get("pnl", 0)
-            for s in (get_positions() or {})
-        )
+        posicoes_dd = get_positions() or {}
+        pnl_total_aberto = sum(pos.get("pnl", 0) for pos in posicoes_dd.values())
         limite_drawdown = saldo_atual * MAX_DRAWDOWN_PCT
         if pnl_total_aberto < -limite_drawdown:
-            todas = get_positions() or {}
             fechados_dd = []
-            for sym, pos in todas.items():
+            for sym, pos in posicoes_dd.items():
                 close_position(sym, pos["qty"], pos["side"])
                 close_position_db(sym, "DRAWDOWN_25PCT", pos["pnl"], 0)
                 mem.get("trades_abertos", {}).pop(sym, None)

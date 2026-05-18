@@ -50,13 +50,14 @@ def run():
     init_db()
     sync_time()
 
-    # Fetch dinâmico dos top N pares USDC-M por volume
-    dinamicos = get_top_futures_symbols(TOP_N_FUTURES)
+    # Fetch dinâmico dos top N pares USDC-M por volume + precisão
+    dinamicos, precisoes = get_top_futures_symbols(TOP_N_FUTURES)
     if dinamicos:
         config.SYMBOLS = dinamicos
+    if precisoes:
+        config.SYMBOL_PRECISION.update(precisoes)
     SYMBOLS = config.SYMBOLS
 
-    # Actualiza lista de pares a cada 24h (dentro do loop)
     ultima_actualizacao_symbols = time.time()
 
     ip_atual = get_public_ip()
@@ -85,11 +86,13 @@ def run():
 
             # Actualiza lista de pares a cada 24h
             if time.time() - ultima_actualizacao_symbols > 86400:
-                novos = get_top_futures_symbols(TOP_N_FUTURES)
+                novos, precisoes_novas = get_top_futures_symbols(TOP_N_FUTURES)
                 if novos:
                     config.SYMBOLS = novos
                     SYMBOLS = config.SYMBOLS
-                    print(f"[{hora}] Pares actualizados: {len(SYMBOLS)}")
+                if precisoes_novas:
+                    config.SYMBOL_PRECISION.update(precisoes_novas)
+                print(f"[{hora}] Pares actualizados: {len(SYMBOLS)}")
                 ultima_actualizacao_symbols = time.time()
 
             # ── Resumo horário de mercado ─────────────────────────────────

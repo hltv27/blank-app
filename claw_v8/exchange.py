@@ -319,20 +319,35 @@ def close_position(symbol: str, qty: float, side: str):
     return place_order(symbol, close_side, abs(qty))
 
 
-def get_top_futures_symbols(n: int = 20) -> list:
-    """Busca top N pares USDC-M por volume 24h. Exclui stablecoins e tokens alavancados."""
-    STABLES   = {"USDT","USDC","BUSD","DAI","TUSD","USDP","FDUSD","USDE","PYUSD"}
-    EXCLUIR   = {"UP","DOWN","BULL","BEAR","3L","3S","HEDGE"}
+def get_top_futures_symbols(n: int = 20) -> tuple:
+    """
+    Busca top N pares USDC-M por volume 24h.
+    Retorna (lista_symbols, dict_precision).
+    Exclui stablecoins e tokens alavancados.
+    """
+    STABLES = {"USDT","USDC","BUSD","DAI","TUSD","USDP","FDUSD","USDE","PYUSD"}
+    EXCLUIR = {"UP","DOWN","BULL","BEAR","3L","3S","HEDGE"}
     try:
-        # Pares USDC-M disponíveis
         info = requests.get(f"{BASE_URL}/fapi/v1/exchangeInfo", timeout=10).json()
-        usdc_symbols = {
-            s["symbol"] for s in info.get("symbols", [])
-            if s.get("quoteAsset") == "USDC"
-            and s.get("status") == "TRADING"
-            and s.get("contractType") == "PERPETUAL"
-        }
-        # Volume 24h
+        # Mapa symbol → precisão de quantidade (stepSize)
+        precision_map = {}
+        usdc_symbols  = set()
+        for s in info.get("symbols", []):
+            if (s.get("quoteAsset") == "USDC"
+                    and s.get("status") == "TRADING"
+                    and s.get("contractType") == "PERPETUAL"):
+                sym = s["symbol"]
+                usdc_symbols.add(sym)
+                for f in s.get("filters", []):
+                    if f.get("filterType") == "LOT_SIZE":
+                        step = f.get("stepSize", "1")
+                        if "." in step:
+                            decimals = len(step.rstrip("0").split(".")[1])
+                        else:
+                            decimals = 0
+                        precision_map[sym] = decimals
+                        break
+
         tickers = requests.get(f"{BASE_URL}/fapi/v1/ticker/24hr", timeout=10).json()
         candidatos = []
         for t in tickers:
@@ -340,22 +355,19 @@ def get_top_futures_symbols(n: int = 20) -> list:
             if sym not in usdc_symbols:
                 continue
             base = sym.replace("USDC", "").replace("1000", "")
-            if base in STABLES:
-                continue
-            if any(ex in base for ex in EXCLUIR):
+            if base in STABLES or any(ex in base for ex in EXCLUIR):
                 continue
             try:
-                vol = float(t.get("quoteVolume", 0))
-                candidatos.append((sym, vol))
+                candidatos.append((sym, float(t.get("quoteVolume", 0))))
             except Exception:
                 continue
         candidatos.sort(key=lambda x: x[1], reverse=True)
         resultado = [s for s, _ in candidatos[:n]]
-        print(f"[v8] Top {n} USDC-M dinâmico: {resultado}")
-        return resultado
+        print(f"[v8] Top {n} USDC-M: {resultado}")
+        return resultado, precision_map
     except Exception as e:
         print(f"[AVISO] get_top_futures_symbols falhou: {e} — usando lista estática")
-        return []
+        return [], {}
 
 
 def cancel_order(symbol: str, order_id) -> bool:
