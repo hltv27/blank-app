@@ -319,39 +319,49 @@ def close_position(symbol: str, qty: float, side: str):
     return place_order(symbol, close_side, abs(qty))
 
 
-def get_top_futures_symbols(n: int = 20) -> tuple:
+def get_top_futures_symbols(n: int = 20, min_days: int = 30) -> tuple:
     """
     Busca top N pares USDC-M por volume 24h.
     Retorna (lista_symbols, dict_precision).
-    Exclui stablecoins e tokens alavancados.
+    Exclui: stablecoins, tokens alavancados, moedas com menos de min_days dias.
     """
-    STABLES = {"USDT","USDC","BUSD","DAI","TUSD","USDP","FDUSD","USDE","PYUSD"}
-    EXCLUIR = {"UP","DOWN","BULL","BEAR","3L","3S","HEDGE"}
+    STABLES  = {"USDT","USDC","BUSD","DAI","TUSD","USDP","FDUSD","USDE","PYUSD"}
+    EXCLUIR  = {"UP","DOWN","BULL","BEAR","3L","3S","HEDGE"}
+    min_age_ms = min_days * 24 * 3600 * 1000
+    agora_ms   = int(time.time() * 1000)
+
     try:
         info = requests.get(f"{BASE_URL}/fapi/v1/exchangeInfo", timeout=10).json()
-        # Mapa symbol → precisão de quantidade (stepSize)
         precision_map = {}
         usdc_symbols  = set()
+
         for s in info.get("symbols", []):
-            if (s.get("quoteAsset") == "USDC"
+            if not (s.get("quoteAsset") == "USDC"
                     and s.get("status") == "TRADING"
                     and s.get("contractType") == "PERPETUAL"):
-                sym = s["symbol"]
-                usdc_symbols.add(sym)
-                for f in s.get("filters", []):
-                    if f.get("filterType") == "LOT_SIZE":
-                        step = f.get("stepSize", "1")
-                        if "." in step:
-                            decimals = len(step.rstrip("0").split(".")[1])
-                        else:
-                            decimals = 0
-                        precision_map[sym] = decimals
-                        break
+                continue
+            sym = s["symbol"]
+
+            # Filtro de maturidade — mínimo min_days dias listada
+            onboard = s.get("onboardDate", agora_ms)
+            if (agora_ms - onboard) < min_age_ms:
+                print(f"[v8] {sym} excluído — listada há menos de {min_days} dias")
+                continue
+
+            usdc_symbols.add(sym)
+
+            # Precisão de quantidade (LOT_SIZE stepSize)
+            for f in s.get("filters", []):
+                if f.get("filterType") == "LOT_SIZE":
+                    step = f.get("stepSize", "1")
+                    decimals = len(step.rstrip("0").split(".")[1]) if "." in step else 0
+                    precision_map[sym] = decimals
+                    break
 
         tickers = requests.get(f"{BASE_URL}/fapi/v1/ticker/24hr", timeout=10).json()
         candidatos = []
         for t in tickers:
-            sym = t.get("symbol", "")
+            sym  = t.get("symbol", "")
             if sym not in usdc_symbols:
                 continue
             base = sym.replace("USDC", "").replace("1000", "")
@@ -361,10 +371,15 @@ def get_top_futures_symbols(n: int = 20) -> tuple:
                 candidatos.append((sym, float(t.get("quoteVolume", 0))))
             except Exception:
                 continue
+
         candidatos.sort(key=lambda x: x[1], reverse=True)
         resultado = [s for s, _ in candidatos[:n]]
-        print(f"[v8] Top {n} USDC-M: {resultado}")
+        excluidas  = len(candidatos) - len(resultado)
+        print(f"[v8] Top {n} USDC-M (mín. {min_days} dias): {resultado}")
+        if excluidas > 0:
+            print(f"[v8] {excluidas} pares com volume mas excluídos (< {min_days} dias)")
         return resultado, precision_map
+
     except Exception as e:
         print(f"[AVISO] get_top_futures_symbols falhou: {e} — usando lista estática")
         return [], {}
