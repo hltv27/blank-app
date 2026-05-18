@@ -1,6 +1,6 @@
 # Claw Agent — Histórico Completo do Projecto
 
-**Período:** Início do projecto → 13 Maio 2026  
+**Período:** Início do projecto → 18 Maio 2026  
 **Bot:** Trading algorítmico para Binance Futures (Cross Margin, USDC)  
 **VPS:** `178.105.52.219`  
 **Repositório:** `blank-app` (branch `claude/setup-project-structure-3xwuR`)
@@ -20,6 +20,8 @@
 9. [Infraestrutura e Operações](#9-infraestrutura-e-operações)
 10. [Ajustes de Configuração](#10-ajustes-de-configuração)
 11. [Comandos Úteis](#11-comandos-úteis)
+12. [Rotina de Sessão](#12-rotina-de-sessão)
+13. [Sessões de Trabalho](#13-sessões-de-trabalho)
 
 ---
 
@@ -510,6 +512,14 @@ O bot corria no Termux do telemóvel — o IP mudava sempre que o telemóvel mud
 | v8 | recvWindow | 5s | 10s | Tolerância timestamp |
 | Mai-13 | STOCH_VETO_SHORT | 5.0 | **2.5** | Apanhar SHORTs em quedas |
 | Mai-13 | ADX mínimo | 25 | **22.5** | Menos falsos MORTO |
+| Mai-16 | volume_ok() | volumes[-1] | **volumes[-2]** | Vela a formar = ~0 volume → VETO_VOL em tudo |
+| Mai-16 | volume_ok() threshold | 1.0x | **0.8x** | Menos restritivo |
+| Mai-18 | RATIO_ALVO | 2.0 | **3.0** | TP mais longe = ganhos maiores |
+| Mai-18 | PARTIAL_TP_RATIO | 0.5 | **0.67** | TP1 dispara a 2R (era 1R) |
+| Mai-18 | PARTIAL_TP_QTY | 50% | **33%** | Deixa mais posição no runner |
+| Mai-18 | EMERGENCY_ROI_CUT | -4.0% | **-5.5%** | Mais espaço ao trade |
+| Mai-18 | TP2 | não existia | **3R, fecha 33%** | Runner com lock de lucro |
+| Mai-18 | Breakeven stop | não existia | **entry +0.2%** | Após TP1, pior caso = zero |
 
 ---
 
@@ -547,6 +557,51 @@ bash -c 'source /tmp/ce; kill \$(cat /root/claw.pid) 2>/dev/null; \
 PYTHONUNBUFFERED=1 nohup python3 claw_v8/main.py > /root/claw.log 2>&1 & \
 echo \$! > /root/claw.pid' && sleep 3 && tail -5 /root/claw.log"
 ```
+
+---
+
+## 12. Rotina de Sessão
+
+**Combinado:** no início de cada sessão com Claude, dizer **"faz o relatório diário"**.
+
+Claude irá automaticamente:
+1. Ler este ficheiro (`PROJECTO_CLAW_COMPLETO.md`) para ter contexto completo
+2. Fazer varrimento na internet (GitHub, Reddit, fóruns algotrading) para benchmarking de melhorias
+3. Correr `check_results.py` no VPS para ver dados novos do bot
+4. Propor melhorias baseadas nos dados reais + benchmarking
+
+**Comando para relatório do bot:**
+```bash
+ssh root@178.105.52.219 "cd /root/blank-app && python3 claw_v8/check_results.py"
+```
+
+---
+
+## 13. Sessões de Trabalho
+
+### Sessão 2026-05-13
+Ver ficheiro `SESSAO_2026-05-13.md` para detalhe completo.
+
+**Resumo:** Spot Scanner, monitorização posições externas, migração Termux → VPS, STOCH_VETO_SHORT 5.0 → 2.5, ADX 25 → 22.5.
+
+### Sessão 2026-05-16
+- Correcção crítica `volume_ok()`: usava `volumes[-1]` (vela em formação ~0) → VETO_VOL bloqueava tudo. Corrigido para `volumes[-2]`
+- Resumo horário de mercado via Telegram
+- Portfolio: Tangem $4,080 | Invest €1,299 | Robinhood €695 | Total ~€6,393
+
+### Sessão 2026-05-18
+- **Diagnóstico:** expectância -€0.20/trade (ganhos ~€1.75 vs perdas ~€3.00)
+- **Benchmarking:** Freqtrade, Jesse, UT Bot, r/algotrading — padrão "2R-3R-runner"
+- **Bug corrigido:** tabela `positions` vazia — sync block não chamava `db_open_position()`, close fazia UPDATE silencioso 0 rows. Corrigido com upsert em `close_position_db()`
+- **Overhaul exits (maior mudança até hoje):**
+  - TP1 a 2R → fecha 33% → stop para breakeven +0.2%
+  - TP2 a 3R → fecha 33% → stop para +1R
+  - Runner 34% com lucro garantido
+  - RATIO_ALVO 2→3 | PARTIAL_TP_RATIO 0.5→0.67 | EMERGENCY_ROI_CUT -4%→-5.5%
+- `cancel_order()` adicionado em `exchange.py`
+- **Expectância esperada:** -€0.20 → **+€1.44 por trade**
+- Rotina de sessão estabelecida: dizer *"faz o relatório diário"*
+- Portfolio: Tangem $4,079 | Invest €1,299 | Robinhood €695 | Total ~€6,393
 
 ---
 
