@@ -12,13 +12,14 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 import time
 from datetime import datetime, timezone
+import config
 from config import (
-    SYMBOLS, BTC_SYMBOLS, MAX_TRADES_ABERTOS,
+    BTC_SYMBOLS, MAX_TRADES_ABERTOS,
     MAX_LONGS_ALT, MAX_SHORTS_ALT, LOOKBACK,
     CHECK_POSICOES_FAST, CHECK_POSICOES, CAPITAL_MAX_BOT, RISCO_USDC,
-    ALAVANCAGEM
+    ALAVANCAGEM, TOP_N_FUTURES
 )
-from exchange import tg, get_klines, get_positions, get_balance, get_price, sync_time, get_public_ip
+from exchange import tg, get_klines, get_positions, get_balance, get_price, sync_time, get_public_ip, get_top_futures_symbols
 from indicators import atr, get_daily_vwap
 from strategy import detect_market_mode, signal_trending
 from filters import calc_correlation
@@ -49,10 +50,19 @@ def run():
     init_db()
     sync_time()
 
+    # Fetch dinâmico dos top N pares USDC-M por volume
+    dinamicos = get_top_futures_symbols(TOP_N_FUTURES)
+    if dinamicos:
+        config.SYMBOLS = dinamicos
+    SYMBOLS = config.SYMBOLS
+
+    # Actualiza lista de pares a cada 24h (dentro do loop)
+    ultima_actualizacao_symbols = time.time()
+
     ip_atual = get_public_ip()
     tg(
         "🤖 <b>Claw Agent v8.0 iniciado</b>\n"
-        f"Pares: {len(SYMBOLS)} | Capital máx: {CAPITAL_MAX_BOT} USDC\n"
+        f"Pares: {len(SYMBOLS)} (top {TOP_N_FUTURES} USDC-M) | Capital: {CAPITAL_MAX_BOT} USDC\n"
         f"Cross Margin | Alavancagem: {ALAVANCAGEM}x\n"
         f"Modo: TRENDING | SQLite: ativo\n"
         f"IP: <code>{ip_atual}</code>"
@@ -72,6 +82,15 @@ def run():
             if now_utc.hour != ultima_sync_hora:
                 sync_time()
                 ultima_sync_hora = now_utc.hour
+
+            # Actualiza lista de pares a cada 24h
+            if time.time() - ultima_actualizacao_symbols > 86400:
+                novos = get_top_futures_symbols(TOP_N_FUTURES)
+                if novos:
+                    config.SYMBOLS = novos
+                    SYMBOLS = config.SYMBOLS
+                    print(f"[{hora}] Pares actualizados: {len(SYMBOLS)}")
+                ultima_actualizacao_symbols = time.time()
 
             # ── Resumo horário de mercado ─────────────────────────────────
             if now_utc.hour != ultimo_resumo_hora:

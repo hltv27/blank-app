@@ -17,6 +17,9 @@ BASE_URL = "https://fapi.binance.com"
 # ─────────────────────────────────────────────
 #  PARES
 # ─────────────────────────────────────────────
+TOP_N_FUTURES = 20   # número de pares a negociar (20 ou 50)
+
+# Lista base de fallback (usada se a fetch dinâmica falhar)
 SYMBOLS = [
     "BTCUSDC", "ETHUSDC", "BNBUSDC", "SOLUSDC",
     "XRPUSDC", "DOGEUSDC", "LINKUSDC",
@@ -36,7 +39,7 @@ BTC_SYMBOLS = {"BTCUSDC"}
 # ─────────────────────────────────────────────
 CAPITAL_MAX_BOT     = 300.0
 RISCO_USDC          = 5.0
-ALAVANCAGEM         = 5
+ALAVANCAGEM         = 6
 RATIO_ALVO          = 3.0
 MAX_LOSS_DIA        = 15.0
 MAX_PERDAS_SEGUIDAS = 3
