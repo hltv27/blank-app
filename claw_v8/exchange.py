@@ -239,7 +239,7 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
     try:
         decimals = SYMBOL_PRECISION.get(symbol, 4)
         r = requests.post(
-            f"{BASE_URL}/fapi/v1/algoOrder",
+            f"{BASE_URL}/fapi/v1/order",
             params=_sign({
                 "symbol":        symbol,
                 "side":          side,
@@ -251,8 +251,17 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
             headers=_headers(), timeout=10
         )
         data = r.json()
-        if "algoId" in data:
-            return data["algoId"]
+        if _is_timestamp_error(data):
+            sync_time()
+            r = requests.post(f"{BASE_URL}/fapi/v1/order",
+                              params=_sign({"symbol": symbol, "side": side,
+                                            "type": "STOP_MARKET",
+                                            "stopPrice": f"{stop_price:.{decimals}f}",
+                                            "closePosition": "true", "timeInForce": "GTC"}),
+                              headers=_headers(), timeout=10)
+            data = r.json()
+        if "orderId" in data:
+            return data["orderId"]
         print(f"[AVISO] stop_market {symbol}: {data.get('msg', data)}")
         tg(f"⚠️ STOP falhou em {symbol}: {data.get('msg','?')}")
     except Exception as e:
@@ -264,7 +273,7 @@ def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
     try:
         decimals = SYMBOL_PRECISION.get(symbol, 4)
         r = requests.post(
-            f"{BASE_URL}/fapi/v1/algoOrder",
+            f"{BASE_URL}/fapi/v1/order",
             params=_sign({
                 "symbol":        symbol,
                 "side":          side,
@@ -276,8 +285,8 @@ def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
             headers=_headers(), timeout=10
         )
         data = r.json()
-        if "algoId" in data:
-            return data["algoId"]
+        if "orderId" in data:
+            return data["orderId"]
         print(f"[AVISO] take_profit {symbol}: {data.get('msg', data)}")
     except Exception as e:
         print(f"[ERRO] place_take_profit {symbol}: {e}")
@@ -288,24 +297,28 @@ def place_trailing_stop(symbol: str, side: str, callback_rate: float,
                         activation_price: float) -> int | None:
     try:
         decimals = SYMBOL_PRECISION.get(symbol, 4)
-        r = requests.post(
-            f"{BASE_URL}/fapi/v1/algoOrder",
-            params=_sign({
-                "symbol":          symbol,
-                "side":            side,
-                "type":            "TRAILING_STOP_MARKET",
-                "callbackRate":    f"{callback_rate}",
-                "activationPrice": f"{activation_price:.{decimals}f}",
-                "closePosition":   "true",
-            }),
-            headers=_headers(), timeout=10
-        )
+        params = {
+            "symbol":          symbol,
+            "side":            side,
+            "type":            "TRAILING_STOP_MARKET",
+            "callbackRate":    f"{callback_rate}",
+            "activationPrice": f"{activation_price:.{decimals}f}",
+            "closePosition":   "true",
+        }
+        r    = requests.post(f"{BASE_URL}/fapi/v1/order",
+                             params=_sign(params), headers=_headers(), timeout=10)
         data = r.json()
-        if "algoId" in data:
+        if _is_timestamp_error(data):
+            sync_time()
+            r    = requests.post(f"{BASE_URL}/fapi/v1/order",
+                                 params=_sign(params), headers=_headers(), timeout=10)
+            data = r.json()
+        if "orderId" in data:
             print(f"[OK] Trailing stop {symbol}: callback {callback_rate}%")
-            return data["algoId"]
+            return data["orderId"]
+        # Fallback: STOP_MARKET fixo a 1.5× callback abaixo/acima da activação
         msg = data.get("msg", str(data))
-        print(f"[AVISO] trailing_stop {symbol}: {msg} — a tentar STOP_MARKET fixo")
+        print(f"[AVISO] trailing_stop {symbol}: {msg} — fallback STOP_MARKET")
         sl_price = (activation_price * (1 - callback_rate / 100) if side == "SELL"
                     else activation_price * (1 + callback_rate / 100))
         return place_stop_market(symbol, side, sl_price, 0)
