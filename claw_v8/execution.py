@@ -7,7 +7,8 @@ import requests
 from config import (
     BASE_URL, CAPITAL_MAX_BOT, RISCO_USDC, ALAVANCAGEM,
     SYMBOL_PRECISION, STOP_RETRY_MAX, EMERGENCY_ROI_CUT,
-    PARTIAL_TP_RATIO, MARGIN_RATIO_MAX, BTC_CRASH_PCT, CORR_MAX
+    PARTIAL_TP_RATIO, PARTIAL_TP_QTY, PARTIAL_TP2_RATIO, PARTIAL_TP2_QTY,
+    BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, BTC_CRASH_PCT, CORR_MAX
 )
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_price,
@@ -299,32 +300,101 @@ def gerir_posicoes(mem: dict):
             )
             continue
 
-        # Partial TP
+        # ── TP1: fecha 33% a 2R, move stop para breakeven ────────────────
         entry_trade = trade.get("entry", 0)
         if sl > 0 and tp > 0 and not trade.get("partial_tp_done") and entry_trade > 0:
             if side == "LONG":
-                mid_tp      = entry_trade + (tp - entry_trade) * PARTIAL_TP_RATIO
-                hit_partial = price >= mid_tp
+                tp1_level   = entry_trade + (tp - entry_trade) * PARTIAL_TP_RATIO
+                hit_tp1     = price >= tp1_level
             else:
-                mid_tp      = entry_trade - (entry_trade - tp) * PARTIAL_TP_RATIO
-                hit_partial = price <= mid_tp
-            if hit_partial:
+                tp1_level   = entry_trade - (entry_trade - tp) * PARTIAL_TP_RATIO
+                hit_tp1     = price <= tp1_level
+            if hit_tp1:
                 decimals_p  = SYMBOL_PRECISION.get(symbol, 4)
                 qty_total   = abs(pos["qty"])
-                qty_parcial = round(qty_total * 0.5, decimals_p)
-                if qty_parcial > 0:
-                    close_position(symbol, qty_parcial, side)
+                qty_tp1     = round(qty_total * PARTIAL_TP_QTY, decimals_p)
+                if qty_tp1 > 0:
+                    close_position(symbol, qty_tp1, side)
+                    qty_restante = round(qty_total - qty_tp1, decimals_p)
+                    # Breakeven stop: entrada + 0.2% (cobre fees)
+                    if side == "LONG":
+                        be_price = round(entry_trade * (1 + BREAKEVEN_OFFSET), 8)
+                    else:
+                        be_price = round(entry_trade * (1 - BREAKEVEN_OFFSET), 8)
+                    # Cancela trailing stop antigo e coloca stop de breakeven
+                    old_stop = trade.get("stop_order_id")
+                    if old_stop:
+                        try:
+                            from exchange import cancel_order
+                            cancel_order(symbol, old_stop)
+                        except Exception:
+                            pass
+                    be_side  = "SELL" if side == "LONG" else "BUY"
+                    from exchange import place_trailing_stop
+                    new_stop_id = place_trailing_stop(symbol, be_side, 0.5, be_price)
                     mem["trades_abertos"][symbol]["partial_tp_done"] = True
-                    qty_restante = round(qty_total - qty_parcial, decimals_p)
-                    mem["trades_abertos"][symbol]["qty"] = qty_restante
+                    mem["trades_abertos"][symbol]["qty"]             = qty_restante
+                    mem["trades_abertos"][symbol]["sl"]              = be_price
+                    mem["trades_abertos"][symbol]["stop_order_id"]   = new_stop_id
                     update_position_partial_tp(symbol, qty_restante)
-                    pnl_parcial = round(abs(mid_tp - entry_trade) * qty_parcial, 2)
-                    log_state_transition(symbol, "OPEN", "PARTIAL_TP", "PRICE_HIT",
-                                        f"qty_parcial={qty_parcial} pnl={pnl_parcial:.2f}")
+                    pnl_tp1 = round(abs(tp1_level - entry_trade) * qty_tp1, 2)
+                    log_state_transition(symbol, "OPEN", "TP1", "PRICE_HIT",
+                                        f"qty={qty_tp1} pnl={pnl_tp1:.2f} be={be_price:.4f}")
                     tg(
-                        f"📊 <b>PARTIAL TP</b> — {symbol}\n"
-                        f"50% fechado a {price:.4f}\n"
-                        f"PnL estimado: +{pnl_parcial:.2f} USDC"
+                        f"📊 <b>TP1 — 33% fechado</b> — {symbol}\n"
+                        f"Preço: {price:.4f} | +{pnl_tp1:.2f} USDC\n"
+                        f"🔒 Stop movido para breakeven: {be_price:.4f}"
+                    )
+                    save_memory(mem)
+
+        # ── TP2: fecha mais 33% a 3R, move stop para +1R ─────────────────
+        if sl > 0 and tp > 0 and trade.get("partial_tp_done") and \
+                not trade.get("partial_tp2_done") and entry_trade > 0:
+            if side == "LONG":
+                tp2_level = entry_trade + (tp - entry_trade) * PARTIAL_TP2_RATIO
+                hit_tp2   = price >= tp2_level
+            else:
+                tp2_level = entry_trade - (entry_trade - tp) * PARTIAL_TP2_RATIO
+                hit_tp2   = price <= tp2_level
+            if hit_tp2:
+                decimals_p   = SYMBOL_PRECISION.get(symbol, 4)
+                qty_total    = abs(pos["qty"])
+                qty_inicial  = trade.get("qty_inicial", qty_total)
+                qty_tp2      = round(qty_inicial * PARTIAL_TP2_QTY, decimals_p)
+                qty_tp2      = min(qty_tp2, qty_total)
+                if qty_tp2 > 0:
+                    close_position(symbol, qty_tp2, side)
+                    qty_restante = round(qty_total - qty_tp2, decimals_p)
+                    # Stop para +1R (lock de lucro no runner)
+                    sl_dist = abs(entry_trade - trade.get("sl", entry_trade))
+                    if sl_dist == 0:
+                        sl_dist = abs(entry_trade - tp) / 3.0
+                    if side == "LONG":
+                        lock_price = round(entry_trade + sl_dist, 8)
+                    else:
+                        lock_price = round(entry_trade - sl_dist, 8)
+                    old_stop2 = trade.get("stop_order_id")
+                    if old_stop2:
+                        try:
+                            from exchange import cancel_order
+                            cancel_order(symbol, old_stop2)
+                        except Exception:
+                            pass
+                    be_side2    = "SELL" if side == "LONG" else "BUY"
+                    from exchange import place_trailing_stop
+                    new_stop2_id = place_trailing_stop(symbol, be_side2, 0.5, lock_price)
+                    mem["trades_abertos"][symbol]["partial_tp2_done"] = True
+                    mem["trades_abertos"][symbol]["qty"]              = qty_restante
+                    mem["trades_abertos"][symbol]["sl"]               = lock_price
+                    mem["trades_abertos"][symbol]["stop_order_id"]    = new_stop2_id
+                    update_position_partial_tp(symbol, qty_restante)
+                    pnl_tp2 = round(abs(tp2_level - entry_trade) * qty_tp2, 2)
+                    log_state_transition(symbol, "OPEN", "TP2", "PRICE_HIT",
+                                        f"qty={qty_tp2} pnl={pnl_tp2:.2f} lock={lock_price:.4f}")
+                    tg(
+                        f"🎯 <b>TP2 — 33% fechado</b> — {symbol}\n"
+                        f"Preço: {price:.4f} | +{pnl_tp2:.2f} USDC\n"
+                        f"🔒 Stop em +1R: {lock_price:.4f} | Runner livre"
                     )
                     save_memory(mem)
 

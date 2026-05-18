@@ -37,7 +37,7 @@ BTC_SYMBOLS = {"BTCUSDC"}
 CAPITAL_MAX_BOT     = 75.0
 RISCO_USDC          = 3.0
 ALAVANCAGEM         = 5
-RATIO_ALVO          = 2.0
+RATIO_ALVO          = 3.0
 MAX_LOSS_DIA        = 7.5
 MAX_PERDAS_SEGUIDAS = 3
 COOLDOWN_MIN        = 120
@@ -70,7 +70,10 @@ LOOKBACK        = 220
 
 SUPERTREND_PERIOD = 10
 SUPERTREND_MULT   = 3.0
-PARTIAL_TP_RATIO  = 0.5
+PARTIAL_TP_RATIO  = 0.67   # dispara a 2R (era 0.5 = 1R)
+PARTIAL_TP_QTY    = 0.33   # fecha 33% (era 50%)
+PARTIAL_TP2_RATIO = 1.0    # TP2 a 3R (full TP)
+PARTIAL_TP2_QTY   = 0.33   # fecha mais 33%
 
 CMF_PERIOD = 20
 MFI_PERIOD = 10
@@ -85,7 +88,8 @@ ATR_REGIME_MULT     = 3.0
 ATR_REGIME_LOOKBACK = 50
 BTC_CRASH_PCT       = 3.0
 STOP_RETRY_MAX      = 3
-EMERGENCY_ROI_CUT   = -4.0
+EMERGENCY_ROI_CUT   = -5.5
+BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 
 OBI_VETO        = 0.3
 EQUITY_EMA_N    = 20

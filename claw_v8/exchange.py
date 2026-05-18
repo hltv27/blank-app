@@ -317,3 +317,29 @@ def place_trailing_stop(symbol: str, side: str, callback_rate: float,
 def close_position(symbol: str, qty: float, side: str):
     close_side = "SELL" if side == "LONG" else "BUY"
     return place_order(symbol, close_side, abs(qty))
+
+
+def cancel_order(symbol: str, order_id) -> bool:
+    """Cancela uma ordem pelo ID. Retorna True se bem-sucedido."""
+    try:
+        params = _sign({"symbol": symbol, "orderId": int(order_id)})
+        r = requests.delete(
+            f"{BASE_URL}/fapi/v1/order",
+            params=params, headers=_headers(), timeout=10
+        )
+        data = r.json()
+        if _is_timestamp_error(data):
+            sync_time()
+            params = _sign({"symbol": symbol, "orderId": int(order_id)})
+            r = requests.delete(
+                f"{BASE_URL}/fapi/v1/order",
+                params=params, headers=_headers(), timeout=10
+            )
+            data = r.json()
+        if data.get("status") == "CANCELED":
+            return True
+        # Ordem já executada ou não existe — não é erro crítico
+        return False
+    except Exception as e:
+        print(f"[AVISO] cancel_order {symbol} #{order_id}: {e}")
+        return False
