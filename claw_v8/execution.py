@@ -135,8 +135,8 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     side  = "BUY" if direction == "LONG" else "SELL"
     order = place_order(symbol, side, qty)
 
-    if order and order.get("status") == "FILLED":
-        fill_price = float(order.get("avgPrice", price))
+    if order and "orderId" in order:
+        fill_price = float(order.get("avgPrice") or 0) or price
         sl, tp     = calc_sl_tp(direction, fill_price, atr_val, mode, score, adx_val)
         sl_dist    = abs(fill_price - sl)
         tp_dist    = abs(tp - fill_price)
@@ -207,8 +207,8 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             f"Detalhe: {detalhe}"
         )
     else:
-        erro = order.get("msg", "?") if order else "sem resposta"
-        print(f"[ERRO] Ordem {symbol}: {erro}")
+        erro = order.get("msg", str(order)[:120]) if isinstance(order, dict) else "sem resposta"
+        print(f"[ERRO] Ordem {symbol} resposta completa: {order}")
         tg(f"⚠️ <b>Ordem falhou</b> — {symbol}\nDirecção: {direction} | Erro: {erro}")
 
 
