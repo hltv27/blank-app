@@ -8,7 +8,8 @@ from config import (
     BASE_URL, CAPITAL_MAX_BOT, RISCO_USDC, ALAVANCAGEM,
     SYMBOL_PRECISION, STOP_RETRY_MAX, EMERGENCY_ROI_CUT,
     PARTIAL_TP_RATIO, PARTIAL_TP_QTY, PARTIAL_TP2_RATIO, PARTIAL_TP2_QTY,
-    BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, BTC_CRASH_PCT, CORR_MAX
+    BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
+    BTC_CRASH_PCT, CORR_MAX
 )
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_price,
@@ -231,6 +232,34 @@ def gerir_posicoes(mem: dict):
                 f"⚡ <b>BTC CRASH GUARD</b>\n"
                 f"Longs fechados: {', '.join(fechados)}"
             )
+
+    # ── Guarda de 25% — fecha tudo se perdas abertas > 25% do saldo ────
+    saldo_atual = get_balance()
+    if saldo_atual and saldo_atual > 0:
+        pnl_total_aberto = sum(
+            posicoes_crash.get(s, {}).get("pnl", 0)
+            for s in (get_positions() or {})
+        )
+        limite_drawdown = saldo_atual * MAX_DRAWDOWN_PCT
+        if pnl_total_aberto < -limite_drawdown:
+            todas = get_positions() or {}
+            fechados_dd = []
+            for sym, pos in todas.items():
+                close_position(sym, pos["qty"], pos["side"])
+                close_position_db(sym, "DRAWDOWN_25PCT", pos["pnl"], 0)
+                mem.get("trades_abertos", {}).pop(sym, None)
+                fechados_dd.append(sym)
+            if fechados_dd:
+                save_memory(mem)
+                log_risk_event("DRAWDOWN_25PCT",
+                               details=f"pnl={pnl_total_aberto:.2f} limite={-limite_drawdown:.2f}")
+                tg(
+                    f"🛡 <b>GUARDA 25% ACTIVADO</b>\n"
+                    f"Perdas abertas: {pnl_total_aberto:.2f} USDC\n"
+                    f"Limite: -{limite_drawdown:.0f} USDC ({MAX_DRAWDOWN_PCT*100:.0f}% de {saldo_atual:.0f})\n"
+                    f"Fechados: {', '.join(fechados_dd)}"
+                )
+            return
 
     # Salvaguarda de margem
     ratio = get_margin_ratio()

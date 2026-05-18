@@ -44,7 +44,6 @@ RATIO_ALVO          = 3.0
 MAX_LOSS_DIA        = 15.0
 MAX_PERDAS_SEGUIDAS = 3
 COOLDOWN_MIN        = 120
-MARGIN_RATIO_MAX    = 50.0
 MAX_TRADES_ABERTOS  = 5
 MAX_LONGS_ALT       = 3
 MAX_SHORTS_ALT      = 3
@@ -93,6 +92,10 @@ BTC_CRASH_PCT       = 3.0
 STOP_RETRY_MAX      = 3
 EMERGENCY_ROI_CUT   = -5.5
 BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
+
+# Guarda de capital — nunca perder mais de 25% em aberto
+MAX_DRAWDOWN_PCT    = 0.25   # 25% do saldo → fecha tudo
+MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
 
 OBI_VETO        = 0.3
 EQUITY_EMA_N    = 20
