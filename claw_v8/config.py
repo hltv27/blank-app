@@ -34,17 +34,17 @@ BTC_SYMBOLS = {"BTCUSDC"}
 # ─────────────────────────────────────────────
 #  RISCO
 # ─────────────────────────────────────────────
-CAPITAL_MAX_BOT     = 75.0
-RISCO_USDC          = 3.0
+CAPITAL_MAX_BOT     = 300.0
+RISCO_USDC          = 5.0
 ALAVANCAGEM         = 5
 RATIO_ALVO          = 3.0
-MAX_LOSS_DIA        = 7.5
+MAX_LOSS_DIA        = 15.0
 MAX_PERDAS_SEGUIDAS = 3
 COOLDOWN_MIN        = 120
 MARGIN_RATIO_MAX    = 50.0
-MAX_TRADES_ABERTOS  = 4
-MAX_LONGS_ALT       = 2
-MAX_SHORTS_ALT      = 2
+MAX_TRADES_ABERTOS  = 5
+MAX_LONGS_ALT       = 3
+MAX_SHORTS_ALT      = 3
 
 # ─────────────────────────────────────────────
 #  ESTRATÉGIA
