@@ -130,6 +130,8 @@ Permite responder: *"qual filtro está a bloquear os melhores trades?"*
 ## 4. Estratégia de Trading
 
 ### Pares activos
+Top 20 USDC-M perpétuos por volume 24h — carregados dinamicamente no arranque via `get_top_futures_symbols()`. Filtro de maturidade: exclui moedas listadas há menos de 30 dias (Alpha coins). Lista estática de fallback:
+
 ```python
 SYMBOLS = [
     "BTCUSDC", "ETHUSDC", "BNBUSDC", "SOLUSDC",
@@ -143,16 +145,17 @@ SYMBOLS = [
 
 | Parâmetro | Valor |
 |-----------|-------|
-| Capital máx bot | 75 USDC |
-| Risco por trade | 3 USDC |
-| Alavancagem | 5× |
-| Max trades abertos | 4 |
-| Max LONGs alt | 2 |
-| Max SHORTs alt | 2 |
-| Max loss diário | 7.5 USDC |
+| Capital máx bot | 300 USDC |
+| Risco por trade | 5 USDC |
+| Alavancagem | 6× |
+| Max trades abertos | 5 |
+| Max LONGs alt | 3 |
+| Max SHORTs alt | 3 |
+| Max loss diário | 15 USDC |
 | Max perdas seguidas | 3 |
 | Cooldown após circuit breaker | 120 min |
-| Margin ratio máximo | 50% |
+| Margin ratio máximo | 35% |
+| Drawdown máximo aberto | 25% do saldo |
 
 ### Detecção de modo
 - `TRENDING` — ATR/price > 0.08%, slope EMA99 > 0.08%
@@ -172,7 +175,7 @@ EMA 9/21/99 + RSI + ADX + Supertrend + CMF + MFI + ROC
 - **SL:** 1.5 × ATR
 - **TP:** dinâmico por score (ver tabela acima)
 - **Partial TP:** 50% da posição no primeiro alvo
-- **Trailing stop:** ATR-based via Binance algo orders
+- **Trailing stop:** callback 0.5% BTC / 1.2% altcoins (a implementar)
 
 ---
 
@@ -520,6 +523,16 @@ O bot corria no Termux do telemóvel — o IP mudava sempre que o telemóvel mud
 | Mai-18 | EMERGENCY_ROI_CUT | -4.0% | **-5.5%** | Mais espaço ao trade |
 | Mai-18 | TP2 | não existia | **3R, fecha 33%** | Runner com lock de lucro |
 | Mai-18 | Breakeven stop | não existia | **entry +0.2%** | Após TP1, pior caso = zero |
+| Mai-18 | Capital máx bot | 75 USDC | **300 USDC** | Escala proporcional ao saldo real |
+| Mai-18 | Risco por trade | 3 USDC | **5 USDC** | Proporcional ao novo capital |
+| Mai-18 | Alavancagem | 5× | **6×** | Mais exposição controlada |
+| Mai-18 | Max trades abertos | 4 | **5** | Proporcional ao capital |
+| Mai-18 | Max LONGs/SHORTs alt | 2 | **3** | Proporcional ao capital |
+| Mai-18 | Max loss diário | 7.5 USDC | **15 USDC** | Proporcional ao capital |
+| Mai-18 | MARGIN_RATIO_MAX | 50% | **35%** | Protecção mais cedo |
+| Mai-18 | MAX_DRAWDOWN_PCT | não existia | **25%** | Fecha tudo se PnL aberto > -25% saldo |
+| Mai-18 | Pares dinâmicos | lista estática | **top 20 por volume** | `get_top_futures_symbols()` + filtro 30 dias |
+| Mai-18 | Endpoint ordens stop | `/fapi/v1/algoOrder` | **`/fapi/v1/order`** | Fix erro "algotype" — endpoint errado desde sempre |
 
 ---
 
@@ -589,7 +602,7 @@ Ver ficheiro `SESSAO_2026-05-13.md` para detalhe completo.
 - Resumo horário de mercado via Telegram
 - Portfolio: Tangem $4,080 | Invest €1,299 | Robinhood €695 | Total ~€6,393
 
-### Sessão 2026-05-18
+### Sessão 2026-05-18 (parte 1)
 - **Diagnóstico:** expectância -€0.20/trade (ganhos ~€1.75 vs perdas ~€3.00)
 - **Benchmarking:** Freqtrade, Jesse, UT Bot, r/algotrading — padrão "2R-3R-runner"
 - **Bug corrigido:** tabela `positions` vazia — sync block não chamava `db_open_position()`, close fazia UPDATE silencioso 0 rows. Corrigido com upsert em `close_position_db()`
@@ -602,6 +615,19 @@ Ver ficheiro `SESSAO_2026-05-13.md` para detalhe completo.
 - **Expectância esperada:** -€0.20 → **+€1.44 por trade**
 - Rotina de sessão estabelecida: dizer *"faz o relatório diário"*
 - Portfolio: Tangem $4,079 | Invest €1,299 | Robinhood €695 | Total ~€6,393
+
+### Sessão 2026-05-18 (parte 2)
+- **Escala de capital:** 75→300 USDC | risco 3→5 | alavancagem 5→6 | trades 4→5 | loss diário 7.5→15
+- **Pares dinâmicos:** `get_top_futures_symbols(n=20, min_days=30)` — top 20 USDC-M por volume, exclui moedas com menos de 30 dias. Precisão de quantidade lida do LOT_SIZE da exchangeInfo
+- **Protecção capital (4 camadas):**
+  1. Corte emergência ROI ≤ -5.5%
+  2. Drawdown guard: PnL aberto > -25% do saldo → fecha tudo
+  3. Margin ratio > 35% → alerta Telegram
+  4. BTC crash > 3% em 5min → fecha alts
+- **Fix crítico endpoint ordens:** todas as funções de stop usavam `/fapi/v1/algoOrder` (requer parâmetro `algotype` — endpoint TWAP/VP) em vez de `/fapi/v1/order`. Causa: erro "Mandatory parameter 'algotype'" em todos os stops. Corrigido em `place_stop_market`, `place_take_profit`, `place_trailing_stop`. Também `algoId` → `orderId` nas respostas.
+- **Caso ZECUSDC analisado:** stop falhou (algotype error) → bot ativou TEMPO+LUCRO aos 30min e fechou a +€11.40. Não foi o trailing apertado — foi o bug do endpoint. Resolvido com o fix acima.
+- **Git pull --rebase:** VPS tinha branches divergentes. Solução: `git pull --rebase origin claude/setup-project-structure-3xwuR`
+- **Ideia trailing adaptativo discutida mas não implementada:** callback 0.5% BTC / 1.2% altcoins. Pendente para próxima sessão.
 
 ---
 
