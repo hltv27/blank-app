@@ -188,6 +188,13 @@ def run():
                     save_memory(mem)
                     log_state_transition(symbol, None, "OPEN", "SYNC",
                                         f"entry={pos['entry']} side={pos['side']}")
+                    try:
+                        from storage import open_position as db_open_pos
+                        db_open_pos(symbol, pos["side"], pos["entry"],
+                                    0, 0, abs(pos["qty"]), "SYNC",
+                                    sync_stop_id, None)
+                    except Exception as _db_e:
+                        print(f"[AVISO] db_open_pos sync falhou: {_db_e}")
                     dir_icon = "🟢 LONG" if pos["side"] == "LONG" else "🔴 SHORT"
                     stop_txt = f"Stop#{sync_stop_id}" if sync_stop_id else "⚠️ stop falhou"
                     print(f"[{hora}] {symbol} sincronizado da Binance")

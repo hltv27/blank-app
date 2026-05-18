@@ -170,8 +170,11 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         tp_order_id  = place_take_profit(symbol, tp_side, tp)
 
         # Regista no SQLite
-        db_open_position(symbol, direction, fill_price, sl, tp, qty,
-                         mode, stop_id, tp_order_id)
+        try:
+            db_open_position(symbol, direction, fill_price, sl, tp, qty,
+                             mode, stop_id, tp_order_id)
+        except Exception as _db_e:
+            print(f"[AVISO] db_open_position falhou: {_db_e}")
 
         # Regista na memória
         mem.setdefault("trades_abertos", {})[symbol] = {

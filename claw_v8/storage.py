@@ -169,11 +169,20 @@ def open_position(symbol: str, direction: str, entry_price: float, sl: float,
 
 def close_position_db(symbol: str, close_reason: str, pnl: float, roi: float):
     conn = get_conn()
-    conn.execute("""
+    c = conn.cursor()
+    c.execute("""
         UPDATE positions
         SET status='CLOSED', closed_at=?, close_reason=?, pnl=?, roi=?
         WHERE symbol=? AND status='OPEN'
     """, (time.time(), close_reason, pnl, roi, symbol))
+    if c.rowcount == 0:
+        # Posição foi aberta antes do logging existir — regista só o fecho
+        c.execute("""
+            INSERT INTO positions
+            (symbol, direction, entry_price, pnl, roi, close_reason,
+             opened_at, closed_at, status, mode)
+            VALUES (?, 'UNKNOWN', 0, ?, ?, ?, ?, ?, 'CLOSED', 'LEGACY')
+        """, (symbol, pnl, roi, close_reason, time.time() - 3600, time.time()))
     conn.commit()
     conn.close()
     log_state_transition(symbol, "OPEN", "CLOSED", close_reason,
