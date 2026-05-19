@@ -9,7 +9,7 @@ from config import (
     SYMBOL_PRECISION, STOP_RETRY_MAX, EMERGENCY_ROI_CUT,
     PARTIAL_TP_RATIO, PARTIAL_TP_QTY, PARTIAL_TP2_RATIO, PARTIAL_TP2_QTY,
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
-    MAX_MARGEM_TRADE, BTC_CRASH_PCT, CORR_MAX
+    MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, BTC_CRASH_PCT, CORR_MAX
 )
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_price,
@@ -335,6 +335,32 @@ def gerir_posicoes(mem: dict):
                 f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} | {int(elapsed/60)}min"
             )
             continue
+
+        # ── Lock de lucro mínimo: quando PnL > PROFIT_LOCK_USDC ─────────
+        lock_side = "SELL" if side == "LONG" else "BUY"
+        if (pos["pnl"] > PROFIT_LOCK_USDC
+                and not trade.get("profit_lock_done")
+                and not trade.get("partial_tp_done")
+                and entry > 0 and qty > 0):
+            if side == "LONG":
+                lock_price = round(entry + PROFIT_LOCK_USDC / qty, 8)
+            else:
+                lock_price = round(entry - PROFIT_LOCK_USDC / qty, 8)
+            old_stop_lock = trade.get("stop_order_id")
+            if old_stop_lock:
+                try:
+                    cancel_order(symbol, old_stop_lock)
+                except Exception:
+                    pass
+            new_lock_id = place_stop_market(symbol, lock_side, lock_price, qty)
+            mem["trades_abertos"][symbol]["stop_order_id"]    = new_lock_id
+            mem["trades_abertos"][symbol]["profit_lock_done"] = True
+            mem["trades_abertos"][symbol]["sl"]               = lock_price
+            save_memory(mem)
+            tg(
+                f"🔒 <b>LUCRO GARANTIDO +{PROFIT_LOCK_USDC:.0f} USDC</b> — {symbol}\n"
+                f"Stop → {lock_price:.4f} | PnL actual: +{pos['pnl']:.2f} USDC"
+            )
 
         # ── TP1: fecha 33% a 2R, move stop para breakeven ────────────────
         entry_trade = trade.get("entry", 0)
