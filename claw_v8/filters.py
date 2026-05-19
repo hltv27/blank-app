@@ -9,7 +9,7 @@ from datetime import datetime, timezone, timedelta
 from config import (
     BASE_URL, OBI_VETO, MACRO_CACHE_MIN, CORR_MAX,
     ATR_REGIME_MULT, ATR_REGIME_LOOKBACK, ATR_PERIOD,
-    SPREAD_MAX_PCT, BTC_CRASH_PCT
+    SPREAD_MAX_PCT, BTC_CRASH_PCT, FUNDING_RATE_MAX, TAKER_RATIO_MIN
 )
 from indicators import ema, atr, cvd_bias
 from exchange import get_klines, _get_retry
@@ -142,9 +142,11 @@ def market_conditions_ok(symbol: str, direction: str, price: float) -> bool:
         fr_data = r.json()
         if fr_data:
             rate = float(fr_data[-1]["fundingRate"])
-            if direction == "LONG"  and rate >  0.001:
+            if direction == "LONG"  and rate >  FUNDING_RATE_MAX:
+                print(f"[FUNDING] {symbol}: rate {rate:.4%} — LONG vetado (funding caro)")
                 return _log(symbol, direction, "FUNDING_RATE", False, price)
-            if direction == "SHORT" and rate < -0.001:
+            if direction == "SHORT" and rate < -FUNDING_RATE_MAX:
+                print(f"[FUNDING] {symbol}: rate {rate:.4%} — SHORT vetado (funding caro)")
                 return _log(symbol, direction, "FUNDING_RATE", False, price)
 
         r = requests.get(f"{BASE_URL}/futures/data/openInterestHist",
@@ -263,6 +265,27 @@ def cvd_ok(symbol: str, direction: str, closes: list, volumes: list,
         print(f"[CVD] {symbol}: {cvd_v:.2f} — pressão compradora, SHORT vetado")
         passed = False
     return _log(symbol, direction, "CVD", passed, price)
+
+
+def taker_flow_ok(symbol: str, direction: str, taker_buy_vols: list,
+                  volumes: list, price: float) -> bool:
+    """Confirma que o fluxo de takers está alinhado com a direcção (últimas 5 velas)."""
+    if not taker_buy_vols or not volumes or len(taker_buy_vols) < 3:
+        return _log(symbol, direction, "TAKER_FLOW", True, price)
+    n          = min(len(taker_buy_vols), len(volumes), 5)
+    total_vol  = sum(volumes[-n:])
+    if total_vol <= 0:
+        return _log(symbol, direction, "TAKER_FLOW", True, price)
+    taker_buy  = sum(taker_buy_vols[-n:])
+    ratio      = taker_buy / total_vol
+    passed     = True
+    if direction == "LONG"  and ratio < TAKER_RATIO_MIN:
+        print(f"[TAKER] {symbol}: buy ratio {ratio:.2f} < {TAKER_RATIO_MIN} — LONG vetado")
+        passed = False
+    if direction == "SHORT" and ratio > (1.0 - TAKER_RATIO_MIN):
+        print(f"[TAKER] {symbol}: buy ratio {ratio:.2f} > {1.0 - TAKER_RATIO_MIN:.2f} — SHORT vetado")
+        passed = False
+    return _log(symbol, direction, "TAKER_FLOW", passed, price)
 
 
 def vwap_ok(symbol: str, direction: str, closes: list, klines: list,

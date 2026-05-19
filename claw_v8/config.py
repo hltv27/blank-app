@@ -82,9 +82,18 @@ MFI_PERIOD = 10
 ROC_PERIOD = 10
 CVD_PERIOD = 20
 
+ATR_SL_MULT_MIN     = 1.2      # mercado calmo → SL mais apertado
+ATR_SL_MULT_MAX     = 1.8      # mercado volátil → SL mais largo
+ATR_VOL_SCALE_PCT   = 0.003    # ATR/price acima disto → reduz qty
+TAKER_RATIO_MIN     = 0.52     # taker buy ratio mínimo para LONG
+
+TRAILING_CB_BTC     = 0.5      # callback trailing BTC/ETH/BNB (%)
+TRAILING_CB_ALT     = 1.2      # callback trailing alts (%)
+
 # ─────────────────────────────────────────────
 #  PROTECÇÕES
 # ─────────────────────────────────────────────
+FUNDING_RATE_MAX    = 0.0005   # 0.05% — longs pagam demasiado acima disto
 SPREAD_MAX_PCT      = 0.05
 ATR_REGIME_MULT     = 3.0
 ATR_REGIME_LOOKBACK = 50

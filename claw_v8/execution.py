@@ -10,7 +10,8 @@ from config import (
     SYMBOL_PRECISION, STOP_RETRY_MAX, EMERGENCY_ROI_CUT,
     PARTIAL_TP_RATIO, PARTIAL_TP_QTY, PARTIAL_TP2_RATIO, PARTIAL_TP2_QTY,
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
-    MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, BTC_CRASH_PCT, CORR_MAX
+    MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, BTC_CRASH_PCT, CORR_MAX,
+    BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT
 )
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_price,
@@ -22,7 +23,7 @@ from strategy import calc_sl_tp, calc_qty
 from filters import (
     macro_event_proximo, volatility_regime_ok, spread_ok,
     market_conditions_ok, htf_4h_ok, htf_1h_ok, fear_greed_ok,
-    bb_squeeze_ok, cvd_ok, obi_ok, vwap_ok,
+    bb_squeeze_ok, cvd_ok, obi_ok, vwap_ok, taker_flow_ok,
     liquidity_sweep_detectado, btc_crash_detectado, calc_correlation
 )
 from risk import equity_scale_factor, atualizar_stats_simbolo
@@ -87,6 +88,11 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     if not cvd_ok(symbol, direction, closes, volumes, taker_buy_vols, price):
         return
 
+    # ── Taker flow (últimas 5 velas) ─────────────────────────────────────
+    if taker_buy_vols and volumes:
+        if not taker_flow_ok(symbol, direction, taker_buy_vols, volumes, price):
+            return
+
     # ── OBI ──────────────────────────────────────────────────────────────
     if not obi_ok(symbol, direction, price):
         return
@@ -141,6 +147,17 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         margem_orig = round(qty * price / ALAVANCAGEM, 2)
         print(f"[AVISO] {symbol}: margem {margem_orig} USDC → cap {round(capital_bot * MAX_MARGEM_TRADE, 1)} USDC ({MAX_MARGEM_TRADE*100:.0f}%)")
         qty = max_qty_margem
+
+    # Reduz qty proporcionalmente quando o mercado está muito volátil (ATR > 0.3%)
+    atr_pct = atr_val / price if price > 0 else 0
+    if atr_pct > ATR_VOL_SCALE_PCT:
+        vol_scale = round(ATR_VOL_SCALE_PCT / atr_pct, 2)
+        qty_antes = qty
+        qty = round(qty * vol_scale, decimals)
+        if qty <= 0:
+            print(f"[VOL_SCALE] {symbol}: qty zerada após escala — sem entrada")
+            return
+        print(f"[VOL_SCALE] {symbol}: ATR {atr_pct*100:.2f}% → qty {qty_antes} → {qty} (×{vol_scale:.2f})")
 
     set_leverage(symbol)
     side  = "BUY" if direction == "LONG" else "SELL"
@@ -394,7 +411,8 @@ def gerir_posicoes(mem: dict):
                         except Exception:
                             pass
                     be_side     = "SELL" if side == "LONG" else "BUY"
-                    new_stop_id = place_trailing_stop(symbol, be_side, 0.5, be_price)
+                    cb_tp1      = TRAILING_CB_BTC if symbol in BTC_SYMBOLS else TRAILING_CB_ALT
+                    new_stop_id = place_trailing_stop(symbol, be_side, cb_tp1, be_price)
                     mem["trades_abertos"][symbol]["partial_tp_done"] = True
                     mem["trades_abertos"][symbol]["qty"]             = qty_restante
                     mem["trades_abertos"][symbol]["sl"]              = be_price
@@ -443,7 +461,8 @@ def gerir_posicoes(mem: dict):
                         except Exception:
                             pass
                     be_side2     = "SELL" if side == "LONG" else "BUY"
-                    new_stop2_id = place_trailing_stop(symbol, be_side2, 0.5, lock_price)
+                    cb_tp2       = TRAILING_CB_BTC if symbol in BTC_SYMBOLS else TRAILING_CB_ALT
+                    new_stop2_id = place_trailing_stop(symbol, be_side2, cb_tp2, lock_price)
                     mem["trades_abertos"][symbol]["partial_tp2_done"] = True
                     mem["trades_abertos"][symbol]["qty"]              = qty_restante
                     mem["trades_abertos"][symbol]["sl"]               = lock_price

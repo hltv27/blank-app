@@ -6,7 +6,8 @@ from config import (
     EMA_FAST, EMA_SLOW, EMA_TREND, RSI_PERIOD, ATR_PERIOD,
     RSI_OVERSOLD, RSI_OVERBOUGHT, STOCH_VETO_LONG, STOCH_VETO_SHORT,
     SCORE_ALERTA, SCORE_FORTE, ATR_MIN_PCT, RATIO_ALVO,
-    RISCO_USDC, SYMBOL_PRECISION, BB_PERIOD
+    RISCO_USDC, SYMBOL_PRECISION, BB_PERIOD,
+    ATR_SL_MULT_MIN, ATR_SL_MULT_MAX
 )
 from indicators import (
     ema, rsi, atr, stoch_rsi, adx, supertrend,
@@ -122,7 +123,16 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list):
 
 def calc_sl_tp(direction: str, price: float, atr_val: float, mode: str,
                score: int = 0, adx_val: float = 0.0):
-    sl_dist = atr_val * 1.5
+    # Multiplier dinâmico: mercado volátil → SL mais largo para evitar stop prematuro
+    atr_pct = atr_val / price if price > 0 else 0.0015
+    if atr_pct > 0.003:
+        sl_mult = ATR_SL_MULT_MAX       # >0.3% ATR — mercado agitado
+    elif atr_pct < 0.001:
+        sl_mult = ATR_SL_MULT_MIN       # <0.1% ATR — mercado calmo
+    else:
+        sl_mult = 1.5
+
+    sl_dist = atr_val * sl_mult
     if score >= SCORE_FORTE and adx_val > 45:
         ratio = 4.0
     elif score >= SCORE_FORTE and adx_val > 35:
