@@ -96,6 +96,7 @@ BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 # Guarda de capital — nunca perder mais de 25% em aberto
 MAX_DRAWDOWN_PCT    = 0.25   # 25% do saldo → fecha tudo
 MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
+MAX_MARGEM_TRADE    = 0.20   # máx 20% do capital por posição (60 USDC em 300)
 
 OBI_VETO        = 0.3
 EQUITY_EMA_N    = 20

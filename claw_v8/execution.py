@@ -9,7 +9,7 @@ from config import (
     SYMBOL_PRECISION, STOP_RETRY_MAX, EMERGENCY_ROI_CUT,
     PARTIAL_TP_RATIO, PARTIAL_TP_QTY, PARTIAL_TP2_RATIO, PARTIAL_TP2_QTY,
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
-    BTC_CRASH_PCT, CORR_MAX
+    MAX_MARGEM_TRADE, BTC_CRASH_PCT, CORR_MAX
 )
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_price,
@@ -130,6 +130,16 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     if qty > max_qty:
         print(f"[AVISO] {symbol}: qty {qty} → {max_qty} (capital limitado)")
         qty = max_qty
+
+    # Cap de margem: máx MAX_MARGEM_TRADE do capital por posição
+    max_qty_margem = round((capital_bot * MAX_MARGEM_TRADE * ALAVANCAGEM) / price, decimals)
+    if max_qty_margem <= 0:
+        print(f"[AVISO] {symbol}: capital insuficiente para margem mínima")
+        return
+    if qty > max_qty_margem:
+        margem_orig = round(qty * price / ALAVANCAGEM, 2)
+        print(f"[AVISO] {symbol}: margem {margem_orig} USDC → cap {round(capital_bot * MAX_MARGEM_TRADE, 1)} USDC ({MAX_MARGEM_TRADE*100:.0f}%)")
+        qty = max_qty_margem
 
     set_leverage(symbol)
     side  = "BUY" if direction == "LONG" else "SELL"
