@@ -97,7 +97,8 @@ BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 MAX_DRAWDOWN_PCT    = 0.25   # 25% do saldo → fecha tudo
 MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
 MAX_MARGEM_TRADE    = 0.20   # máx 20% do capital por posição (60 USDC em 300)
-PROFIT_LOCK_USDC    = 1.0    # move stop para +1 USDC assim que PnL o ultrapassa
+PROFIT_LOCK_USDC    = 1.0    # activa lock a partir deste PnL
+PROFIT_LOCK_STEP    = 0.5    # a cada +0.5 USDC move o stop para esse nível
 
 OBI_VETO        = 0.3
 EQUITY_EMA_N    = 20
