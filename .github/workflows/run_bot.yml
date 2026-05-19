@@ -1,0 +1,32 @@
+name: Claw Agent v8
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * *'   # arranca às 05:00 UTC (sessão 05:00-23:00)
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350      # ~5h50m — fica abaixo do limite de 6h do GitHub
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Correr o bot v8
+        env:
+          TELEGRAM_TOKEN:     ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          BINANCE_API_KEY:    ${{ secrets.BINANCE_API_KEY }}
+          BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
+        run: |
+          timeout 20700 python3 claw_v8/main.py || true

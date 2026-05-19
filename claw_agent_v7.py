@@ -24,7 +24,7 @@ import os
 import time
 import hmac
 import hashlib
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from urllib.parse import urlencode
 
 # ─────────────────────────────────────────────
@@ -40,28 +40,35 @@ BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET", "SECRET_AQUI")
 # ─────────────────────────────────────────────
 SYMBOLS = [
     "BTCUSDC", "ETHUSDC", "BNBUSDC", "SOLUSDC",
-    "XRPUSDC", "DOGEUSDC", "AVAXUSDC", "LINKUSDC",
-    "SUIUSDC",  "PEPEUSDC"
+    "XRPUSDC", "DOGEUSDC", "LINKUSDC",
+    "SUIUSDC",  "1000PEPEUSDC"
 ]
 
 # Precisão de quantidade por par (casas decimais aceites pela Binance)
 SYMBOL_PRECISION = {
     "BTCUSDC": 3, "ETHUSDC": 3, "BNBUSDC": 2, "SOLUSDC": 1,
     "XRPUSDC": 1, "DOGEUSDC": 0, "AVAXUSDC": 2, "LINKUSDC": 2,
-    "SUIUSDC": 1, "PEPEUSDC": 0,
+    "SUIUSDC": 1, "1000PEPEUSDC": 0,
 }
 
 # ─────────────────────────────────────────────
 #  CONFIGURAÇÃO DE RISCO
 # ─────────────────────────────────────────────
-CAPITAL_MAX_BOT   = 50.0    # USDC — bot nunca usa mais que isto
-RISCO_USDC        = 1.0     # USDC por trade (fixo)
-ALAVANCAGEM       = 10      # 10x Cross Margin
+CAPITAL_MAX_BOT   = 75.0    # USDC — bot nunca usa mais que isto
+RISCO_USDC        = 3.0     # USDC por trade (fixo)
+ALAVANCAGEM       = 5       # 5x Cross Margin (era 10x — reduzido para segurança)
 RATIO_ALVO        = 2.0     # RR mínimo 2:1
-MAX_LOSS_DIA      = 3.0     # Circuit breaker diário (USDC)
-MAX_PERDAS_SEGUIDAS = 4     # Circuit breaker por série negativa
-COOLDOWN_MIN      = 15      # Minutos bloqueado após circuit breaker
-MAX_TRADES_ABERTOS = 2      # Máximo posições simultâneas (cross = cuidado)
+MAX_LOSS_DIA      = 7.5     # Circuit breaker diário — reduzido para 2.5x risco
+MAX_PERDAS_SEGUIDAS = 3     # Circuit breaker por série negativa (era 4)
+COOLDOWN_MIN      = 120     # 2 horas bloqueado após circuit breaker (era 15 min!)
+MARGIN_RATIO_MAX  = 50.0    # % rácio de margem Cross — fecha tudo acima disto (era 75%)
+MAX_TRADES_ABERTOS = 4      # Máximo posições simultâneas — reduzido de 5 para 4
+
+# Tecto direcional — evita correlação (BTC é tratado separadamente)
+BTC_SYMBOLS       = {"BTCUSDC"}
+MAX_LONGS_ALT     = 2       # máx LONGs simultâneas em altcoins
+MAX_SHORTS_ALT    = 2       # máx SHORTs simultâneas em altcoins
+# Pior caso: 2 alts × 3 USDC + 1 BTC × 3 USDC = 9 USDC de risco simultâneo máximo
 
 # ─────────────────────────────────────────────
 #  PARÂMETROS DA ESTRATÉGIA — v7 CALIBRADO
@@ -75,12 +82,16 @@ SCORE_ALERTA      = 4       # era 5 — threshold mais acessível
 SCORE_FORTE       = 6       # era 7
 
 # ATR — volatilidade mínima (-20% vs v6)
-ATR_MIN_PCT       = 0.0024  # era 0.003 — aceita mercados mais calmos
+ATR_MIN_PCT       = 0.0008  # 0.08% — filtra só mercados verdadeiramente mortos
 
 # Ranging mode (Bollinger Bands)
 BB_PERIOD         = 20
 BB_STD            = 2.0
 RANGING_ATR_MAX   = 0.006   # Se ATR < 0.6% → modo ranging
+
+# ORB — Opening Range Breakout (abertura NY, 9:30 ET)
+# Hora UTC calculada dinamicamente via ny_open_utc() — vê função abaixo
+ORB_FIM_HORAS     = 3       # Janela de entrada: 3h após abertura NY
 
 # Indicadores base
 EMA_FAST          = 9
@@ -91,20 +102,64 @@ ATR_PERIOD        = 14
 STOCH_PERIOD      = 14
 LOOKBACK          = 220     # Velas históricas (precisa de 220 para EMA99)
 
+# Supertrend — confirmação de tendência (add-on pesquisa 2025)
+SUPERTREND_PERIOD = 10
+SUPERTREND_MULT   = 3.0
+
+# Partial TP — fecha 50% a meio caminho do TP, deixa o resto correr
+PARTIAL_TP_RATIO  = 0.5    # fecha 50% quando preço atinge 50% do TP
+
+# Novos indicadores — pesquisa 2025-2026 (3 fontes confirmadas por indicador)
+CMF_PERIOD = 20      # Chaikin Money Flow (LuxAlgo, Kavout, Phemex 2025)
+MFI_PERIOD = 10      # Money Flow Index — RSI+volume (Zignaly, TradeSanta 2025)
+ROC_PERIOD = 10      # Rate of Change — velocidade do momentum (Mudrex, Zignaly)
+CVD_PERIOD = 20      # Cumulative Volume Delta (Phemex, Bookmap, CoinGlass 2025)
+
 # Sessões (UTC) — manhã europeia + abertura NY
-SESSOES_UTC       = [(7, 12), (13, 20)]
-CHECK_EVERY       = 240     # 4 minutos entre ciclos
+SESSOES_UTC       = [(5, 23)]
+CHECK_EVERY       = 240     # 4 minutos entre scans de novos sinais
+CHECK_POSICOES    = 30      # 30 segundos entre verificações de SL/TP (sem posições)
+CHECK_POSICOES_FAST = 10   # 10 segundos quando há posições abertas
+
+# Proteções adicionais — eventos extremos
+SPREAD_MAX_PCT      = 0.05  # spread bid-ask máximo aceitável (%) antes de entrar
+ATR_REGIME_MULT     = 3.0   # ATR atual > 3× média = regime violento (CPI, flash crash)
+ATR_REGIME_LOOKBACK = 50    # velas históricas para calcular ATR médio
+BTC_CRASH_PCT       = 3.0   # se BTC caiu >3% na última vela fecha todos os longs
+STOP_RETRY_MAX      = 3     # tentativas de colocar stop order antes de desistir
+EMERGENCY_ROI_CUT   = -4.0  # corte emergência a -4% ROI (era -5%)
+
+# Melhorias pesquisa 2025-2026 (confirmadas 3+ fontes)
+OBI_VETO         = 0.3    # |OBI| > 0.3 = pressão oposta domina livro — veto entrada
+EQUITY_EMA_N     = 20     # trades para EMA da curva de equity
+CORR_MAX         = 0.75   # correlação máxima entre par candidato e posições abertas
+MACRO_CACHE_MIN  = 60     # cache calendário macro (minutos)
+_macro_cache: dict = {"ts": 0.0, "bloqueado": False}
 
 # Ficheiros de estado
 MEMORY_FILE = "claw_memory_v7.json"
 PNL_FILE    = "claw_pnl_v7.json"
 BASE_URL    = "https://fapi.binance.com"
+_fg_cache: dict = {"value": 50, "ts": 0.0}   # cache Fear & Greed Index (1h)
 
 # ─────────────────────────────────────────────
 #  BINANCE — FUNÇÕES BASE
 # ─────────────────────────────────────────────
+_time_offset_ms = 0  # diferença entre relógio local e servidor Binance
+
+def _sync_time():
+    """Calcula offset entre relógio local e Binance para evitar erros de timestamp."""
+    global _time_offset_ms
+    try:
+        r = requests.get(f"{BASE_URL}/fapi/v1/time", timeout=5)
+        server_time = r.json()["serverTime"]
+        _time_offset_ms = server_time - int(time.time() * 1000)
+        print(f"[v7] Time offset Binance: {_time_offset_ms:+d}ms")
+    except Exception as e:
+        print(f"[AVISO] sync_time: {e}")
+
 def _sign(params: dict) -> dict:
-    params["timestamp"] = int(time.time() * 1000)
+    params["timestamp"] = int(time.time() * 1000) + _time_offset_ms
     query = urlencode(params)
     params["signature"] = hmac.new(
         BINANCE_API_SECRET.encode(),
@@ -116,8 +171,15 @@ def _sign(params: dict) -> dict:
 def _headers() -> dict:
     return {"X-MBX-APIKEY": BINANCE_API_KEY}
 
+def get_public_ip() -> str:
+    """Devolve o IP público actual."""
+    try:
+        return requests.get("https://api.ipify.org", timeout=5).text.strip()
+    except Exception:
+        return "desconhecido"
+
 def get_balance() -> float | None:
-    """Saldo disponível USDC na conta Futures (Cross)."""
+    """Saldo disponível na conta Futures (Cross). BNFCR é a moeda de margem nesta conta."""
     try:
         r = requests.get(
             f"{BASE_URL}/fapi/v2/balance",
@@ -125,8 +187,16 @@ def get_balance() -> float | None:
             headers=_headers(),
             timeout=10
         )
-        for a in r.json():
-            if a["asset"] == "USDC":
+        data = r.json()
+        if isinstance(data, dict):
+            msg = data.get("msg", "")
+            print(f"[ERRO] get_balance: {msg}")
+            if "Invalid API-key, IP" in msg:
+                ip = get_public_ip()
+                tg(f"🔒 <b>IP bloqueado</b>\nNovo IP: <code>{ip}</code>\nAdiciona à whitelist da Binance.")
+            return None
+        for a in data:
+            if a["asset"] in ("USDC", "BNFCR"):
                 return float(a["availableBalance"])
     except Exception as e:
         print(f"[ERRO] get_balance: {e}")
@@ -149,8 +219,8 @@ def get_klines(symbol: str, interval: str = "5m", limit: int = LOOKBACK) -> list
         print(f"[ERRO] get_klines {symbol}: {e}")
     return None
 
-def get_positions() -> dict:
-    """Posições abertas por símbolo."""
+def get_positions() -> dict | None:
+    """Posições abertas por símbolo. Retorna None se a API falhar."""
     try:
         r = requests.get(
             f"{BASE_URL}/fapi/v2/positionRisk",
@@ -158,8 +228,16 @@ def get_positions() -> dict:
             headers=_headers(),
             timeout=10
         )
+        data = r.json()
+        if isinstance(data, dict):
+            msg = data.get("msg", "")
+            print(f"[ERRO] get_positions: {msg}")
+            if "Invalid API-key, IP" in msg:
+                ip = get_public_ip()
+                tg(f"🔒 <b>IP bloqueado</b>\nNovo IP: <code>{ip}</code>\nAdiciona à whitelist da Binance.")
+            return None
         pos = {}
-        for p in r.json():
+        for p in data:
             qty = float(p.get("positionAmt", 0))
             if abs(qty) > 0:
                 pos[p["symbol"]] = {
@@ -171,7 +249,25 @@ def get_positions() -> dict:
         return pos
     except Exception as e:
         print(f"[ERRO] get_positions: {e}")
-    return {}
+    return None
+
+def get_margin_ratio() -> float | None:
+    """Rácio de margem da conta Cross Futures (%). Liquidação ocorre a 100%."""
+    try:
+        r = requests.get(
+            f"{BASE_URL}/fapi/v2/account",
+            params=_sign({}),
+            headers=_headers(),
+            timeout=10
+        )
+        data = r.json()
+        maint   = float(data.get("totalMaintMargin",  0))
+        balance = float(data.get("totalMarginBalance", 0))
+        if balance > 0:
+            return round(maint / balance * 100, 2)
+    except Exception as e:
+        print(f"[ERRO] get_margin_ratio: {e}")
+    return None
 
 def set_leverage(symbol: str):
     """Define alavancagem 10x em Cross para o par."""
@@ -213,10 +309,152 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
         print(f"[ERRO] place_order {symbol}: {e}")
     return None
 
+def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
+    """
+    Coloca STOP_MARKET via /fapi/v1/algoOrder (obrigatório desde 2025-12-09).
+    /fapi/v1/order retorna -4120 para ordens condicionais desde essa data.
+    Retorna algoId ou None se falhar.
+    """
+    try:
+        decimals = SYMBOL_PRECISION.get(symbol, 4)
+        r = requests.post(
+            f"{BASE_URL}/fapi/v1/algoOrder",
+            params=_sign({
+                "symbol":        symbol,
+                "side":          side,
+                "type":          "STOP_MARKET",
+                "stopPrice":     f"{stop_price:.{decimals}f}",
+                "closePosition": "true",
+                "timeInForce":   "GTC",
+            }),
+            headers=_headers(),
+            timeout=10
+        )
+        data = r.json()
+        if "algoId" in data:
+            return data["algoId"]
+        msg = data.get("msg", str(data))
+        print(f"[AVISO] stop_market {symbol}: {msg}")
+        tg(f"⚠️ STOP falhou em {symbol}: {msg}")
+    except Exception as e:
+        print(f"[ERRO] place_stop_market {symbol}: {e}")
+    return None
+
+def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
+    """
+    TAKE_PROFIT_MARKET via /fapi/v1/algoOrder — ordem real na Binance.
+    Fecha posição automaticamente se o bot morrer ou perder ligação.
+    side = SELL para LONG, BUY para SHORT.
+    """
+    try:
+        decimals = SYMBOL_PRECISION.get(symbol, 4)
+        r = requests.post(
+            f"{BASE_URL}/fapi/v1/algoOrder",
+            params=_sign({
+                "symbol":        symbol,
+                "side":          side,
+                "type":          "TAKE_PROFIT_MARKET",
+                "stopPrice":     f"{tp_price:.{decimals}f}",
+                "closePosition": "true",
+                "timeInForce":   "GTC",
+            }),
+            headers=_headers(),
+            timeout=10
+        )
+        data = r.json()
+        if "algoId" in data:
+            return data["algoId"]
+        msg = data.get("msg", str(data))
+        print(f"[AVISO] take_profit {symbol}: {msg}")
+    except Exception as e:
+        print(f"[ERRO] place_take_profit {symbol}: {e}")
+    return None
+
+def place_trailing_stop(symbol: str, side: str, callback_rate: float, activation_price: float) -> int | None:
+    """
+    TRAILING_STOP_MARKET via /fapi/v1/algoOrder (obrigatório desde 2025-12-09).
+    Segue o preço a uma distância % fixa (callback_rate) e maximiza lucro.
+    Em caso de falha, cai para STOP_MARKET fixo como backup.
+    """
+    try:
+        decimals = SYMBOL_PRECISION.get(symbol, 4)
+        r = requests.post(
+            f"{BASE_URL}/fapi/v1/algoOrder",
+            params=_sign({
+                "symbol":          symbol,
+                "side":            side,
+                "type":            "TRAILING_STOP_MARKET",
+                "callbackRate":    f"{callback_rate}",
+                "activationPrice": f"{activation_price:.{decimals}f}",
+                "closePosition":   "true",
+            }),
+            headers=_headers(),
+            timeout=10
+        )
+        data = r.json()
+        if "algoId" in data:
+            print(f"[OK] Trailing stop {symbol}: callback {callback_rate}%")
+            return data["algoId"]
+        msg = data.get("msg", str(data))
+        print(f"[AVISO] trailing_stop {symbol}: {msg} — a tentar STOP_MARKET fixo")
+        # Fallback: STOP_MARKET fixo no preço de SL calculado
+        sl_price = activation_price * (1 - callback_rate / 100) if side == "SELL" \
+                   else activation_price * (1 + callback_rate / 100)
+        return place_stop_market(symbol, side, sl_price, 0)
+    except Exception as e:
+        print(f"[ERRO] place_trailing_stop {symbol}: {e}")
+    return None
+
 def close_position(symbol: str, qty: float, side: str):
     """Fecha posição — side da posição aberta (inverte para fechar)."""
     close_side = "SELL" if side == "LONG" else "BUY"
     return place_order(symbol, close_side, abs(qty))
+
+def estornar_posicao(symbol: str, qty: float, side: str, closes: list,
+                     highs: list, lows: list, atr_val: float, mem: dict):
+    """
+    Inverte posição como o botão 'Estornar' da Binance:
+    ordem de 2× qty na direcção oposta fecha a actual e abre nova.
+    Coloca trailing stop para a nova posição.
+    """
+    nova_side   = "SELL" if side == "LONG" else "BUY"
+    nova_dir    = "SHORT" if side == "LONG" else "LONG"
+    decimals    = SYMBOL_PRECISION.get(symbol, 4)
+    qty_estorno = round(abs(qty) * 2, decimals)
+
+    order = place_order(symbol, nova_side, qty_estorno)
+    if not order or order.get("status") != "FILLED":
+        print(f"[AVISO] estornar_posicao {symbol}: ordem não confirmada")
+        return False
+
+    fill_price    = float(order.get("avgPrice", closes[-1]))
+    decimals_sym  = SYMBOL_PRECISION.get(symbol, 4)
+    callback_rate = max(0.5, min(5.0, round((atr_val * 1.5 / fill_price) * 100, 1)))
+    if nova_dir == "SHORT":
+        activation = round(fill_price * (1 - callback_rate / 200), decimals_sym)
+    else:
+        activation = fill_price
+    stop_id = place_trailing_stop(symbol, nova_side, callback_rate, activation)
+    sl, tp        = calc_sl_tp(nova_dir, fill_price, atr_val, "TRENDING")
+
+    mem["trades_abertos"][symbol] = {
+        "direction":     nova_dir,
+        "entry":         fill_price,
+        "sl":            sl,
+        "tp":            tp,
+        "qty":           abs(qty),
+        "mode":          "REVERSAO",
+        "opened_at":     time.time(),
+        "stop_order_id": stop_id,
+    }
+    save_memory(mem)
+    stop_txt = f"Stop#{stop_id}" if stop_id else "⚠️ stop falhou"
+    tg(
+        f"🔄 <b>ESTORNO — {symbol}</b>\n"
+        f"{side} → {nova_dir} | Entrada: {fill_price:.4f}\n"
+        f"SL: {sl:.4f} | TP: {tp:.4f} | {stop_txt}"
+    )
+    return True
 
 # ─────────────────────────────────────────────
 #  TELEGRAM
@@ -282,6 +520,180 @@ def stoch_rsi(closes: list, period: int = STOCH_PERIOD) -> float:
         return 50.0
     return (rsi_vals[-1] - min_r) / (max_r - min_r) * 100
 
+def adx(highs: list, lows: list, closes: list, period: int = 14) -> float:
+    """ADX — força da tendência. >25 = trending, <20 = ranging."""
+    if len(closes) < period * 2:
+        return 25.0
+    tr_list, plus_dm, minus_dm = [], [], []
+    for i in range(1, len(closes)):
+        tr = max(highs[i] - lows[i], abs(highs[i] - closes[i-1]), abs(lows[i] - closes[i-1]))
+        tr_list.append(tr)
+        up   = highs[i] - highs[i-1]
+        down = lows[i-1] - lows[i]
+        plus_dm.append(up   if up > down and up > 0   else 0)
+        minus_dm.append(down if down > up  and down > 0 else 0)
+
+    def _smooth(data, n):
+        s = [sum(data[:n])]
+        for d in data[n:]:
+            s.append(s[-1] - s[-1] / n + d)
+        return s
+
+    if len(tr_list) < period:
+        return 25.0
+    atr_s  = _smooth(tr_list, period)
+    plus_s = _smooth(plus_dm, period)
+    minus_s= _smooth(minus_dm, period)
+    dx_list = []
+    for i in range(len(atr_s)):
+        if atr_s[i] == 0:
+            continue
+        pdi = 100 * plus_s[i]  / atr_s[i]
+        mdi = 100 * minus_s[i] / atr_s[i]
+        denom = pdi + mdi
+        dx_list.append(100 * abs(pdi - mdi) / denom if denom else 0)
+    if len(dx_list) < period:
+        return 25.0
+    return sum(dx_list[-period:]) / period
+
+def supertrend(highs: list, lows: list, closes: list,
+               period: int = SUPERTREND_PERIOD, mult: float = SUPERTREND_MULT) -> bool | None:
+    """
+    Supertrend ATR-based trend indicator.
+    True=bullish (preço acima da linha), False=bearish, None=dados insuficientes.
+    Fonte validada: goodcrypto.app + GitHub yeong-hwan/supertrend-cloud.
+    """
+    need = period * 2 + 2
+    if len(closes) < need:
+        return None
+    h, l, c = highs[-need:], lows[-need:], closes[-need:]
+    trs = [max(h[i]-l[i], abs(h[i]-c[i-1]), abs(l[i]-c[i-1])) for i in range(1, len(c))]
+
+    direction = True
+    prev_ub = prev_lb = None
+
+    for i in range(1, len(c)):
+        start = max(0, i - period)
+        atr_i = sum(trs[start:i]) / max(i - start, 1)
+        hl2 = (h[i] + l[i]) / 2
+        basic_ub = hl2 + mult * atr_i
+        basic_lb = hl2 - mult * atr_i
+
+        if prev_ub is None:
+            prev_ub, prev_lb = basic_ub, basic_lb
+            continue
+
+        final_ub = basic_ub if basic_ub < prev_ub or c[i-1] > prev_ub else prev_ub
+        final_lb = basic_lb if basic_lb > prev_lb or c[i-1] < prev_lb else prev_lb
+
+        if c[i] > prev_ub:
+            direction = True
+        elif c[i] < prev_lb:
+            direction = False
+
+        prev_ub, prev_lb = final_ub, final_lb
+
+    return direction
+
+
+def htf_confirmacao(symbol: str, direction: str) -> bool:
+    """
+    Confirma direcção no 1H antes de entrar no 5min (MTF filter).
+    EMA9 > EMA21 na 1H → só LONG; EMA9 < EMA21 → só SHORT.
+    Falha da API → fail-closed (veta por segurança).
+    Fonte: TrendRider MTF (80% redução de falsos sinais).
+    """
+    try:
+        klines_1h = get_klines(symbol, interval="1h", limit=50)
+        if not klines_1h or len(klines_1h) < 30:
+            print(f"[HTF] {symbol}: dados 1H insuficientes — fail-closed")
+            return False
+        c1h = [float(k[4]) for k in klines_1h]
+        ema9_1h  = ema(c1h, 9)
+        ema21_1h = ema(c1h, 21)
+        if direction == "LONG":
+            return ema9_1h[-1] > ema21_1h[-1]
+        else:
+            return ema9_1h[-1] < ema21_1h[-1]
+    except Exception as e:
+        print(f"[HTF] {symbol}: API falhou ({e}) — fail-closed")
+        return False
+
+
+def funding_rate_ok(symbol: str, direction: str) -> bool:
+    """Veta entradas contra funding rate extremo (>0.1% ou <-0.1%)."""
+    try:
+        r = requests.get(
+            f"{BASE_URL}/fapi/v1/fundingRate",
+            params={"symbol": symbol, "limit": 1},
+            timeout=5
+        )
+        data = r.json()
+        if not data:
+            return True
+        rate = float(data[-1]["fundingRate"])
+        if direction == "LONG"  and rate >  0.001:
+            return False
+        if direction == "SHORT" and rate < -0.001:
+            return False
+    except Exception:
+        pass
+    return True
+
+def market_conditions_ok(symbol: str, direction: str) -> bool:
+    """
+    Filtro composto: Funding Rate + Open Interest + Long/Short Ratio.
+    Veta entradas com sentimento de mercado desfavorável.
+    """
+    try:
+        # Funding rate
+        r = requests.get(f"{BASE_URL}/fapi/v1/fundingRate",
+                         params={"symbol": symbol, "limit": 1}, timeout=5)
+        fr_data = r.json()
+        if fr_data:
+            rate = float(fr_data[-1]["fundingRate"])
+            if direction == "LONG"  and rate >  0.001:
+                return False
+            if direction == "SHORT" and rate < -0.001:
+                return False
+
+        # Open Interest — queda >5% nas últimas 4h = sinal fraco
+        r = requests.get(f"{BASE_URL}/futures/data/openInterestHist",
+                         params={"symbol": symbol, "period": "1h", "limit": 5}, timeout=5)
+        oi_data = r.json()
+        if isinstance(oi_data, list) and len(oi_data) >= 5:
+            oi_now   = float(oi_data[-1]["sumOpenInterest"])
+            oi_4h    = float(oi_data[0]["sumOpenInterest"])
+            oi_chg   = (oi_now / oi_4h - 1) * 100 if oi_4h > 0 else 0
+            if oi_chg < -5:
+                return False
+
+        # Long/Short Ratio — extremos indicam risco de squeeze
+        r = requests.get(f"{BASE_URL}/futures/data/globalLongShortAccountRatio",
+                         params={"symbol": symbol, "period": "1h", "limit": 1}, timeout=5)
+        lsr_data = r.json()
+        if isinstance(lsr_data, list) and lsr_data:
+            lsr = float(lsr_data[-1]["longShortRatio"])
+            if direction == "LONG"  and lsr > 2.5:
+                return False
+            if direction == "SHORT" and lsr < 0.4:
+                return False
+
+    except Exception:
+        pass
+    return True
+
+def get_daily_vwap(klines: list) -> float | None:
+    """VWAP desde meia-noite UTC. Bias filter: só long acima, só short abaixo."""
+    midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    midnight_ms = int(midnight.timestamp() * 1000)
+    today = [k for k in klines if int(k[0]) >= midnight_ms]
+    if len(today) < 5:
+        return None
+    cum_pv = sum((float(k[2]) + float(k[3]) + float(k[4])) / 3 * float(k[5]) for k in today)
+    cum_vol = sum(float(k[5]) for k in today)
+    return cum_pv / cum_vol if cum_vol > 0 else None
+
 def bollinger_bands(closes: list, period: int = BB_PERIOD, std_mult: float = BB_STD):
     """Retorna (upper, middle, lower)."""
     if len(closes) < period:
@@ -300,14 +712,435 @@ def volume_ok(volumes: list, lookback: int = 20) -> bool:
     avg = sum(volumes[-lookback-1:-1]) / lookback
     return volumes[-1] > avg * 0.9  # 90% da média (era 100% — mais permissivo)
 
+def spread_ok(symbol: str) -> bool:
+    """
+    Verifica spread bid-ask antes de entrar. Spread largo = slippage garantido.
+    Em eventos macro (CPI, notícias) o spread expande 5-20×.
+    """
+    try:
+        r = requests.get(
+            f"{BASE_URL}/fapi/v1/ticker/bookTicker",
+            params={"symbol": symbol},
+            timeout=5
+        )
+        data = r.json()
+        bid = float(data["bidPrice"])
+        ask = float(data["askPrice"])
+        if bid <= 0:
+            return True
+        spread_pct = (ask - bid) / bid * 100
+        if spread_pct > SPREAD_MAX_PCT:
+            print(f"[AVISO] {symbol}: spread {spread_pct:.3f}% > {SPREAD_MAX_PCT}% — skip")
+            return False
+    except Exception:
+        pass
+    return True
+
+def volatility_regime_ok(closes: list, highs: list, lows: list) -> bool:
+    """
+    Veta entradas quando volatilidade está em regime extremo.
+    Se ATR atual > 3× média dos últimos 50 períodos = CPI, flash crash, cascade.
+    Protege contra: eventos macro violentos, flash moves multi-sigma, cascade days.
+    """
+    if len(closes) < ATR_REGIME_LOOKBACK + ATR_PERIOD + 1:
+        return True
+    atr_atual = atr(highs, lows, closes)
+    atrs = []
+    for i in range(1, ATR_REGIME_LOOKBACK + 1):
+        sub_c = closes[:-i]
+        sub_h = highs[:-i]
+        sub_l = lows[:-i]
+        if len(sub_c) > ATR_PERIOD:
+            atrs.append(atr(sub_h, sub_l, sub_c))
+    if not atrs:
+        return True
+    atr_medio = sum(atrs) / len(atrs)
+    if atr_medio > 0 and atr_atual > atr_medio * ATR_REGIME_MULT:
+        print(f"[REGIME] ATR {atr_atual:.6f} > {ATR_REGIME_MULT}× média {atr_medio:.6f} — regime violento, sem entrada")
+        return False
+    return True
+
+def btc_crash_detectado() -> bool:
+    """
+    Deteta dump súbito de BTC ≥ 3% na última vela de 5min.
+    Sinal para fechar todos os longs de altcoins (correlação alta em crash).
+    """
+    try:
+        klines_btc = get_klines("BTCUSDC", interval="5m", limit=3)
+        if not klines_btc or len(klines_btc) < 2:
+            return False
+        open_price  = float(klines_btc[-2][1])
+        close_price = float(klines_btc[-2][4])
+        if open_price <= 0:
+            return False
+        variacao = (close_price - open_price) / open_price * 100
+        if variacao <= -BTC_CRASH_PCT:
+            print(f"[CRASH] BTC dump {variacao:.2f}% na última vela — a fechar longs")
+            return True
+    except Exception:
+        pass
+    return False
+
+def cmf_val(closes: list, highs: list, lows: list, volumes: list,
+            period: int = CMF_PERIOD) -> float:
+    """
+    Chaikin Money Flow. > 0 = capital a entrar, < 0 = capital a sair.
+    Confirma se o volume suporta a direcção do trade.
+    Fonte: Kavout, Phemex Academy, Oanda (2025).
+    """
+    if len(closes) < period + 1:
+        return 0.0
+    mfm_sum = vol_sum = 0.0
+    for i in range(-period, 0):
+        hl = highs[i] - lows[i]
+        mfm = ((closes[i] - lows[i]) - (highs[i] - closes[i])) / hl if hl > 0 else 0.0
+        mfm_sum += mfm * volumes[i]
+        vol_sum  += volumes[i]
+    return mfm_sum / vol_sum if vol_sum > 0 else 0.0
+
+def mfi_val(closes: list, highs: list, lows: list, volumes: list,
+            period: int = MFI_PERIOD) -> float:
+    """
+    Money Flow Index (0-100). RSI com volume — > 80 overbought, < 20 oversold.
+    Mais fiável que RSI simples para crypto (inclui pressão de volume real).
+    Fonte: Zignaly, TradeSanta, Mudrex (2025).
+    """
+    if len(closes) < period + 2:
+        return 50.0
+    tp = [(highs[i] + lows[i] + closes[i]) / 3 for i in range(len(closes))]
+    mf = [tp[i] * volumes[i] for i in range(len(tp))]
+    pos = neg = 0.0
+    for i in range(-period, 0):
+        if tp[i] > tp[i - 1]:
+            pos += mf[i]
+        else:
+            neg += mf[i]
+    if neg == 0:
+        return 100.0
+    return 100 - (100 / (1 + pos / neg))
+
+def roc_val(closes: list, period: int = ROC_PERIOD) -> float:
+    """
+    Rate of Change (%). Mede a velocidade do momentum.
+    Positivo e crescente = momentum saudável para long.
+    Fonte: Mudrex, Zignaly indicators guide (2025).
+    """
+    if len(closes) < period + 1:
+        return 0.0
+    prev = closes[-period - 1]
+    return (closes[-1] - prev) / prev * 100 if prev != 0 else 0.0
+
+def bb_squeeze(closes: list, period: int = BB_PERIOD, lookback: int = 50) -> bool:
+    """
+    Detecta Bollinger Band squeeze (volatilidade nos 20% mais baixos históricos).
+    Durante squeeze: não entrar — aguardar breakout com volume.
+    Fonte: LuxAlgo Squeeze Strategy, ainvest.com Bitcoin BB 2025.
+    """
+    if len(closes) < period + lookback:
+        return False
+    upper, mid, lower = bollinger_bands(closes, period)
+    if mid == 0:
+        return False
+    current_width = (upper - lower) / mid
+    widths = []
+    for i in range(1, lookback + 1):
+        sub = closes[:len(closes) - i]
+        if len(sub) < period:
+            break
+        u, m, l = bollinger_bands(sub, period)
+        if m > 0:
+            widths.append((u - l) / m)
+    if not widths:
+        return False
+    rank = sum(1 for w in widths if current_width > w) / len(widths)
+    return rank < 0.2   # width nos 20% mais baixos = squeeze
+
+def cvd_bias(taker_buy_vols: list, volumes: list, period: int = CVD_PERIOD) -> float:
+    """
+    CVD ratio centrado em 0. > 0 = mais compras agressivas, < 0 = mais vendas.
+    Usa takerBuyBaseAssetVolume (índice 9 dos klines Binance Futures).
+    Fonte: Phemex CVD Guide, Bookmap CVD strategy, CoinGlass (2025).
+    """
+    if len(taker_buy_vols) < period or len(volumes) < period:
+        return 0.0
+    buy   = sum(taker_buy_vols[-period:])
+    total = sum(volumes[-period:])
+    return (buy / total - 0.5) if total > 0 else 0.0
+
+def get_daily_vwap_bands(klines: list) -> tuple:
+    """
+    VWAP diário com bandas ±1σ e ±2σ (desde meia-noite UTC).
+    Retorna (vwap, upper_1σ, lower_1σ, upper_2σ, lower_2σ).
+    Preço acima de upper_2σ = sobre-estendido → veto long.
+    Preço abaixo de lower_2σ = sobre-estendido → veto short.
+    Fonte: FXNX VWAP Scalping, Mudrex VWAP guide (2025).
+    """
+    midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    midnight_ms = int(midnight.timestamp() * 1000)
+    today = [k for k in klines if int(k[0]) >= midnight_ms]
+    if len(today) < 5:
+        return None, None, None, None, None
+    tps  = [(float(k[2]) + float(k[3]) + float(k[4])) / 3 for k in today]
+    vols = [float(k[5]) for k in today]
+    cum_vol = sum(vols)
+    if cum_vol == 0:
+        return None, None, None, None, None
+    vwap     = sum(tp * v for tp, v in zip(tps, vols)) / cum_vol
+    variance = sum((tp - vwap) ** 2 * v for tp, v in zip(tps, vols)) / cum_vol
+    std      = variance ** 0.5
+    return vwap, vwap + std, vwap - std, vwap + 2 * std, vwap - 2 * std
+
+def get_fear_greed() -> int:
+    """
+    Fear & Greed Index (0=Extreme Fear, 100=Extreme Greed). Cache de 1h.
+    < 20: Extreme Fear → não abrir longs (capitulação).
+    > 80: Extreme Greed → não abrir shorts (euforia).
+    API gratuita: alternative.me.
+    Fonte: Bitcoin Magazine backtest, cfgi.io M.A.E.V.E. 84% WR (2025).
+    """
+    global _fg_cache
+    if time.time() - _fg_cache["ts"] < 3600:
+        return _fg_cache["value"]
+    try:
+        r = requests.get(
+            "https://api.alternative.me/fng/?limit=1&format=json",
+            timeout=8
+        )
+        val = int(r.json()["data"][0]["value"])
+        _fg_cache = {"value": val, "ts": time.time()}
+        print(f"[F&G] Fear & Greed Index: {val}")
+        return val
+    except Exception:
+        return _fg_cache["value"]   # fallback: último valor ou 50 neutro
+
+# ─────────────────────────────────────────────
+#  MELHORIAS v7.1 — PESQUISA 2025-2026
+# ─────────────────────────────────────────────
+
+def _get_retry(url: str, params: dict = None, timeout: int = 10,
+               max_retries: int = 4, headers: dict = None):
+    """GET com exponential backoff (2, 4, 8, 16s) para 429/5xx."""
+    delay = 2
+    for attempt in range(max_retries):
+        try:
+            r = requests.get(url, params=params, headers=headers, timeout=timeout)
+            if r.status_code in (429, 500, 502, 503, 504):
+                print(f"[RETRY] HTTP {r.status_code} (tentativa {attempt+1}/{max_retries}) — {delay}s")
+                time.sleep(delay)
+                delay *= 2
+                continue
+            return r
+        except requests.exceptions.ConnectionError as e:
+            print(f"[RETRY] Ligação falhou ({e}) — {delay}s")
+            time.sleep(delay)
+            delay *= 2
+        except Exception as e:
+            print(f"[RETRY] Erro: {e}")
+            break
+    return None
+
+
+def htf_4h_confirmacao(symbol: str, direction: str) -> bool:
+    """
+    Confirma bias no 4H antes do 1H (3 camadas: 4H → 1H → 5min).
+    EMA9 > EMA21 no 4H → só LONG; EMA9 < EMA21 → só SHORT.
+    Fail-closed: API falha = veto por segurança.
+    Fonte: TrendRider MTF, LuxAlgo HTF filter (3 fontes confirmadas 2025).
+    """
+    try:
+        klines_4h = get_klines(symbol, interval="4h", limit=30)
+        if not klines_4h or len(klines_4h) < 25:
+            print(f"[HTF4H] {symbol}: dados 4H insuficientes — fail-closed")
+            return False
+        c4h      = [float(k[4]) for k in klines_4h]
+        ema9_4h  = ema(c4h, 9)
+        ema21_4h = ema(c4h, 21)
+        ok = ema9_4h[-1] > ema21_4h[-1] if direction == "LONG" else ema9_4h[-1] < ema21_4h[-1]
+        if not ok:
+            print(f"[HTF4H] {symbol}: 4H bias contra {direction} — veto")
+        return ok
+    except Exception as e:
+        print(f"[HTF4H] {symbol}: API falhou ({e}) — fail-closed")
+        return False
+
+
+def obi_ok(symbol: str, direction: str) -> bool:
+    """
+    Order Book Imbalance (OBI) = (bid_vol - ask_vol) / total (top 20 níveis).
+    LONG vetado se OBI < -0.3 (livro dominado por vendedores).
+    SHORT vetado se OBI > +0.3 (livro dominado por compradores).
+    Fonte: Bookmap OBI, Phemex order flow, CoinGlass (2025).
+    """
+    try:
+        r = requests.get(
+            f"{BASE_URL}/fapi/v1/depth",
+            params={"symbol": symbol, "limit": 20},
+            timeout=5
+        )
+        data    = r.json()
+        bids    = data.get("bids", [])
+        asks    = data.get("asks", [])
+        if not bids or not asks:
+            return True
+        bid_vol = sum(float(b[1]) for b in bids)
+        ask_vol = sum(float(a[1]) for a in asks)
+        total   = bid_vol + ask_vol
+        if total == 0:
+            return True
+        obi = (bid_vol - ask_vol) / total
+        if direction == "LONG" and obi < -OBI_VETO:
+            print(f"[OBI] {symbol}: OBI {obi:.2f} — pressão vendedora domina livro, LONG vetado")
+            return False
+        if direction == "SHORT" and obi > OBI_VETO:
+            print(f"[OBI] {symbol}: OBI {obi:.2f} — pressão compradora domina livro, SHORT vetado")
+            return False
+    except Exception:
+        pass
+    return True
+
+
+def macro_event_proximo(look_ahead_min: int = 60) -> bool:
+    """
+    Verifica se há evento macro de alto impacto nas próximas look_ahead_min.
+    Cache MACRO_CACHE_MIN minutos. Fail-open: erro de API = não bloqueia.
+    Fonte: ForexFactory XML calendar (uso documentado publicamente).
+    """
+    global _macro_cache
+    now = time.time()
+    if now - _macro_cache["ts"] < MACRO_CACHE_MIN * 60:
+        return _macro_cache["bloqueado"]
+    try:
+        import xml.etree.ElementTree as ET
+        r = requests.get(
+            "https://nfs.faireconomy.media/ff_calendar_thisweek.xml",
+            timeout=10
+        )
+        if r.status_code != 200:
+            _macro_cache = {"ts": now, "bloqueado": False}
+            return False
+        root    = ET.fromstring(r.text)
+        now_dt  = datetime.now(timezone.utc)
+        look_dt = now_dt + timedelta(minutes=look_ahead_min)
+        for event in root.findall(".//event"):
+            impact = event.find("impact")
+            if impact is None or (impact.text or "").strip().lower() != "high":
+                continue
+            date_el = event.find("date")
+            time_el = event.find("time")
+            if date_el is None or time_el is None:
+                continue
+            try:
+                evt_str = f"{date_el.text} {time_el.text}"
+                evt_dt  = datetime.strptime(evt_str, "%b %d, %Y %I:%M%p").replace(tzinfo=timezone.utc)
+                if now_dt <= evt_dt <= look_dt:
+                    name_el  = event.find("title")
+                    name     = name_el.text if name_el is not None else "evento"
+                    mins_away = int((evt_dt - now_dt).total_seconds() / 60)
+                    print(f"[MACRO] {name} em {mins_away}min — sem entrada")
+                    _macro_cache = {"ts": now, "bloqueado": True}
+                    return True
+            except ValueError:
+                continue
+        _macro_cache = {"ts": now, "bloqueado": False}
+        return False
+    except Exception as e:
+        print(f"[MACRO] Calendário indisponível: {e} — filtro ignorado")
+        _macro_cache = {"ts": now, "bloqueado": False}
+        return False
+
+
+def liquidity_sweep_detectado(closes: list, highs: list, lows: list,
+                               volumes: list, taker_buy_vols: list,
+                               direction: str, lookback: int = 20) -> bool:
+    """
+    Detecta liquidity sweep: wick fora do swing recente + spike de volume + CVD confirma.
+    LONG: wick abaixo do swing low + fecha acima + volume 2× + CVD > 0.
+    SHORT: wick acima do swing high + fecha abaixo + volume 2× + CVD < 0.
+    Alta probabilidade pós-reversão institucional (stop hunt confirmado).
+    Fonte: Phemex liquidity sweep, Smart Money Concepts (2025).
+    """
+    if len(closes) < lookback + 2 or len(volumes) < lookback + 2:
+        return False
+    last_close = closes[-2]
+    last_low   = lows[-2]
+    last_high  = highs[-2]
+    last_vol   = volumes[-2]
+    swing_low  = min(lows[-lookback - 2:-2])
+    swing_high = max(highs[-lookback - 2:-2])
+    avg_vol    = sum(volumes[-lookback - 2:-2]) / max(lookback, 1)
+    vol_spike  = last_vol > avg_vol * 2.0 if avg_vol > 0 else False
+    cvd_v      = cvd_bias(taker_buy_vols, volumes) if taker_buy_vols else 0.0
+    if direction == "LONG":
+        return last_low < swing_low and last_close > swing_low and vol_spike and cvd_v > 0
+    else:
+        return last_high > swing_high and last_close < swing_high and vol_spike and cvd_v < 0
+
+
+def equity_scale_factor(mem: dict) -> float:
+    """
+    Reduz qty 50% quando há 3+ perdas consecutivas (Equity Curve Feedback).
+    Protege a curva de equity: menos capital em risco em série negativa.
+    Fonte: Kelly Criterion adaptado, 3 fontes 2025-2026.
+    """
+    perdas = mem.get("perdas_seguidas", 0)
+    if perdas >= 3:
+        print(f"[EQUITY] {perdas} perdas seguidas — tamanho reduzido 50%")
+        return 0.5
+    return 1.0
+
+
+def calc_correlation(symbol: str, posicoes_reais: dict, lookback: int = 30) -> float:
+    """
+    Correlação de Pearson máxima entre o candidato e as posições abertas.
+    Evita abrir pares altamente correlacionados — risco concentrado mascarado.
+    Retorna correlação máxima encontrada (0.0 se sem posições abertas).
+    Fonte: Modern Portfolio Theory, CoinGlass correlation matrix (2025).
+    """
+    if not posicoes_reais:
+        return 0.0
+    try:
+        kl_novo = get_klines(symbol, limit=lookback + 1)
+        if not kl_novo or len(kl_novo) < lookback:
+            return 0.0
+        c_novo   = [float(k[4]) for k in kl_novo]
+        ret_novo = [(c_novo[i] - c_novo[i-1]) / c_novo[i-1]
+                    for i in range(1, len(c_novo)) if c_novo[i-1] != 0]
+        max_corr = 0.0
+        for sym_open in posicoes_reais:
+            if sym_open == symbol:
+                continue
+            kl_open = get_klines(sym_open, limit=lookback + 1)
+            if not kl_open or len(kl_open) < lookback:
+                continue
+            c_open   = [float(k[4]) for k in kl_open]
+            ret_open = [(c_open[i] - c_open[i-1]) / c_open[i-1]
+                        for i in range(1, len(c_open)) if c_open[i-1] != 0]
+            n = min(len(ret_novo), len(ret_open))
+            if n < 10:
+                continue
+            r_n    = ret_novo[-n:]
+            r_o    = ret_open[-n:]
+            mean_n = sum(r_n) / n
+            mean_o = sum(r_o) / n
+            cov    = sum((a - mean_n) * (b - mean_o) for a, b in zip(r_n, r_o)) / n
+            std_n  = (sum((a - mean_n) ** 2 for a in r_n) / n) ** 0.5
+            std_o  = (sum((b - mean_o) ** 2 for b in r_o) / n) ** 0.5
+            if std_n > 0 and std_o > 0:
+                corr     = abs(cov / (std_n * std_o))
+                max_corr = max(max_corr, corr)
+        return max_corr
+    except Exception as e:
+        print(f"[CORR] {symbol}: {e}")
+        return 0.0
+
 # ─────────────────────────────────────────────
 #  DETECÇÃO DE MODO DE MERCADO
 # ─────────────────────────────────────────────
 def detect_market_mode(closes: list, atr_val: float) -> str:
     """
-    TRENDING: ATR >= ATR_MIN_PCT e MA99 com inclinação clara
-    RANGING:  ATR entre ATR_MIN_PCT e RANGING_ATR_MAX — usa BB
-    MORTO:    ATR < ATR_MIN_PCT — sem operação
+    TRENDING: ATR >= ATR_MIN_PCT e MA99 com inclinação clara.
+    MORTO:    tudo o resto — sem operação.
+    Modo RANGING removido: mean-reversion em alts com alavancagem é alto risco.
     """
     price = closes[-1]
     if atr_val == 0 or price == 0:
@@ -322,8 +1155,8 @@ def detect_market_mode(closes: list, atr_val: float) -> str:
     ema_vals = ema(closes, EMA_TREND)
     slope = (ema_vals[-1] - ema_vals[-6]) / ema_vals[-6] if ema_vals[-6] != 0 else 0
 
-    if atr_pct <= RANGING_ATR_MAX and abs(slope) < 0.0008:
-        return "RANGING"
+    if abs(slope) < 0.0008:
+        return "MORTO"
 
     return "TRENDING"
 
@@ -345,6 +1178,11 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list):
     rsi_val = rsi(closes)
     sr_val  = stoch_rsi(closes)
     atr_val = atr(highs, lows, closes)
+    adx_val = adx(highs, lows, closes)
+
+    # Veto ADX — mercado sem força de tendência
+    if adx_val < 25:
+        return None, 0, f"VETO_ADX {adx_val:.1f}"
 
     # Veto StochRSI
     if sr_val > STOCH_VETO_LONG:
@@ -388,6 +1226,40 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list):
         score_long  += 1
         score_short += 1
 
+    # Supertrend (ATR-based trend confirmation)
+    st_bull = supertrend(highs, lows, closes)
+    if st_bull is True:
+        score_long  += 2
+    elif st_bull is False:
+        score_short += 2
+
+    # StochRSI zona (oversold/overbought claro = confirmação adicional)
+    if sr_val < 30:
+        score_long  += 1
+    elif sr_val > 70:
+        score_short += 1
+
+    # CMF — confirma se há capital real a entrar na direcção
+    cmf_v = cmf_val(closes, highs, lows, volumes)
+    if cmf_v > 0.05:
+        score_long  += 1
+    elif cmf_v < -0.05:
+        score_short += 1
+
+    # MFI — Money Flow Index (RSI com volume, mais fiável em crypto)
+    mfi_v = mfi_val(closes, highs, lows, volumes)
+    if mfi_v < 45:
+        score_long  += 1
+    elif mfi_v > 55:
+        score_short += 1
+
+    # ROC — momentum a acelerar na direcção certa
+    roc_v = roc_val(closes)
+    if roc_v > 0.3:
+        score_long  += 1
+    elif roc_v < -0.3:
+        score_short += 1
+
     # Decisão
     if score_long >= SCORE_ALERTA and price > ema99[-1]:
         strength = "FORTE" if score_long >= SCORE_FORTE else "ALERTA"
@@ -427,19 +1299,70 @@ def signal_ranging(closes: list):
     return None, 0, f"BB_NEUTRO mid {middle:.4f} RSI {rsi_val:.1f}"
 
 # ─────────────────────────────────────────────
+#  GERAÇÃO DE SINAL — MODO ORB (abertura NY)
+# ─────────────────────────────────────────────
+def signal_orb(closes: list, highs: list, lows: list, klines: list):
+    """
+    Opening Range Breakout — primeira vela de 5min da abertura de NY (09:30 ET).
+    Hora UTC ajustada automaticamente ao DST americano (13:30 verão / 14:30 inverno).
+    LONG se fecha acima do máximo; SHORT se fecha abaixo do mínimo.
+    """
+    orb_hora, orb_min = ny_open_utc()
+    orb_high = orb_low = None
+    for k in klines:
+        ts = datetime.fromtimestamp(k[0] / 1000, tz=timezone.utc)
+        if ts.hour == orb_hora and ts.minute == orb_min:
+            orb_high = float(k[2])
+            orb_low  = float(k[3])
+            break
+
+    if orb_high is None:
+        return None, 0, "ORB_SEM_VELA"
+
+    orb_size = orb_high - orb_low
+    atr_val  = atr(highs, lows, closes)
+
+    if orb_size < atr_val * 0.3:
+        return None, 0, f"ORB_RANGE_PEQUENO {orb_size:.5f}"
+
+    price   = closes[-1]
+    rsi_val = rsi(closes)
+    ema20   = ema(closes, 20)[-1]
+
+    if price > orb_high and 50 < rsi_val < 72 and price > ema20:
+        return "LONG", 5, f"ORB_LONG acima {orb_high:.4f} RSI {rsi_val:.1f}"
+
+    if price < orb_low and 28 < rsi_val < 50 and price < ema20:
+        return "SHORT", 5, f"ORB_SHORT abaixo {orb_low:.4f} RSI {rsi_val:.1f}"
+
+    return None, 0, f"ORB_NEUTRO [{orb_low:.4f},{orb_high:.4f}] RSI {rsi_val:.1f}"
+
+# ─────────────────────────────────────────────
 #  GESTÃO DE POSIÇÃO — SL/TP DINÂMICOS
 # ─────────────────────────────────────────────
-def calc_sl_tp(direction: str, price: float, atr_val: float, mode: str):
+def calc_sl_tp(direction: str, price: float, atr_val: float, mode: str,
+               score: int = 0, adx_val: float = 0.0):
     """
-    Trending: SL = 1.5 * ATR, TP = SL * RATIO_ALVO
-    Ranging:  SL = 1.0 * ATR (mais apertado), TP = SL * 1.5
+    Trending: SL = 1.5 * ATR, TP dinâmico por força do sinal:
+      - Sinal normal (score < SCORE_FORTE):        RR 2:1
+      - Sinal forte  (score >= SCORE_FORTE, ADX>35): RR 3:1  (~9% ROI a 10x)
+      - Sinal muito forte (score >= SCORE_FORTE, ADX>45): RR 4:1 (~12% ROI a 10x)
+    Ranging: SL = 1.0 * ATR, TP = 1.5× (reversão à média — não esticar)
     """
     if mode == "RANGING":
         sl_dist = atr_val * 1.0
         ratio   = 1.5
+    elif mode == "ORB":
+        sl_dist = atr_val * 1.2
+        ratio   = 2.0
     else:
         sl_dist = atr_val * 1.5
-        ratio   = RATIO_ALVO
+        if score >= SCORE_FORTE and adx_val > 45:
+            ratio = 4.0
+        elif score >= SCORE_FORTE and adx_val > 35:
+            ratio = 3.0
+        else:
+            ratio = RATIO_ALVO
 
     if direction == "LONG":
         sl = price - sl_dist
@@ -478,12 +1401,80 @@ def load_memory() -> dict:
             "bloqueado_ate": 0,
             "total_trades": 0,
             "wins": 0,
-            "losses": 0
+            "losses": 0,
+            "simbolos_stats": {}
         }
 
+def atualizar_stats_simbolo(symbol: str, won: bool, pnl: float, mem: dict):
+    """Actualiza estatísticas por símbolo e veta automaticamente se necessário."""
+    stats = mem.setdefault("simbolos_stats", {}).setdefault(symbol, {
+        "wins": 0, "losses": 0, "perdas_seguidas": 0,
+        "pnl_total": 0.0, "vetado_ate": 0
+    })
+    stats["pnl_total"] = round(stats.get("pnl_total", 0) + pnl, 4)
+    stats["ultima_trade"] = datetime.now(timezone.utc).isoformat()
+
+    if won:
+        stats["wins"] = stats.get("wins", 0) + 1
+        stats["perdas_seguidas"] = 0
+    else:
+        stats["losses"] = stats.get("losses", 0) + 1
+        stats["perdas_seguidas"] = stats.get("perdas_seguidas", 0) + 1
+
+    total   = stats["wins"] + stats["losses"]
+    wr      = stats["wins"] / total * 100 if total > 0 else 100
+    ps      = stats["perdas_seguidas"]
+    motivo  = None
+
+    if ps >= 3:
+        motivo = f"3 perdas seguidas ({ps}x)"
+        stats["vetado_ate"] = time.time() + 24 * 3600  # veto 24h
+    elif total >= 5 and wr < 30:
+        motivo = f"win rate crítico {wr:.0f}% em {total} trades"
+        stats["vetado_ate"] = time.time() + 12 * 3600  # veto 12h
+
+    if motivo:
+        h_veto = 24 if ps >= 3 else 12
+        tg(
+            f"🚫 <b>VETO AUTOMÁTICO — {symbol}</b>\n"
+            f"Motivo: {motivo}\n"
+            f"Stats: {stats['wins']}W / {stats['losses']}L | "
+            f"WR: {wr:.0f}% | PnL: {stats['pnl_total']:+.2f}\n"
+            f"Bot não abre {symbol} durante {h_veto}h.\n"
+            f"<i>Reavaliação automática após esse período.</i>"
+        )
+
+def verificar_veto_simbolo(symbol: str, mem: dict) -> tuple[bool, str]:
+    """Verifica se o símbolo está vetado. Se o veto expirou, notifica e limpa."""
+    stats = mem.get("simbolos_stats", {}).get(symbol)
+    if not stats:
+        return False, ""
+    vetado_ate = stats.get("vetado_ate", 0)
+    if vetado_ate <= 0:
+        return False, ""
+    if time.time() < vetado_ate:
+        mins = int((vetado_ate - time.time()) / 60)
+        return True, f"vetado ainda {mins}min"
+    # Veto expirou — reset perdas seguidas e notifica
+    stats["perdas_seguidas"] = 0
+    stats["vetado_ate"] = 0
+    total = stats.get("wins", 0) + stats.get("losses", 0)
+    wr    = stats.get("wins", 0) / total * 100 if total > 0 else 0
+    tg(
+        f"🔓 <b>VETO EXPIRADO — {symbol}</b>\n"
+        f"Bot volta a observar {symbol}.\n"
+        f"Stats acumuladas: {stats.get('wins',0)}W / {stats.get('losses',0)}L | "
+        f"WR: {wr:.0f}% | PnL: {stats.get('pnl_total',0):+.2f}\n"
+        f"<i>Perdas seguidas reiniciadas. A monitorizar com cautela.</i>"
+    )
+    save_memory(mem)
+    return False, ""
+
 def save_memory(m: dict):
-    with open(MEMORY_FILE, "w") as f:
+    tmp = MEMORY_FILE + ".tmp"
+    with open(tmp, "w") as f:
         json.dump(m, f, indent=2)
+    os.replace(tmp, MEMORY_FILE)
 
 def log_trade(symbol: str, direction: str, entry: float, sl: float, tp: float,
               qty: float, pnl: float | None = None, status: str = "OPEN"):
@@ -505,8 +1496,10 @@ def log_trade(symbol: str, direction: str, entry: float, sl: float, tp: float,
             "pnl": pnl,
             "status": status
         })
-        with open(PNL_FILE, "w") as f:
+        tmp = PNL_FILE + ".tmp"
+        with open(tmp, "w") as f:
             json.dump(trades, f, indent=2)
+        os.replace(tmp, PNL_FILE)
     except Exception as e:
         print(f"[ERRO] log_trade: {e}")
 
@@ -517,6 +1510,29 @@ def em_sessao() -> bool:
     hora = datetime.now(timezone.utc).hour
     return any(inicio <= hora < fim for inicio, fim in SESSOES_UTC)
 
+def ny_open_utc() -> tuple[int, int]:
+    """
+    Hora e minuto UTC da abertura de NY (09:30 ET).
+    Ajusta automaticamente ao horário de verão americano (DST):
+      - EDT (Março 2º domingo → Novembro 1º domingo): UTC-4 → 13:30 UTC
+      - EST (resto do ano): UTC-5 → 14:30 UTC
+    """
+    now = datetime.now(timezone.utc)
+    year = now.year
+
+    # 2º domingo de Março — DST começa às 02:00 EST = 07:00 UTC
+    mar1 = datetime(year, 3, 1, tzinfo=timezone.utc)
+    dst_start = mar1 + timedelta(days=(6 - mar1.weekday()) % 7 + 7, hours=7)
+
+    # 1º domingo de Novembro — DST termina às 02:00 EDT = 06:00 UTC
+    nov1 = datetime(year, 11, 1, tzinfo=timezone.utc)
+    dst_end = nov1 + timedelta(days=(6 - nov1.weekday()) % 7, hours=6)
+
+    if dst_start <= now < dst_end:
+        return 13, 30   # EDT (UTC-4): 09:30 ET = 13:30 UTC
+    else:
+        return 14, 30   # EST (UTC-5): 09:30 ET = 14:30 UTC
+
 # ─────────────────────────────────────────────
 #  GESTÃO DE POSIÇÕES ABERTAS (SL/TP manual)
 # ─────────────────────────────────────────────
@@ -525,23 +1541,87 @@ def gerir_posicoes(mem: dict):
     Verifica posições abertas contra SL/TP definidos.
     Cross margin — SL manual para evitar liquidação da conta toda.
     """
+    # ── BTC crash guard — fecha longs de altcoins em dump súbito ──
+    if btc_crash_detectado():
+        posicoes_crash = get_positions() or {}
+        fechados = []
+        for sym, pos in posicoes_crash.items():
+            if pos["side"] == "LONG" and sym != "BTCUSDC":
+                close_position(sym, pos["qty"], "LONG")
+                mem.get("trades_abertos", {}).pop(sym, None)
+                fechados.append(sym)
+        if fechados:
+            save_memory(mem)
+            tg(
+                f"⚡ <b>BTC CRASH GUARD</b>\n"
+                f"BTC dump ≥{BTC_CRASH_PCT}% detectado.\n"
+                f"Longs fechados: {', '.join(fechados)}\n"
+                f"<i>Proteção anti-correlação ativada.</i>"
+            )
+
+    # ── Salvaguarda de margem — fecha tudo se rácio > 75% ──
+    ratio = get_margin_ratio()
+    if ratio is not None and ratio >= MARGIN_RATIO_MAX:
+        posicoes_todas = get_positions() or {}
+        for sym, pos in posicoes_todas.items():
+            close_position(sym, pos["qty"], pos["side"])
+            mem.get("trades_abertos", {}).pop(sym, None)
+        save_memory(mem)
+        tg(
+            f"🚨 <b>MARGEM CRÍTICA — TUDO FECHADO</b>\n"
+            f"Rácio de margem: {ratio:.1f}% (limite: {MARGIN_RATIO_MAX:.0f}%)\n"
+            f"Todas as posições fechadas para evitar liquidação."
+        )
+        print(f"[CRÍTICO] Margem {ratio:.1f}% — todas as posições fechadas")
+        return
+
     posicoes_binance = get_positions()
+    if posicoes_binance is None:
+        print("[AVISO] gerir_posicoes: API falhou, ciclo ignorado")
+        return
     trades_abertos   = mem.get("trades_abertos", {})
 
     for symbol, trade in list(trades_abertos.items()):
         if symbol not in posicoes_binance:
-            # Posição fechou externamente (liquidação ou intervenção manual)
+            # Posição fechou externamente — trailing stop Binance ou manual
+            # Usa o último PnL guardado para contabilizar correctamente
+            pnl_ext  = trade.get("pnl_ultimo", None)
+            side_ext = trade.get("direction", "LONG")
+            entry_ext = trade.get("entry", 0)
+            sl_ext    = trade.get("sl", 0)
+            tp_ext    = trade.get("tp", 0)
+            qty_ext   = abs(trade.get("qty", 0))
+
+            if pnl_ext is None:
+                # Fallback: estima pelo SL (pessimista)
+                pnl_ext = -abs(entry_ext - sl_ext) * qty_ext if sl_ext > 0 else 0.0
+
+            won = pnl_ext > 0
+            if won:
+                mem["wins"] = mem.get("wins", 0) + 1
+                mem["perdas_seguidas"] = 0
+            else:
+                mem["losses"] = mem.get("losses", 0) + 1
+                mem["perdas_seguidas"] = mem.get("perdas_seguidas", 0) + 1
+                mem["loss_dia"] = mem.get("loss_dia", 0) + abs(pnl_ext)
+
+            atualizar_stats_simbolo(symbol, won, pnl_ext, mem)
             mem["trades_abertos"].pop(symbol, None)
-            tg(f"⚠️ {symbol} fechada externamente (SL {trade.get('sl', '?'):.4f} / TP {trade.get('tp', '?'):.4f})")
+            icon = "✅" if won else "🔴"
+            tg(
+                f"{icon} <b>{symbol}</b> fechada pelo stop Binance\n"
+                f"Direcção: {side_ext} | PnL: {pnl_ext:+.2f} USDC\n"
+                f"Perdas hoje: {mem.get('loss_dia', 0):.2f} USDC"
+            )
+            log_trade(symbol, side_ext, entry_ext, sl_ext, tp_ext, qty_ext, pnl_ext, "ALGO_STOP")
             continue
 
         pos   = posicoes_binance[symbol]
-        price = pos["entry"]  # preço actual não está aqui — busca separado
         sl    = trade.get("sl", 0)
         tp    = trade.get("tp", 0)
         side  = trade.get("direction", "LONG")
 
-        # Preço actual
+        # Preço actual (necessário para SL/TP e ROI)
         try:
             r = requests.get(
                 f"{BASE_URL}/fapi/v1/ticker/price",
@@ -552,6 +1632,78 @@ def gerir_posicoes(mem: dict):
         except Exception:
             continue
 
+        # ── Guarda PnL actual para usar se fechar externamente no próximo ciclo ──
+        mem["trades_abertos"][symbol]["pnl_ultimo"] = pos["pnl"]
+
+        # ── Saída por tempo: 30 min + ROI ≥ 5% (funciona mesmo sem SL/TP definidos) ──
+        entry     = trade.get("entry", 0)
+        qty       = abs(pos["qty"])
+        qty_base  = trade.get("qty_inicial", qty)  # usa qty original para ROI correto após partial TP
+        margin    = (qty_base * entry) / ALAVANCAGEM if entry > 0 and qty_base > 0 else 0
+        roi       = (pos["pnl"] / margin * 100) if margin > 0 else 0
+
+        opened_at = trade.get("opened_at")
+        elapsed   = (time.time() - opened_at) if opened_at else 1800
+
+        if elapsed >= 30 * 60 and roi >= 5.0:
+            close_position(symbol, pos["qty"], side)
+            mem["wins"] = mem.get("wins", 0) + 1
+            mem["perdas_seguidas"] = 0
+            mem["trades_abertos"].pop(symbol, None)
+            atualizar_stats_simbolo(symbol, True, pos["pnl"], mem)
+            tg(
+                f"⏱️ <b>TEMPO+LUCRO</b> — {symbol}\n"
+                f"Direcção: {side} | ROI: {roi:.1f}%\n"
+                f"PnL: {pos['pnl']:+.2f} | Duração: {int(elapsed/60)}min"
+            )
+            log_trade(symbol, side, entry, sl, tp, qty, pos["pnl"], "TIME_TP")
+            continue
+
+        # ── Partial TP: fecha 50% quando atinge metade do caminho para o TP ──
+        entry_trade = trade.get("entry", 0)
+        if sl > 0 and tp > 0 and not trade.get("partial_tp_done") and entry_trade > 0:
+            if side == "LONG":
+                mid_tp = entry_trade + (tp - entry_trade) * PARTIAL_TP_RATIO
+                hit_partial = price >= mid_tp
+            else:
+                mid_tp = entry_trade - (entry_trade - tp) * PARTIAL_TP_RATIO
+                hit_partial = price <= mid_tp
+            if hit_partial:
+                decimals_p = SYMBOL_PRECISION.get(symbol, 4)
+                qty_total  = abs(pos["qty"])
+                qty_parcial = round(qty_total * 0.5, decimals_p)
+                if qty_parcial > 0:
+                    close_position(symbol, qty_parcial, side)
+                    mem["trades_abertos"][symbol]["partial_tp_done"] = True
+                    mem["trades_abertos"][symbol]["qty"] = round(qty_total - qty_parcial, decimals_p)
+                    pnl_parcial = round(abs(mid_tp - entry_trade) * qty_parcial, 2)
+                    tg(
+                        f"📊 <b>PARTIAL TP</b> — {symbol}\n"
+                        f"50% fechado a {price:.4f}\n"
+                        f"PnL estimado: +{pnl_parcial:.2f} USDC | Resto a correr com trailing"
+                    )
+                    save_memory(mem)
+
+        # ── Corte de emergência: ROI ≤ -4% (backup quando STOP_MARKET falha) ──
+        if roi <= EMERGENCY_ROI_CUT:
+            close_position(symbol, pos["qty"], side)
+            mem["losses"] = mem.get("losses", 0) + 1
+            mem["perdas_seguidas"] = mem.get("perdas_seguidas", 0) + 1
+            mem["loss_dia"] = mem.get("loss_dia", 0) + abs(pos["pnl"])
+            mem["trades_abertos"].pop(symbol, None)
+            atualizar_stats_simbolo(symbol, False, pos["pnl"], mem)
+            tg(
+                f"🛑 <b>CORTE EMERGÊNCIA</b> — {symbol}\n"
+                f"Direcção: {side} | ROI: {roi:.1f}%\n"
+                f"PnL: {pos['pnl']:+.2f} USDC"
+            )
+            log_trade(symbol, side, entry, sl, tp, qty, pos["pnl"], "EMERGENCY_SL")
+            continue
+
+        # Posições sem SL/TP válidos (sincronizadas) — não gerir SL/TP automaticamente
+        if sl <= 0 or tp <= 0:
+            continue
+
         hit_sl = (side == "LONG" and price <= sl) or (side == "SHORT" and price >= sl)
         hit_tp = (side == "LONG" and price >= tp) or (side == "SHORT" and price <= tp)
 
@@ -560,15 +1712,30 @@ def gerir_posicoes(mem: dict):
             pnl = pos["pnl"]
             mem["trades_abertos"].pop(symbol, None)
 
+            wins  = mem.get("wins", 0)
+            losses = mem.get("losses", 0)
             if hit_tp:
-                mem["wins"] = mem.get("wins", 0) + 1
+                mem["wins"] = wins + 1
                 mem["perdas_seguidas"] = 0
-                tg(f"✅ TP {symbol}\nPnL: {pnl:+.2f} USDC")
+                atualizar_stats_simbolo(symbol, True, pnl, mem)
+                tg(
+                    f"✅ <b>TP ATINGIDO</b> — {symbol}\n"
+                    f"Direcção: {side} | Entrada: {trade.get('entry', 0):.4f}\n"
+                    f"PnL: {pnl:+.2f} USDC\n"
+                    f"Sessão: {mem['wins']+1}W / {losses}L"
+                )
             else:
-                mem["losses"] = mem.get("losses", 0) + 1
+                mem["losses"] = losses + 1
                 mem["perdas_seguidas"] = mem.get("perdas_seguidas", 0) + 1
                 mem["loss_dia"] = mem.get("loss_dia", 0) + abs(pnl)
-                tg(f"🔴 SL {symbol}\nPnL: {pnl:+.2f} USDC\nPerdas hoje: {mem['loss_dia']:.2f} USDC")
+                atualizar_stats_simbolo(symbol, False, pnl, mem)
+                tg(
+                    f"🔴 <b>SL ATINGIDO</b> — {symbol}\n"
+                    f"Direcção: {side} | Entrada: {trade.get('entry', 0):.4f}\n"
+                    f"PnL: {pnl:+.2f} USDC\n"
+                    f"Perdas hoje: {mem['loss_dia']:.2f} USDC | "
+                    f"Sessão: {wins}W / {mem['losses']+1}L"
+                )
 
             log_trade(
                 symbol, side,
@@ -615,7 +1782,93 @@ def circuit_breaker_activo(mem: dict) -> tuple[bool, str]:
 #  ABERTURA DE TRADE
 # ─────────────────────────────────────────────
 def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
-                lows: list, atr_val: float, mode: str, detalhe: str, mem: dict):
+                lows: list, atr_val: float, mode: str, detalhe: str, mem: dict,
+                score: int = 0, volumes: list = None,
+                taker_buy_vols: list = None, klines: list = None):
+
+    # Evento macro de alto impacto (FOMC, CPI, NFP) — sem entrada 60min antes
+    if macro_event_proximo():
+        print(f"[AVISO] {symbol}: evento macro próximo — sem entrada")
+        return
+
+    # Regime de volatilidade — veta entradas em eventos extremos (CPI, flash crash)
+    if not volatility_regime_ok(closes, highs, lows):
+        tg(f"⚡ <b>REGIME VIOLENTO</b> — {symbol}\nATR >{ATR_REGIME_MULT}× média histórica. Sem entrada.")
+        return
+
+    # Spread bid-ask — veta se spread expandido (slippage extremo)
+    if not spread_ok(symbol):
+        return
+
+    # Filtro de mercado: Funding Rate + OI + Long/Short Ratio
+    if not market_conditions_ok(symbol, direction):
+        print(f"[AVISO] {symbol}: condições de mercado desfavoráveis para {direction}")
+        return
+
+    # MTF 4H — confirma bias de tendência de fundo (3 camadas: 4H → 1H → 5min)
+    if not htf_4h_confirmacao(symbol, direction):
+        return
+
+    # MTF 1H — confirma direcção no timeframe superior
+    if not htf_confirmacao(symbol, direction):
+        print(f"[AVISO] {symbol}: HTF 1H contra {direction} — veto MTF")
+        return
+
+    # Supertrend — veto se tendência ATR contradiz sinal
+    st_bull = supertrend(highs, lows, closes)
+    if direction == "LONG" and st_bull is False:
+        print(f"[AVISO] {symbol}: Supertrend bearish — LONG vetado")
+        return
+    if direction == "SHORT" and st_bull is True:
+        print(f"[AVISO] {symbol}: Supertrend bullish — SHORT vetado")
+        return
+
+    # Fear & Greed macro-filter (API gratuita, cache 1h)
+    # Extreme Fear (<20): longs em capitulação — risco alto
+    # Extreme Greed (>80): shorts contra euforia — risco alto
+    fg_val = get_fear_greed()
+    if direction == "LONG" and fg_val < 20:
+        print(f"[AVISO] {symbol}: F&G {fg_val} — Extreme Fear, LONG vetado")
+        return
+    if direction == "SHORT" and fg_val > 80:
+        print(f"[AVISO] {symbol}: F&G {fg_val} — Extreme Greed, SHORT vetado")
+        return
+
+    # BB Squeeze: não entrar em volatilidade comprimida (aguardar breakout)
+    if volumes and bb_squeeze(closes):
+        print(f"[AVISO] {symbol}: BB squeeze — volatilidade comprimida, aguardar breakout")
+        return
+
+    # CVD: veta se pressão de volume contradiz fortemente a direcção
+    if taker_buy_vols and volumes:
+        cvd_v = cvd_bias(taker_buy_vols, volumes)
+        if direction == "LONG" and cvd_v < -0.15:
+            print(f"[AVISO] {symbol}: CVD {cvd_v:.2f} — pressão vendedora dominante, LONG vetado")
+            return
+        if direction == "SHORT" and cvd_v > 0.15:
+            print(f"[AVISO] {symbol}: CVD {cvd_v:.2f} — pressão compradora dominante, SHORT vetado")
+            return
+
+    # OBI — Order Book Imbalance: livro dominado por pressão oposta à direcção
+    if not obi_ok(symbol, direction):
+        return
+
+    # VWAP ±2σ: não entrar quando preço está extremamente sobre-estendido
+    if klines:
+        _, _, _, upper_2, lower_2 = get_daily_vwap_bands(klines)
+        price_now = closes[-1]
+        if direction == "LONG" and upper_2 is not None and price_now > upper_2:
+            print(f"[AVISO] {symbol}: preço acima VWAP+2σ ({upper_2:.4f}) — sobre-estendido, LONG vetado")
+            return
+        if direction == "SHORT" and lower_2 is not None and price_now < lower_2:
+            print(f"[AVISO] {symbol}: preço abaixo VWAP-2σ ({lower_2:.4f}) — sobre-estendido, SHORT vetado")
+            return
+
+    # Liquidity Sweep — confirma reversão institucional (stop hunt detectado = alta prob.)
+    if volumes and taker_buy_vols:
+        if liquidity_sweep_detectado(closes, highs, lows, volumes, taker_buy_vols, direction):
+            detalhe += " | LIQ_SWEEP✓"
+            print(f"[LSweep] {symbol}: liquidity sweep confirmado")
 
     saldo = get_balance()
     if saldo is None:
@@ -623,15 +1876,33 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     capital_bot = min(saldo, CAPITAL_MAX_BOT)
 
     if capital_bot < RISCO_USDC * 3:
-        tg(f"⚠️ Saldo insuficiente: {capital_bot:.2f} USDC")
         return
 
-    price = closes[-1]
-    sl, tp = calc_sl_tp(direction, price, atr_val, mode)
-    qty    = calc_qty(price, sl, symbol)
+    price    = closes[-1]
+    adx_val  = adx(highs, lows, closes)
+    sl, tp   = calc_sl_tp(direction, price, atr_val, mode, score, adx_val)
+    qty      = calc_qty(price, sl, symbol)
 
     if qty <= 0:
         return
+
+    # Limita qty ao capital disponível (margem máx = 80% do saldo)
+    decimals = SYMBOL_PRECISION.get(symbol, 4)
+
+    # Equity Curve Feedback — reduz tamanho 50% em drawdown (3+ perdas consecutivas)
+    scale = equity_scale_factor(mem)
+    if scale < 1.0:
+        qty = round(qty * scale, decimals)
+        if qty <= 0:
+            return
+
+    max_qty = round((capital_bot * ALAVANCAGEM * 0.8) / price, decimals)
+    if max_qty <= 0:
+        print(f"[AVISO] {symbol}: capital insuficiente para abrir posição")
+        return
+    if qty > max_qty:
+        print(f"[AVISO] {symbol}: qty {qty} reduzida para {max_qty} (capital limitado)")
+        qty = max_qty
 
     # Configura cross + alavancagem
     set_leverage(symbol)
@@ -642,7 +1913,47 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
     if order and order.get("status") == "FILLED":
         fill_price = float(order.get("avgPrice", price))
-        sl, tp = calc_sl_tp(direction, fill_price, atr_val, mode)
+        sl, tp     = calc_sl_tp(direction, fill_price, atr_val, mode, score, adx_val)
+
+        # Ratio efectivo para log
+        sl_dist    = abs(fill_price - sl)
+        tp_dist    = abs(tp - fill_price)
+        rr_actual  = round(tp_dist / sl_dist, 1) if sl_dist > 0 else RATIO_ALVO
+
+        # Verificação: confirma que posição existe na Binance antes de registar
+        time.sleep(1)
+        pos_verificada = get_positions()
+        if pos_verificada is not None and symbol not in pos_verificada:
+            print(f"[AVISO] {symbol}: ordem FILLED mas posição não encontrada — possível lag API")
+            tg(f"⚠️ <b>Lag API</b> — {symbol}\nOrdem confirmada mas posição não visível. A verificar...")
+            time.sleep(3)
+            pos_verificada = get_positions()
+            if pos_verificada is not None and symbol not in pos_verificada:
+                print(f"[ERRO] {symbol}: posição não confirmada após retry — abort")
+                return
+
+        # Trailing Stop com retry (API instability protection)
+        stop_side     = "SELL" if direction == "LONG" else "BUY"
+        callback_rate = max(0.5, min(5.0, round((atr_val * 1.5 / fill_price) * 100, 1)))
+        decimals_sym  = SYMBOL_PRECISION.get(symbol, 4)
+        activation    = fill_price  # ativa imediatamente — protege SHORT e LONG desde a entrada
+        stop_id = None
+        for tentativa in range(1, STOP_RETRY_MAX + 1):
+            stop_id = place_trailing_stop(symbol, stop_side, callback_rate, activation)
+            if stop_id:
+                break
+            print(f"[AVISO] {symbol}: stop falhou (tentativa {tentativa}/{STOP_RETRY_MAX})")
+            time.sleep(2)
+        if not stop_id:
+            tg(f"🚨 <b>STOP NÃO COLOCADO</b> — {symbol}\nFechando posição por segurança.")
+            close_position(symbol, qty, direction)
+            return
+
+        # TP como ordem real na Binance — protege se bot morrer ou perder ligação
+        tp_side   = "SELL" if direction == "LONG" else "BUY"
+        tp_order_id = place_take_profit(symbol, tp_side, tp)
+        if not tp_order_id:
+            print(f"[AVISO] {symbol}: TP order falhou — SL/TP continuam em memória como backup")
 
         mem.setdefault("trades_abertos", {})[symbol] = {
             "direction": direction,
@@ -650,26 +1961,34 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             "sl": sl,
             "tp": tp,
             "qty": qty,
+            "qty_inicial": qty,
             "mode": mode,
-            "pnl_estimado": RISCO_USDC * RATIO_ALVO
+            "opened_at": time.time(),
+            "stop_order_id": stop_id,
+            "tp_order_id": tp_order_id,
+            "pnl_estimado": RISCO_USDC * rr_actual
         }
         mem["total_trades"] = mem.get("total_trades", 0) + 1
         save_memory(mem)
         log_trade(symbol, direction, fill_price, sl, tp, qty)
 
-        modo_icon = "📊" if mode == "RANGING" else "📈"
-        dir_icon  = "🟢 LONG" if direction == "LONG" else "🔴 SHORT"
+        dir_icon   = "🟢 LONG" if direction == "LONG" else "🔴 SHORT"
+        stop_txt   = f"Stop#{stop_id}" if stop_id else "⚠️ stop falhou"
+        tp_txt     = f"TP#{tp_order_id}" if tp_order_id else "TP em memória"
+        rr_icon    = f"RR {rr_actual}:1" + (" 🚀" if rr_actual >= 3 else "")
 
         tg(
-            f"{modo_icon} <b>{dir_icon}</b> — {symbol}\n"
+            f"📈 <b>{dir_icon}</b> — {symbol}\n"
             f"Entrada: {fill_price:.4f}\n"
-            f"SL: {sl:.4f} | TP: {tp:.4f}\n"
-            f"Qty: {qty:.4f} | Modo: {mode}\n"
+            f"SL: {sl:.4f} | TP: {tp:.4f} | {rr_icon}\n"
+            f"Qty: {qty:.4f} | ADX: {adx_val:.0f}\n"
+            f"🔒 {stop_txt} | 🎯 {tp_txt}\n"
             f"Detalhe: {detalhe}"
         )
     else:
         erro = order.get("msg", "?") if order else "sem resposta"
         print(f"[ERRO] Ordem {symbol}: {erro}")
+        tg(f"⚠️ <b>Ordem falhou</b> — {symbol}\nDirecção: {direction} | Erro: {erro}")
 
 # ─────────────────────────────────────────────
 #  VALIDAÇÃO DE CREDENCIAIS
@@ -693,13 +2012,19 @@ def _validate_credentials():
 # ─────────────────────────────────────────────
 def run():
     _validate_credentials()
+    _sync_time()
+    ip_atual = get_public_ip()
     tg(
         "🤖 <b>Claw Agent v7 iniciado</b>\n"
         f"Pares: {len(SYMBOLS)} | Capital máx: {CAPITAL_MAX_BOT} USDC\n"
         f"Cross Margin | Alavancagem: {ALAVANCAGEM}x\n"
-        f"Modos: TRENDING + RANGING (BB)"
+        f"Modos: TRENDING + RANGING (BB)\n"
+        f"IP: <code>{ip_atual}</code>"
     )
     print(f"[v7] Claw Agent a correr — {len(SYMBOLS)} pares")
+
+    ultimo_minuto_scan = -1
+    ultima_sync_hora   = -1  # re-sincroniza relógio a cada hora
 
     while True:
         try:
@@ -707,67 +2032,176 @@ def run():
             hora    = now_utc.strftime("%H:%M")
             mem     = load_memory()
 
-            # Gerir posições abertas (SL/TP manual Cross)
-            if mem.get("trades_abertos"):
+            # Re-sincroniza relógio com Binance uma vez por hora
+            if now_utc.hour != ultima_sync_hora:
+                _sync_time()
+                ultima_sync_hora = now_utc.hour
+
+            # ── Gestão de posições abertas — 10s com posições, 30s sem ──
+            tem_posicoes = bool(mem.get("trades_abertos"))
+            if tem_posicoes:
                 gerir_posicoes(mem)
-                mem = load_memory()  # recarrega após gestão
+                mem = load_memory()
+
+            # ── Scan de novos sinais — alinhado com velas de 5 min ──
+            minuto = now_utc.minute
+            sleep_interval = CHECK_POSICOES_FAST if tem_posicoes else CHECK_POSICOES
+            if minuto % 5 != 0 or minuto == ultimo_minuto_scan:
+                time.sleep(sleep_interval)
+                continue
+
+            ultimo_minuto_scan = minuto
 
             # Fora de sessão
             if not em_sessao():
                 print(f"[{hora}] Fora sessão")
-                time.sleep(CHECK_EVERY)
                 continue
 
             # Circuit breaker
             bloqueado, motivo = circuit_breaker_activo(mem)
             if bloqueado:
                 print(f"[{hora}] BLOQUEADO: {motivo}")
-                time.sleep(CHECK_EVERY)
                 continue
 
-            # Máximo trades abertos (cautela Cross Margin)
-            if len(mem.get("trades_abertos", {})) >= MAX_TRADES_ABERTOS:
-                print(f"[{hora}] Max trades abertos atingido")
-                time.sleep(CHECK_EVERY)
+            # Sincroniza memória com posições reais da Binance
+            posicoes_reais = get_positions()
+            if posicoes_reais is None:
+                print(f"[{hora}] get_positions falhou — scan ignorado")
+                continue
+            for symbol, pos in posicoes_reais.items():
+                if symbol in SYMBOLS and symbol not in mem.get("trades_abertos", {}):
+                    # Coloca trailing stop imediatamente — posição não pode ficar "nua"
+                    kl_sync = get_klines(symbol)
+                    sync_stop_id = None
+                    if kl_sync and len(kl_sync) > ATR_PERIOD:
+                        h_s = [float(k[2]) for k in kl_sync]
+                        l_s = [float(k[3]) for k in kl_sync]
+                        c_s = [float(k[4]) for k in kl_sync]
+                        atr_s      = atr(h_s, l_s, c_s)
+                        entry_s    = pos["entry"] if pos["entry"] > 0 else c_s[-1]
+                        cb_rate    = max(0.5, min(5.0, round((atr_s * 1.5 / entry_s) * 100, 1)))
+                        stop_side_s = "SELL" if pos["side"] == "LONG" else "BUY"
+                        sync_stop_id = place_trailing_stop(symbol, stop_side_s, cb_rate, c_s[-1])
+
+                    mem.setdefault("trades_abertos", {})[symbol] = {
+                        "direction": pos["side"],
+                        "entry": pos["entry"],
+                        "sl": 0, "tp": 0,
+                        "qty": pos["qty"],
+                        "qty_inicial": abs(pos["qty"]),
+                        "mode": "SYNC",
+                        "opened_at": time.time(),
+                        "stop_order_id": sync_stop_id,
+                    }
+                    save_memory(mem)
+                    print(f"[{hora}] {symbol} sincronizado da Binance")
+                    dir_icon  = "🟢 LONG" if pos["side"] == "LONG" else "🔴 SHORT"
+                    stop_txt  = f"Stop#{sync_stop_id}" if sync_stop_id else "⚠️ stop falhou"
+                    tg(
+                        f"🔄 <b>{dir_icon}</b> — {symbol} (sincronizada)\n"
+                        f"Entrada: {pos['entry']:.4f} | Qty: {abs(pos['qty'])}\n"
+                        f"🔒 {stop_txt}\n"
+                        f"<i>Trailing stop colocado automaticamente.</i>"
+                    )
+
+            # Máximo trades abertos (usa posições reais)
+            if len(posicoes_reais) >= MAX_TRADES_ABERTOS:
+                print(f"[{hora}] Max trades abertos ({len(posicoes_reais)})")
                 continue
 
-            # ── Scan dos 10 pares ──
+            # Verifica saldo uma vez antes do scan (evita spam por par)
+            saldo_pre = get_balance()
+            if saldo_pre is None or min(saldo_pre, CAPITAL_MAX_BOT) < RISCO_USDC * 3:
+                print(f"[{hora}] Saldo insuficiente: {saldo_pre if saldo_pre is not None else 'N/A'}")
+                continue
+
+            # ── Scan dos 9 pares ──
             for symbol in SYMBOLS:
-                # Skip se já tem posição neste par
-                if symbol in mem.get("trades_abertos", {}):
+                # Posição já aberta neste símbolo — gerir_posicoes trata disso
+                if symbol in posicoes_reais:
                     continue
 
                 klines = get_klines(symbol)
                 if not klines or len(klines) < LOOKBACK // 2:
                     continue
 
-                closes  = [float(k[4]) for k in klines]
-                highs   = [float(k[2]) for k in klines]
-                lows    = [float(k[3]) for k in klines]
-                volumes = [float(k[5]) for k in klines]
+                closes         = [float(k[4])  for k in klines]
+                highs          = [float(k[2])  for k in klines]
+                lows           = [float(k[3])  for k in klines]
+                volumes        = [float(k[5])  for k in klines]
+                taker_buy_vols = [float(k[9])  for k in klines]  # CVD
 
                 atr_val = atr(highs, lows, closes)
-                mode    = detect_market_mode(closes, atr_val)
+                vwap    = get_daily_vwap(klines)
 
-                if mode == "MORTO":
-                    print(f"[{hora}] {symbol} MERCADO_MORTO ATR {atr_val/closes[-1]*100:.3f}%")
+                # Só modo TRENDING — RANGING e ORB removidos
+                mode = detect_market_mode(closes, atr_val)
+                if mode != "TRENDING":
+                    print(f"[{hora}] {symbol} {mode} ATR {atr_val/closes[-1]*100:.3f}%")
                     continue
-
-                # Sinal conforme modo
-                if mode == "TRENDING":
-                    direction, score, detalhe = signal_trending(closes, highs, lows, volumes)
-                else:  # RANGING
-                    direction, score, detalhe = signal_ranging(closes)
+                direction, score, detalhe = signal_trending(closes, highs, lows, volumes)
 
                 print(f"[{hora}] {symbol} {mode} {detalhe}")
 
                 if direction:
+                    # Filtro performance: veta símbolo com histórico negativo
+                    vetado, motivo_veto = verificar_veto_simbolo(symbol, mem)
+                    if vetado:
+                        print(f"[{hora}] {symbol} VETO_SIMBOLO {motivo_veto}")
+                        continue
+
+                    # Filtro VWAP: só long acima do VWAP do dia, só short abaixo
+                    if vwap is not None:
+                        price_now = closes[-1]
+                        if direction == "LONG" and price_now < vwap:
+                            print(f"[{hora}] {symbol} VETO_VWAP LONG abaixo {vwap:.4f}")
+                            continue
+                        if direction == "SHORT" and price_now > vwap:
+                            print(f"[{hora}] {symbol} VETO_VWAP SHORT acima {vwap:.4f}")
+                            continue
+
+                    # Tecto direcional — evita correlação simultânea
+                    longs_reais  = [s for s, p in posicoes_reais.items() if p["side"] == "LONG"]
+                    shorts_reais = [s for s, p in posicoes_reais.items() if p["side"] == "SHORT"]
+                    longs_alt    = [s for s in longs_reais  if s not in BTC_SYMBOLS]
+                    shorts_alt   = [s for s in shorts_reais if s not in BTC_SYMBOLS]
+
+                    if direction == "LONG":
+                        if symbol in BTC_SYMBOLS and any(s in BTC_SYMBOLS for s in longs_reais):
+                            print(f"[{hora}] {symbol} TECTO_DIR BTC LONG já aberto")
+                            continue
+                        if symbol not in BTC_SYMBOLS and len(longs_alt) >= MAX_LONGS_ALT:
+                            print(f"[{hora}] {symbol} TECTO_DIR {len(longs_alt)}/{MAX_LONGS_ALT} LONGs alt abertas")
+                            continue
+
+                    if direction == "SHORT":
+                        if symbol in BTC_SYMBOLS and any(s in BTC_SYMBOLS for s in shorts_reais):
+                            print(f"[{hora}] {symbol} TECTO_DIR BTC SHORT já aberto")
+                            continue
+                        if symbol not in BTC_SYMBOLS and len(shorts_alt) >= MAX_SHORTS_ALT:
+                            print(f"[{hora}] {symbol} TECTO_DIR {len(shorts_alt)}/{MAX_SHORTS_ALT} SHORTs alt abertas")
+                            continue
+
+                    # Correlação — evita pares altamente correlacionados com posições abertas
+                    if posicoes_reais:
+                        corr = calc_correlation(symbol, posicoes_reais)
+                        if corr > CORR_MAX:
+                            print(f"[{hora}] {symbol} CORR {corr:.2f} > {CORR_MAX} — skip")
+                            continue
+
                     abrir_trade(
                         symbol, direction, closes, highs, lows,
-                        atr_val, mode, detalhe, mem
+                        atr_val, mode, detalhe, mem, score,
+                        volumes=volumes,
+                        taker_buy_vols=taker_buy_vols,
+                        klines=klines
                     )
                     mem = load_memory()
-                    time.sleep(2)  # pausa entre trades
+                    time.sleep(2)
+                    # Re-verifica limite após cada abertura
+                    if len(mem.get("trades_abertos", {})) >= MAX_TRADES_ABERTOS:
+                        print(f"[{hora}] Limite {MAX_TRADES_ABERTOS} trades atingido — scan parado")
+                        break
 
         except KeyboardInterrupt:
             tg("⛔ Claw Agent v7 parado manualmente.")
@@ -776,7 +2210,7 @@ def run():
             print(f"[ERRO GERAL] {e}")
             tg(f"⚠️ Claw Agent erro: {e}")
 
-        time.sleep(CHECK_EVERY)
+        time.sleep(CHECK_POSICOES_FAST if mem.get("trades_abertos") else CHECK_POSICOES)
 
 # ─────────────────────────────────────────────
 #  ARRANQUE

@@ -1,0 +1,235 @@
+{
+  "snapshots": [
+    {
+      "data": "2026-05-03",
+      "hora": "14:22",
+      "carteiras": {
+        "binance_spot": {
+          "moeda": "USD",
+          "total": 220.14,
+          "ativos": {
+            "USDC": { "qtd": 118.98, "valor_usd": 118.98 },
+            "BTC":  { "qtd": 0.00128541, "valor_usd": 101.14, "preco_custo": 78893.60 }
+          }
+        },
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3749.82,
+          "ativos": {
+            "BTC":  { "qtd": 0.03012858, "valor_usd": 2369.94 },
+            "ETH":  { "qtd": 0.43951384, "valor_usd": 1021.76 },
+            "SOL":  { "qtd": 2.73638237, "valor_usd": 230.10, "staking_apy": 5.83 },
+            "XRP":  { "qtd": 84.566087,  "valor_usd": 117.96 },
+            "LINK": { "qtd": 0.96250677, "valor_usd": 8.82 },
+            "DOT":  { "qtd": 1.00,       "valor_usd": 1.21 },
+            "HBAR": { "qtd": 0.36102351, "valor_usd": 0.03 },
+            "TON":  { "qtd": 0.0041635,  "valor_usd": 0.01, "staking_apy": 19.44 }
+          }
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 882.36,
+          "ativos": {
+            "VWCE": { "qtd": 1.77969297, "valor_eur": 274.00, "pl_pct": 0.14 },
+            "CEG":  { "qtd": 0.91517839, "valor_eur": 240.95, "pl_pct": 5.62 },
+            "HO":   { "qtd": 0.64406921, "valor_eur": 150.65, "pl_pct": -11.03 },
+            "LEU":  { "qtd": 0.55160035, "valor_eur": 97.18,  "pl_pct": -4.00 },
+            "LHX":  { "qtd": 0.33411293, "valor_eur": 91.16,  "pl_pct": -8.84 },
+            "Z4Q":  { "qtd": 3.69385342, "valor_eur": 20.43,  "pl_pct": 100.00 },
+            "META": { "qtd": 0.01538492, "valor_eur": 7.99,   "pl_pct": -9.31 }
+          }
+        },
+        "invest_crypto": {
+          "moeda": "EUR",
+          "total": 718.33,
+          "ativos": {
+            "PAXG": { "qtd": 0.162139, "valor_eur": 638.44, "preco_unitario": 3937.61 },
+            "ETH":  { "qtd": 0.00351,  "valor_eur": 6.96,   "preco_unitario": 1983.40 },
+            "SOL":  { "qtd": 0.0026,   "valor_eur": 71.74 },
+            "XRP":  { "qtd": 6.438534, "valor_eur": 1.19 }
+          }
+        },
+        "invest_etf_usd": {
+          "moeda": "USD",
+          "ativos": {
+            "ETN": { "qtd": 0.28942, "preco_usd": 343.72, "valor_eur": 105.39 }
+          }
+        }
+      },
+      "resumo": {
+        "binance_spot_usd": 220.14,
+        "tangem_usd": 3749.82,
+        "invest_stocks_eur": 882.36,
+        "invest_crypto_eur": 718.33,
+        "invest_etf_eur": 105.39,
+        "total_eur_aprox": 5219.00,
+        "nota": "Binance Futuros gerido pelo Claw Agent v7 (separado)"
+      }
+    },
+    {
+      "data": "2026-05-06",
+      "hora": "10:05",
+      "eur_usd_rate": 1.176,
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3990.79,
+          "variacao_vs_anterior_usd": 240.97,
+          "variacao_vs_anterior_pct": 6.43,
+          "ativos": {
+            "BTC":  { "qtd": 0.03136358, "valor_usd": 2564.21, "preco_usd": 81757.64, "var_dia_pct": 1.31 },
+            "ETH":  { "qtd": 0.43951384, "valor_usd": 1050.93, "preco_usd": 2391.13,  "var_dia_pct": 0.77 },
+            "SOL":  { "qtd": 2.73719035, "valor_usd": 242.88,  "preco_usd": 88.73,    "var_dia_pct": 4.71, "staking_apy": 5.83 },
+            "XRP":  { "qtd": 84.566087,  "valor_usd": 121.68,  "preco_usd": 1.44,     "var_dia_pct": 2.31 },
+            "LINK": { "qtd": 0.96250677, "valor_usd": 9.70,    "preco_usd": 10.08,    "var_dia_pct": 5.42 },
+            "DOT":  { "qtd": 1.00,       "valor_usd": 1.33,    "preco_usd": 1.33,     "var_dia_pct": 5.60 }
+          }
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 866.08,
+          "variacao_vs_anterior_eur": -16.28,
+          "variacao_vs_anterior_pct": -1.84,
+          "var_dia_eur": 7.81,
+          "var_dia_pct": 0.91,
+          "ativos": {
+            "VWCE": { "qtd": 1.77969297, "valor_eur": 279.95, "pl_pct": 2.32 },
+            "CEG":  { "qtd": 0.91517839, "valor_eur": 252.14, "pl_pct": 10.52 },
+            "RGTI": { "qtd": 1.00,       "valor_eur": 226.50, "pl_pct": 0.80,  "novo": true },
+            "PLTR": { "qtd": 1.35703569, "valor_eur": 155.65, "pl_pct": -0.71, "novo": true },
+            "HO":   { "qtd": 0.64406921, "valor_eur": 152.52, "pl_pct": -9.92 },
+            "LEU":  { "qtd": 0.55160035, "valor_eur": 96.70,  "pl_pct": -4.47 },
+            "LHX":  { "qtd": 0.33411293, "valor_eur": 85.76,  "pl_pct": -14.24 },
+            "Z4Q":  { "qtd": 3.69385342, "valor_eur": 20.14,  "pl_pct": 100.00 },
+            "META": { "qtd": 0.01538492, "valor_eur": 7.88,   "pl_pct": -10.56 }
+          }
+        },
+        "invest_crypto": {
+          "moeda": "EUR",
+          "total": 271.75,
+          "variacao_vs_anterior_eur": -446.58,
+          "nota": "PAXG reduzido de 0.162139 para 0.06446 — posição parcialmente vendida",
+          "ativos": {
+            "PAXG": { "qtd": 0.06446, "valor_eur": 256.56, "preco_unitario": 3981.31 },
+            "ETH":  { "qtd": 0.00351, "valor_eur": 7.14,   "preco_unitario": 2033.71 },
+            "SOL":  { "qtd": 0.0026,  "valor_eur": 0.20,   "preco_unitario": 75.45 },
+            "XRP":  { "qtd": 6.438534,"valor_eur": 7.85,   "preco_unitario": 1.22 }
+          }
+        },
+        "invest_etf_usd": {
+          "moeda": "USD",
+          "ativos": {
+            "MU":   { "qtd": 0.65005,  "preco_usd": 680.00,  "valor_eur": 375.87, "novo": true },
+            "ETN":  { "qtd": 0.28942,  "preco_usd": 416.50,  "valor_eur": 102.51 },
+            "ANET": { "qtd": 0.38926,  "preco_usd": 154.90,  "valor_eur": 51.27,  "novo": true }
+          },
+          "total_eur": 529.65
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3990.79,
+        "invest_stocks_eur": 866.08,
+        "invest_crypto_eur": 271.75,
+        "invest_etf_usd_eur": 529.65,
+        "total_eur_aprox": 4996.00,
+        "variacao_vs_03maio_eur": -223.00,
+        "nota_variacao": "Queda aparente devida a: 1) EUR subiu vs USD (1.06→1.176) que reduz valor USD em EUR; 2) PAXG parcialmente vendido (-€382); 3) Novos stocks USD adicionados (+€529). Tangem em USD subiu +6.4%.",
+        "nota": "Binance Futuros gerido pelo Claw Agent v7 (separado)"
+      }
+    }
+    ,
+    {
+      "data": "2026-05-10",
+      "hora": "15:47",
+      "eur_usd_rate": 1.1781,
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 4064.12,
+          "variacao_vs_06maio_usd": 73.33,
+          "variacao_vs_06maio_pct": 1.84,
+          "ativos": {
+            "BTC":  { "qtd": 0.03267347, "valor_usd": 2642.82, "preco_usd": 80885.66 },
+            "ETH":  { "qtd": 0.44191314, "valor_usd": 1029.86, "preco_usd": 2330.45  },
+            "SOL":  { "qtd": 2.75187726, "valor_usd": 258.49,  "preco_usd": 93.93, "staking_apy": 5.83 },
+            "XRP":  { "qtd": 84.566087,  "valor_usd": 121.39,  "preco_usd": 1.44   },
+            "LINK": { "qtd": 0.96250677, "valor_usd": 10.17,   "preco_usd": 10.56  },
+            "DOT":  { "qtd": 1.00,       "valor_usd": 1.36,    "preco_usd": 1.36   }
+          }
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 1303.73,
+          "variacao_vs_06maio_eur": 437.65,
+          "variacao_vs_06maio_pct": 50.53,
+          "nota": "RGTI aumentou de 1.00 para 16.59 qtd — compra significativa",
+          "ativos": {
+            "VWCE": { "qtd": 1.77969297,  "valor_eur": 281.44 },
+            "CEG":  { "qtd": 0.91517839,  "valor_eur": 239.05 },
+            "RGTI": { "qtd": 16.58984811, "valor_eur": 268.44 },
+            "PLTR": { "qtd": 1.35703569,  "valor_eur": 157.77 },
+            "HO":   { "qtd": 0.64406921,  "valor_eur": 146.78 },
+            "LEU":  { "qtd": 0.55160035,  "valor_eur": 96.82  },
+            "LHX":  { "qtd": 0.33411293,  "valor_eur": 85.05  },
+            "META": { "qtd": 0.01538492,  "valor_eur": 7.95   },
+            "Z4Q":  { "qtd": 3.69385342,  "valor_eur": 20.43  }
+          }
+        },
+        "invest_crypto": {
+          "moeda": "EUR",
+          "total": 15.59,
+          "variacao_vs_06maio_eur": -256.16,
+          "nota": "PAXG quase totalmente vendido (0.06446 → 0.000489). XRP reduzido (6.44 → 5.31).",
+          "ativos": {
+            "ETH":  { "qtd": 0.00351,   "valor_eur": 6.94, "preco_unitario": 1978.13 },
+            "XRP":  { "qtd": 5.308534,  "valor_eur": 6.48, "preco_unitario": 1.22    },
+            "PAXG": { "qtd": 0.000489,  "valor_eur": 1.96, "preco_unitario": 4005.38 },
+            "SOL":  { "qtd": 0.0026,    "valor_eur": 0.21, "preco_unitario": 79.72   }
+          }
+        },
+        "invest_etf_usd": {
+          "moeda": "USD",
+          "total_usd": 671.15,
+          "total_eur": 569.70,
+          "ativos": {
+            "MU":   { "qtd": 0.65518, "preco_usd": 757.35, "valor_usd": 496.10, "valor_eur": 421.12 },
+            "ETN":  { "qtd": 0.29785, "preco_usd": 402.80, "valor_usd": 119.97, "valor_eur": 101.83 },
+            "ANET": { "qtd": 0.38926, "preco_usd": 141.50, "valor_usd": 55.08,  "valor_eur": 46.75  }
+          }
+        },
+        "nova_carteira_crypto": {
+          "moeda": "USD",
+          "total": 95.51,
+          "nota": "Nova carteira detectada. SOL 100% em staking (qtd desconhecida).",
+          "ativos": {
+            "BTC":   { "qtd": 0.000605, "valor_usd": 48.90, "preco_usd": 80826.27 },
+            "LCX":   { "qtd": 975.6,    "valor_usd": 36.93, "preco_usd": 0.03785  },
+            "SWELL": { "qtd": 7518,      "valor_usd": 9.66,  "preco_usd": 0.001285 },
+            "SOL":   { "qtd": null, "valor_usd": 0.00, "preco_usd": 93.82, "staking": "100%", "staking_ganhos_usd": 0.05 }
+          }
+        },
+        "binance_eur": {
+          "moeda": "EUR",
+          "total": 770.00,
+          "nota": "Saldo EUR disponível a partir de 2026-05-11. Bot Futures usa BNFCR separado.",
+          "ativos": {
+            "EUR": { "qtd": 770, "valor_eur": 770, "status": "disponivel" }
+          }
+        }
+      },
+      "resumo": {
+        "tangem_usd": 4064.12,
+        "tangem_eur": 3449.49,
+        "invest_stocks_eur": 1303.73,
+        "invest_crypto_eur": 15.59,
+        "invest_etf_usd_eur": 569.70,
+        "nova_carteira_eur": 81.07,
+        "binance_eur_frozen": 770.00,
+        "total_eur_disponivel": 6189.58,
+        "variacao_vs_06maio_eur": 423.58,
+        "nota_variacao": "Aumento principal: RGTI compra significativa (+€437). PAXG quase totalmente vendido (-€256). Nova carteira crypto detectada (+€81). Tangem subiu +$73. EUR/USD praticamente estável (1.176→1.1781).",
+        "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado)"
+      }
+    }
+  ]
+}
