@@ -13,8 +13,8 @@ from config import (
 )
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_price,
-    set_leverage, place_order, place_trailing_stop, place_take_profit,
-    close_position
+    set_leverage, place_order, place_stop_market, place_trailing_stop,
+    place_take_profit, close_position, cancel_order
 )
 from indicators import atr, adx
 from strategy import calc_sl_tp, calc_qty
@@ -152,12 +152,12 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
                 print(f"[ERRO] {symbol}: posição não confirmada após retry")
                 return
 
-        # Trailing Stop com retry
-        stop_side     = "SELL" if direction == "LONG" else "BUY"
-        callback_rate = max(0.5, min(5.0, round((atr_val * 1.5 / fill_price) * 100, 1)))
-        stop_id = None
+        # STOP_MARKET fixo na SL — dispara instantaneamente na exchange
+        # (trailing stop entra apenas após TP1, quando já estamos em lucro)
+        stop_side = "SELL" if direction == "LONG" else "BUY"
+        stop_id   = None
         for tentativa in range(1, STOP_RETRY_MAX + 1):
-            stop_id = place_trailing_stop(symbol, stop_side, callback_rate, fill_price)
+            stop_id = place_stop_market(symbol, stop_side, sl, qty)
             if stop_id:
                 break
             print(f"[AVISO] {symbol}: stop falhou (tentativa {tentativa}/{STOP_RETRY_MAX})")
@@ -195,7 +195,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         save_memory(mem)
 
         dir_icon = "🟢 LONG" if direction == "LONG" else "🔴 SHORT"
-        stop_txt = f"Stop#{stop_id}"
+        stop_txt = f"🛑 SL fixo @ {sl:.4f} (#{stop_id})"
         tp_txt   = f"TP#{tp_order_id}" if tp_order_id else "TP em memória"
         rr_icon  = f"RR {rr_actual}:1" + (" 🚀" if rr_actual >= 3 else "")
         tg(
@@ -351,12 +351,10 @@ def gerir_posicoes(mem: dict):
                     old_stop = trade.get("stop_order_id")
                     if old_stop:
                         try:
-                            from exchange import cancel_order
                             cancel_order(symbol, old_stop)
                         except Exception:
                             pass
-                    be_side  = "SELL" if side == "LONG" else "BUY"
-                    from exchange import place_trailing_stop
+                    be_side     = "SELL" if side == "LONG" else "BUY"
                     new_stop_id = place_trailing_stop(symbol, be_side, 0.5, be_price)
                     mem["trades_abertos"][symbol]["partial_tp_done"] = True
                     mem["trades_abertos"][symbol]["qty"]             = qty_restante
@@ -402,12 +400,10 @@ def gerir_posicoes(mem: dict):
                     old_stop2 = trade.get("stop_order_id")
                     if old_stop2:
                         try:
-                            from exchange import cancel_order
                             cancel_order(symbol, old_stop2)
                         except Exception:
                             pass
-                    be_side2    = "SELL" if side == "LONG" else "BUY"
-                    from exchange import place_trailing_stop
+                    be_side2     = "SELL" if side == "LONG" else "BUY"
                     new_stop2_id = place_trailing_stop(symbol, be_side2, 0.5, lock_price)
                     mem["trades_abertos"][symbol]["partial_tp2_done"] = True
                     mem["trades_abertos"][symbol]["qty"]              = qty_restante
