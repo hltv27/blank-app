@@ -1,0 +1,33 @@
+name: Claw Agent v7
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7,13 * * *'   # arranca às 07:00 e 13:00 UTC (janelas de sessão)
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350      # ~5h50m — fica abaixo do limite de 6h do GitHub
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Correr o bot
+        env:
+          TELEGRAM_TOKEN:     ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          BINANCE_API_KEY:    ${{ secrets.BINANCE_API_KEY }}
+          BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
+        run: |
+          timeout 20700 python main.py || true
+          # timeout 20700 s = 5h45m; se o tempo esgotar o job termina com sucesso
