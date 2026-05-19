@@ -1,9 +1,9 @@
-name: Claw Agent v7
+name: Claw Agent v8
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 7,13 * * *'   # arranca às 07:00 e 13:00 UTC (janelas de sessão)
+    - cron: '0 5 * * *'   # arranca às 05:00 UTC (sessão 05:00-23:00 configurada no v8)
 
 jobs:
   run-bot:
@@ -13,21 +13,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: claude/setup-project-structure-3xwuR   # branch onde está o v8
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.13'   # v8 usa Python 3.13 no VPS
 
       - name: Instalar dependências
         run: pip install -r requirements.txt
 
-      - name: Correr o bot
+      - name: Correr o bot v8
         env:
           TELEGRAM_TOKEN:     ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
           BINANCE_API_KEY:    ${{ secrets.BINANCE_API_KEY }}
           BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
         run: |
-          timeout 20700 python main.py || true
+          timeout 20700 python3 claw_v8/main.py || true
           # timeout 20700 s = 5h45m; se o tempo esgotar o job termina com sucesso
