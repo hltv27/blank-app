@@ -2,7 +2,7 @@
 # Auto-deploy: verifica commits novos e reinicia o bot se necessário
 
 REPO="/root/blank-app"
-BRANCH="claude/setup-project-structure-3xwuR"
+BRANCH="main"
 LOG="/root/deploy.log"
 
 cd "$REPO" || exit 1
