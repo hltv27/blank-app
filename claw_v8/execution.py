@@ -23,7 +23,7 @@ from strategy import calc_sl_tp, calc_qty
 from filters import (
     macro_event_proximo, volatility_regime_ok, spread_ok,
     market_conditions_ok, htf_4h_ok, htf_1h_ok, fear_greed_ok,
-    bb_squeeze_ok, cvd_ok, obi_ok, vwap_ok, taker_flow_ok,
+    bb_squeeze_ok, cvd_ok, obi_ok, vwap_ok,
     liquidity_sweep_detectado, btc_crash_detectado, calc_correlation
 )
 from risk import equity_scale_factor, atualizar_stats_simbolo
@@ -87,11 +87,6 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     # ── CVD ──────────────────────────────────────────────────────────────
     if not cvd_ok(symbol, direction, closes, volumes, taker_buy_vols, price):
         return
-
-    # ── Taker flow (últimas 5 velas) ─────────────────────────────────────
-    if taker_buy_vols and volumes:
-        if not taker_flow_ok(symbol, direction, taker_buy_vols, volumes, price):
-            return
 
     # ── OBI ──────────────────────────────────────────────────────────────
     if not obi_ok(symbol, direction, price):
