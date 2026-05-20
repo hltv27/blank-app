@@ -19,7 +19,7 @@ from config import (
     CHECK_POSICOES_FAST, CHECK_POSICOES, CAPITAL_MAX_BOT, RISCO_USDC,
     ALAVANCAGEM, TOP_N_FUTURES
 )
-from exchange import tg, get_klines, get_positions, get_balance, get_price, sync_time, get_public_ip, get_top_futures_symbols
+from exchange import tg, get_klines, get_positions, get_balance, get_price, sync_time, get_public_ip, get_top_futures_symbols, place_stop_market as _psm
 from indicators import atr, get_daily_vwap
 from strategy import detect_market_mode, signal_trending
 from filters import calc_correlation
@@ -180,61 +180,65 @@ def run():
                 continue
 
             for symbol, pos in posicoes_reais.items():
-                if symbol in SYMBOLS and symbol not in mem.get("trades_abertos", {}):
-                    # Posição órfã do bot — sincroniza e coloca stop com reduceOnly (nunca closePosition)
-                    kl_sync = get_klines(symbol)
-                    sync_stop_id = None
-                    sync_sl = 0.0
-                    if kl_sync and len(kl_sync) > 14:
-                        from indicators import atr as calc_atr
-                        from exchange import place_stop_market as _psm
-                        h_s = [float(k[2]) for k in kl_sync]
-                        l_s = [float(k[3]) for k in kl_sync]
-                        c_s = [float(k[4]) for k in kl_sync]
-                        atr_s   = calc_atr(h_s, l_s, c_s)
-                        entry_s = pos["entry"] if pos["entry"] > 0 else c_s[-1]
-                        qty_s   = abs(pos["qty"])
-                        stop_side_s = "SELL" if pos["side"] == "LONG" else "BUY"
-                        if pos["side"] == "LONG":
-                            sync_sl = round(entry_s - atr_s * 1.5, 8)
-                        else:
-                            sync_sl = round(entry_s + atr_s * 1.5, 8)
-                        # reduceOnly=true — nunca conflitua com TP orders existentes
-                        sync_stop_id = _psm(symbol, stop_side_s, sync_sl, qty_s)
+                if symbol not in mem.get("trades_abertos", {}):
+                    # Verifica se o bot iniciou esta ordem (marcador pending_sync)
+                    pending = mem.get("pending_sync", {})
+                    is_bot_orphan = (symbol in pending and
+                                     time.time() - pending[symbol] < 300)  # < 5 min
 
-                    mem.setdefault("trades_abertos", {})[symbol] = {
-                        "direction":     pos["side"],
-                        "entry":         pos["entry"],
-                        "sl":            sync_sl,
-                        "tp":            0,
-                        "qty":           pos["qty"],
-                        "qty_inicial":   abs(pos["qty"]),
-                        "mode":          "SYNC",
-                        "opened_at":     time.time(),
-                        "stop_order_id": sync_stop_id,
-                    }
-                    save_memory(mem)
-                    log_state_transition(symbol, None, "OPEN", "SYNC",
-                                        f"entry={pos['entry']} side={pos['side']}")
-                    try:
-                        from storage import open_position as db_open_pos
-                        db_open_pos(symbol, pos["side"], pos["entry"],
-                                    0, 0, abs(pos["qty"]), "SYNC",
-                                    sync_stop_id, None)
-                    except Exception as _db_e:
-                        print(f"[AVISO] db_open_pos sync falhou: {_db_e}")
-                    dir_icon = "🟢 LONG" if pos["side"] == "LONG" else "🔴 SHORT"
-                    stop_txt = f"Stop#{sync_stop_id}" if sync_stop_id else "⚠️ stop falhou"
-                    print(f"[{hora}] {symbol} sincronizado da Binance")
-                    tg(
-                        f"🔄 <b>{dir_icon}</b> — {symbol} (sincronizada)\n"
-                        f"Entrada: {pos['entry']:.4f} | 🔒 {stop_txt}"
-                    )
+                    if is_bot_orphan and symbol in SYMBOLS:
+                        # Posição órfã do bot (ordem enviada mas memória não guardada)
+                        mem.get("pending_sync", {}).pop(symbol, None)
+                        kl_sync = get_klines(symbol)
+                        sync_stop_id = None
+                        sync_sl = 0.0
+                        if kl_sync and len(kl_sync) > 14:
+                            from indicators import atr as calc_atr
+                            from exchange import place_stop_market as _psm
+                            h_s = [float(k[2]) for k in kl_sync]
+                            l_s = [float(k[3]) for k in kl_sync]
+                            c_s = [float(k[4]) for k in kl_sync]
+                            atr_s   = calc_atr(h_s, l_s, c_s)
+                            entry_s = pos["entry"] if pos["entry"] > 0 else c_s[-1]
+                            stop_side_s = "SELL" if pos["side"] == "LONG" else "BUY"
+                            if pos["side"] == "LONG":
+                                sync_sl = round(entry_s - atr_s * 1.5, 8)
+                            else:
+                                sync_sl = round(entry_s + atr_s * 1.5, 8)
+                            sync_stop_id = _psm(symbol, stop_side_s, sync_sl, 0)
 
-                elif symbol not in SYMBOLS and symbol not in mem.get("trades_abertos", {}):
-                    # Posição manual fora da lista do bot — monitorizar sem gerir
-                    externas = mem.setdefault("posicoes_externas", {})
-                    if symbol not in externas:
+                        mem.setdefault("trades_abertos", {})[symbol] = {
+                            "direction":     pos["side"],
+                            "entry":         pos["entry"],
+                            "sl":            sync_sl,
+                            "tp":            0,
+                            "qty":           pos["qty"],
+                            "qty_inicial":   abs(pos["qty"]),
+                            "mode":          "SYNC",
+                            "opened_at":     time.time(),
+                            "stop_order_id": sync_stop_id,
+                        }
+                        save_memory(mem)
+                        log_state_transition(symbol, None, "OPEN", "SYNC",
+                                             f"entry={pos['entry']} side={pos['side']}")
+                        try:
+                            from storage import open_position as db_open_pos
+                            db_open_pos(symbol, pos["side"], pos["entry"],
+                                        0, 0, abs(pos["qty"]), "SYNC",
+                                        sync_stop_id, None)
+                        except Exception as _db_e:
+                            print(f"[AVISO] db_open_pos sync falhou: {_db_e}")
+                        dir_icon = "🟢 LONG" if pos["side"] == "LONG" else "🔴 SHORT"
+                        stop_txt = f"Stop#{sync_stop_id}" if sync_stop_id else "SL em memória"
+                        print(f"[{hora}] {symbol} sincronizado (órfão do bot)")
+                        tg(
+                            f"🔄 <b>{dir_icon}</b> — {symbol} (órfão recuperado)\n"
+                            f"Entrada: {pos['entry']:.4f} | 🔒 {stop_txt}"
+                        )
+
+                    elif symbol not in mem.get("posicoes_externas", {}):
+                        # Posição manual (sem marcador pending_sync) — monitorizar sem gerir
+                        externas = mem.setdefault("posicoes_externas", {})
                         externas[symbol] = {
                             "direction":  pos["side"],
                             "entry":      pos["entry"],
@@ -245,15 +249,16 @@ def run():
                         save_memory(mem)
                         dir_icon = "🟢 LONG" if pos["side"] == "LONG" else "🔴 SHORT"
                         notional = abs(pos["qty"]) * pos["entry"] if pos["entry"] > 0 else 0
-                        print(f"[{hora}] EXTERNA detectada: {symbol} {pos['side']}")
+                        na_lista = " (par do bot)" if symbol in SYMBOLS else ""
+                        print(f"[{hora}] EXTERNA detectada: {symbol} {pos['side']}{na_lista}")
                         tg(
-                            f"👁 <b>Posição externa detectada</b>\n"
-                            f"{dir_icon} <b>{symbol}</b> (fora da lista do bot)\n"
+                            f"👁 <b>Posição manual detectada</b>\n"
+                            f"{dir_icon} <b>{symbol}</b>{na_lista}\n"
                             f"Entrada: <code>{pos['entry']:.6g}</code> | "
-                            f"Qty: {abs(pos['qty']):.4g} | "
-                            f"Notional: ~{notional:.1f} USDC\n"
-                            f"<i>Monitorizada — não gerida pelo bot</i>"
+                            f"Qty: {abs(pos['qty']):.4g} | ~{notional:.1f} USDC\n"
+                            f"<i>Bot não gere nem coloca stops. P&amp;L não conta para os limites.</i>"
                         )
+
 
             # ── Monitorização de posições externas ───────────────────────
             externas = mem.get("posicoes_externas", {})
