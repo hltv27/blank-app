@@ -246,8 +246,11 @@ def gerir_posicoes(mem: dict):
     # BTC crash guard
     if btc_crash_detectado():
         posicoes_crash = get_positions() or {}
+        trades_bot     = mem.get("trades_abertos", {})
         fechados = []
         for sym, pos in posicoes_crash.items():
+            if sym not in trades_bot:
+                continue  # não toca em trades manuais
             if pos["side"] == "LONG" and sym != "BTCUSDC":
                 close_position(sym, pos["qty"], "LONG")
                 mem.get("trades_abertos", {}).pop(sym, None)
@@ -261,15 +264,22 @@ def gerir_posicoes(mem: dict):
                 f"Longs fechados: {', '.join(fechados)}"
             )
 
-    # ── Guarda de 25% — fecha tudo se perdas abertas > 25% do saldo ────
+    # ── Guarda de 25% — só conta posições do bot, nunca fecha trades manuais
     saldo_atual = get_balance()
     if saldo_atual and saldo_atual > 0:
-        posicoes_dd = get_positions() or {}
-        pnl_total_aberto = sum(pos.get("pnl", 0) for pos in posicoes_dd.values())
+        posicoes_dd  = get_positions() or {}
+        trades_bot   = mem.get("trades_abertos", {})
+        pnl_total_aberto = sum(
+            pos.get("pnl", 0)
+            for sym, pos in posicoes_dd.items()
+            if sym in trades_bot
+        )
         limite_drawdown = saldo_atual * MAX_DRAWDOWN_PCT
         if pnl_total_aberto < -limite_drawdown:
             fechados_dd = []
             for sym, pos in posicoes_dd.items():
+                if sym not in trades_bot:
+                    continue  # nunca fechar trades manuais
                 close_position(sym, pos["qty"], pos["side"])
                 close_position_db(sym, "DRAWDOWN_25PCT", pos["pnl"], 0)
                 mem.get("trades_abertos", {}).pop(sym, None)
@@ -286,11 +296,14 @@ def gerir_posicoes(mem: dict):
                 )
             return
 
-    # Salvaguarda de margem
+    # Salvaguarda de margem — só fecha posições do bot
     ratio = get_margin_ratio()
     if ratio is not None and ratio >= MARGIN_RATIO_MAX:
         posicoes_todas = get_positions() or {}
+        trades_bot     = mem.get("trades_abertos", {})
         for sym, pos in posicoes_todas.items():
+            if sym not in trades_bot:
+                continue  # não toca em trades manuais
             close_position(sym, pos["qty"], pos["side"])
             close_position_db(sym, "MARGIN_CRITICAL", pos["pnl"], 0)
             mem.get("trades_abertos", {}).pop(sym, None)
