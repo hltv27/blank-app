@@ -373,26 +373,34 @@ def gerir_posicoes(mem: dict):
                     lock_price = round(entry + new_lock / qty, 8)
                 else:
                     lock_price = round(entry - new_lock / qty, 8)
-                old_stop_lock = trade.get("stop_order_id")
-                if old_stop_lock:
-                    try:
-                        cancel_order(symbol, old_stop_lock)
-                    except Exception:
-                        pass
+
+                # Tenta novo stop ANTES de cancelar o antigo — se falhar, o antigo mantém-se
                 new_lock_id = place_stop_market(symbol, lock_side, lock_price, qty)
-                if not new_lock_id:
-                    # Stop falhou — não actualiza nível para tentar de novo no próximo ciclo
-                    tg(f"⚠️ <b>LOCK falhou</b> — {symbol}\nStop a {lock_price:.4f} não colocado — a tentar novamente.")
-                    continue
-                mem["trades_abertos"][symbol]["stop_order_id"]     = new_lock_id
-                mem["trades_abertos"][symbol]["profit_lock_level"] = new_lock
-                mem["trades_abertos"][symbol]["sl"]                = lock_price
-                save_memory(mem)
-                emoji = "🔒" if current_lock == 0.0 else "📈"
-                tg(
-                    f"{emoji} <b>LOCK +{new_lock:.1f} USDC</b> — {symbol}\n"
-                    f"Stop → {lock_price:.4f} | PnL: +{pos['pnl']:.2f} USDC"
-                )
+
+                if new_lock_id:
+                    # Novo stop colocado — agora cancela o antigo
+                    old_stop_lock = trade.get("stop_order_id")
+                    if old_stop_lock:
+                        try:
+                            cancel_order(symbol, old_stop_lock)
+                        except Exception:
+                            pass
+                    mem["trades_abertos"][symbol]["stop_order_id"]     = new_lock_id
+                    mem["trades_abertos"][symbol]["profit_lock_level"] = new_lock
+                    mem["trades_abertos"][symbol]["sl"]                = lock_price
+                    save_memory(mem)
+                    emoji = "🔒" if current_lock == 0.0 else "📈"
+                    tg(
+                        f"{emoji} <b>LOCK +{new_lock:.1f} USDC</b> — {symbol}\n"
+                        f"Stop → {lock_price:.4f} | PnL: +{pos['pnl']:.2f} USDC"
+                    )
+                else:
+                    # Exchange stop falhou — actualiza só o SL em memória (software stop)
+                    # e avança o nível para não fazer spam; stop antigo mantém-se activo
+                    print(f"[AVISO] {symbol}: exchange stop {lock_price:.4f} falhou — software SL activo")
+                    mem["trades_abertos"][symbol]["profit_lock_level"] = new_lock
+                    mem["trades_abertos"][symbol]["sl"]                = lock_price
+                    save_memory(mem)
 
         # ── TP1: fecha 33% a 2R, move stop para breakeven ────────────────
         entry_trade = trade.get("entry", 0)
