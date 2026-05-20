@@ -51,6 +51,9 @@ MAX_SHORTS_ALT      = 3
 # ─────────────────────────────────────────────
 #  ESTRATÉGIA
 # ─────────────────────────────────────────────
+ADX_TREND_MIN   = 22.5   # ADX mínimo para modo TRENDING
+EMA_SLOPE_MIN   = 0.0008 # slope mínimo da EMA99 para confirmar tendência
+
 RSI_OVERSOLD    = 42.0
 RSI_OVERBOUGHT  = 58.0
 STOCH_VETO_LONG = 95.0
