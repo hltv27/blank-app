@@ -16,7 +16,7 @@ from config import (
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_price,
     set_leverage, place_order, place_stop_market, place_trailing_stop,
-    place_take_profit, close_position, cancel_order
+    place_take_profit, close_position, cancel_order, cancel_algo_order
 )
 from indicators import atr, adx
 from strategy import calc_sl_tp, calc_qty
@@ -395,7 +395,7 @@ def gerir_posicoes(mem: dict):
                 # Cancela stop antigo PRIMEIRO (closePosition só permite um de cada vez)
                 old_stop_lock = trade.get("stop_order_id")
                 if old_stop_lock:
-                    cancel_order(symbol, old_stop_lock)
+                    cancel_algo_order(symbol, old_stop_lock)
                     mem["trades_abertos"][symbol]["stop_order_id"] = None
 
                 # Coloca novo stop closePosition=true (sem conflito — o antigo foi cancelado)
@@ -440,7 +440,7 @@ def gerir_posicoes(mem: dict):
                     old_stop = trade.get("stop_order_id")
                     if old_stop:
                         try:
-                            cancel_order(symbol, old_stop)
+                            cancel_algo_order(symbol, old_stop)
                         except Exception:
                             pass
                     be_side     = "SELL" if side == "LONG" else "BUY"
@@ -490,7 +490,7 @@ def gerir_posicoes(mem: dict):
                     old_stop2 = trade.get("stop_order_id")
                     if old_stop2:
                         try:
-                            cancel_order(symbol, old_stop2)
+                            cancel_algo_order(symbol, old_stop2)
                         except Exception:
                             pass
                     be_side2     = "SELL" if side == "LONG" else "BUY"
