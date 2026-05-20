@@ -241,13 +241,12 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
         # reduceOnly + qty: compatível com TP em aberto (closePosition conflictuava)
         if qty and qty > 0:
             params = {
-                "symbol":      symbol,
-                "side":        side,
-                "type":        "STOP_MARKET",
-                "stopPrice":   f"{stop_price:.{decimals}f}",
-                "quantity":    f"{qty:.{decimals}f}",
-                "reduceOnly":  "true",
-                "timeInForce": "GTC",
+                "symbol":     symbol,
+                "side":       side,
+                "type":       "STOP_MARKET",
+                "stopPrice":  f"{stop_price:.{decimals}f}",
+                "quantity":   f"{qty:.{decimals}f}",
+                "reduceOnly": "true",
             }
         else:
             params = {
