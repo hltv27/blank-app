@@ -13,6 +13,7 @@ from config import (
 )
 
 _time_offset_ms = 0
+_SAPI_URL = "https://api.binance.com"
 
 
 def sync_time():
@@ -238,27 +239,29 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
     try:
         decimals = SYMBOL_PRECISION.get(symbol, 4)
+        # Binance migrou ordens condicionais para /fapi/v1/algoOrder (Dez 2025)
         # closePosition=true: compatível com conta EU/BNFCR (reduceOnly não suportado)
         # O chamador deve cancelar qualquer stop anterior antes de invocar esta função
         params = {
             "symbol":        symbol,
             "side":          side,
-            "type":          "STOP_MARKET",
+            "orderType":     "STOP_MARKET",
+            "algoType":      "CONDITIONAL",
             "stopPrice":     f"{stop_price:.{decimals}f}",
             "closePosition": "true",
         }
         r = requests.post(
-            f"{BASE_URL}/fapi/v1/order",
+            f"{BASE_URL}/fapi/v1/algoOrder",
             params=_sign(params), headers=_headers(), timeout=10
         )
         data = r.json()
         if _is_timestamp_error(data):
             sync_time()
-            r = requests.post(f"{BASE_URL}/fapi/v1/order",
+            r = requests.post(f"{BASE_URL}/fapi/v1/algoOrder",
                               params=_sign(params), headers=_headers(), timeout=10)
             data = r.json()
-        if "orderId" in data:
-            return data["orderId"]
+        if "algoId" in data:
+            return data["algoId"]
         print(f"[AVISO] stop_market {symbol}: {data.get('msg', data)}")
     except Exception as e:
         print(f"[ERRO] place_stop_market {symbol}: {e}")
@@ -268,20 +271,26 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
 def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
     try:
         decimals = SYMBOL_PRECISION.get(symbol, 4)
+        params = {
+            "symbol":        symbol,
+            "side":          side,
+            "orderType":     "TAKE_PROFIT_MARKET",
+            "algoType":      "CONDITIONAL",
+            "stopPrice":     f"{tp_price:.{decimals}f}",
+            "closePosition": "true",
+        }
         r = requests.post(
-            f"{BASE_URL}/fapi/v1/order",
-            params=_sign({
-                "symbol":        symbol,
-                "side":          side,
-                "type":          "TAKE_PROFIT_MARKET",
-                "stopPrice":     f"{tp_price:.{decimals}f}",
-                "closePosition": "true",
-            }),
-            headers=_headers(), timeout=10
+            f"{BASE_URL}/fapi/v1/algoOrder",
+            params=_sign(params), headers=_headers(), timeout=10
         )
         data = r.json()
-        if "orderId" in data:
-            return data["orderId"]
+        if _is_timestamp_error(data):
+            sync_time()
+            r = requests.post(f"{BASE_URL}/fapi/v1/algoOrder",
+                              params=_sign(params), headers=_headers(), timeout=10)
+            data = r.json()
+        if "algoId" in data:
+            return data["algoId"]
         print(f"[AVISO] take_profit {symbol}: {data.get('msg', data)}")
     except Exception as e:
         print(f"[ERRO] place_take_profit {symbol}: {e}")
@@ -295,22 +304,23 @@ def place_trailing_stop(symbol: str, side: str, callback_rate: float,
         params = {
             "symbol":          symbol,
             "side":            side,
-            "type":            "TRAILING_STOP_MARKET",
+            "orderType":       "TRAILING_STOP_MARKET",
+            "algoType":        "CONDITIONAL",
             "callbackRate":    f"{callback_rate}",
             "activationPrice": f"{activation_price:.{decimals}f}",
             "closePosition":   "true",
         }
-        r    = requests.post(f"{BASE_URL}/fapi/v1/order",
+        r    = requests.post(f"{BASE_URL}/fapi/v1/algoOrder",
                              params=_sign(params), headers=_headers(), timeout=10)
         data = r.json()
         if _is_timestamp_error(data):
             sync_time()
-            r    = requests.post(f"{BASE_URL}/fapi/v1/order",
+            r    = requests.post(f"{BASE_URL}/fapi/v1/algoOrder",
                                  params=_sign(params), headers=_headers(), timeout=10)
             data = r.json()
-        if "orderId" in data:
+        if "algoId" in data:
             print(f"[OK] Trailing stop {symbol}: callback {callback_rate}%")
-            return data["orderId"]
+            return data["algoId"]
         # Fallback: STOP_MARKET fixo a 1.5× callback abaixo/acima da activação
         msg = data.get("msg", str(data))
         print(f"[AVISO] trailing_stop {symbol}: {msg} — fallback STOP_MARKET")
@@ -394,7 +404,7 @@ def get_top_futures_symbols(n: int = 20, min_days: int = 30) -> tuple:
 
 
 def cancel_order(symbol: str, order_id) -> bool:
-    """Cancela uma ordem pelo ID. Retorna True se bem-sucedido."""
+    """Cancela uma ordem MARKET pelo orderId. Para stops/TP usar cancel_algo_order."""
     try:
         params = _sign({"symbol": symbol, "orderId": int(order_id)})
         r = requests.delete(
@@ -412,8 +422,34 @@ def cancel_order(symbol: str, order_id) -> bool:
             data = r.json()
         if data.get("status") == "CANCELED":
             return True
-        # Ordem já executada ou não existe — não é erro crítico
         return False
     except Exception as e:
         print(f"[AVISO] cancel_order {symbol} #{order_id}: {e}")
+        return False
+
+
+def cancel_algo_order(symbol: str, algo_id) -> bool:
+    """Cancela uma algo order (STOP_MARKET/TP/Trailing) pelo algoId."""
+    try:
+        params = _sign({"symbol": symbol, "algoId": int(algo_id)})
+        r = requests.delete(
+            f"{_SAPI_URL}/sapi/v1/algo/futures/order",
+            params=params, headers=_headers(), timeout=10
+        )
+        data = r.json()
+        if _is_timestamp_error(data):
+            sync_time()
+            params = _sign({"symbol": symbol, "algoId": int(algo_id)})
+            r = requests.delete(
+                f"{_SAPI_URL}/sapi/v1/algo/futures/order",
+                params=params, headers=_headers(), timeout=10
+            )
+            data = r.json()
+        if data.get("success") is True or data.get("code") == 200:
+            return True
+        # Ordem já executada ou não existe — não é erro crítico
+        print(f"[AVISO] cancel_algo_order {symbol} #{algo_id}: {data.get('msg', data)}")
+        return False
+    except Exception as e:
+        print(f"[AVISO] cancel_algo_order {symbol} #{algo_id}: {e}")
         return False
