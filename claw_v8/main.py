@@ -320,6 +320,13 @@ def run():
                 print(f"[{hora}] Saldo insuficiente: {saldo_pre}")
                 continue
 
+            # ── Limpa pending_sync antigos (>10 min) ─────────────────────
+            agora = time.time()
+            for sym in list(mem.get("pending_sync", {}).keys()):
+                if agora - mem["pending_sync"][sym] > 600:
+                    mem["pending_sync"].pop(sym)
+                    save_memory(mem)
+
             # ── Scan dos pares ────────────────────────────────────────────
             for symbol in SYMBOLS:
                 if symbol in posicoes_reais:

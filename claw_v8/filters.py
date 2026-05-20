@@ -17,6 +17,7 @@ from storage import log_filter_event
 
 _fg_cache:    dict = {"value": 50, "ts": 0.0}
 _macro_cache: dict = {"ts": 0.0, "bloqueado": False}
+_mkt_cache:   dict = {}
 
 
 def _log(symbol: str, direction: str, name: str, passed: bool,
@@ -136,6 +137,11 @@ def spread_ok(symbol: str, direction: str, price: float) -> bool:
 
 
 def market_conditions_ok(symbol: str, direction: str, price: float) -> bool:
+    cache_key = f"{symbol}_{direction}"
+    now = time.time()
+    if cache_key in _mkt_cache and now - _mkt_cache[cache_key]["ts"] < 300:
+        return _mkt_cache[cache_key]["result"]
+
     try:
         r = requests.get(f"{BASE_URL}/fapi/v1/fundingRate",
                          params={"symbol": symbol, "limit": 1}, timeout=5)
@@ -144,10 +150,14 @@ def market_conditions_ok(symbol: str, direction: str, price: float) -> bool:
             rate = float(fr_data[-1]["fundingRate"])
             if direction == "LONG"  and rate >  FUNDING_RATE_MAX:
                 print(f"[FUNDING] {symbol}: rate {rate:.4%} — LONG vetado (funding caro)")
-                return _log(symbol, direction, "FUNDING_RATE", False, price)
+                result = _log(symbol, direction, "FUNDING_RATE", False, price)
+                _mkt_cache[cache_key] = {"ts": now, "result": result}
+                return result
             if direction == "SHORT" and rate < -FUNDING_RATE_MAX:
                 print(f"[FUNDING] {symbol}: rate {rate:.4%} — SHORT vetado (funding caro)")
-                return _log(symbol, direction, "FUNDING_RATE", False, price)
+                result = _log(symbol, direction, "FUNDING_RATE", False, price)
+                _mkt_cache[cache_key] = {"ts": now, "result": result}
+                return result
 
         r = requests.get(f"{BASE_URL}/futures/data/openInterestHist",
                          params={"symbol": symbol, "period": "1h", "limit": 5}, timeout=5)
@@ -157,7 +167,9 @@ def market_conditions_ok(symbol: str, direction: str, price: float) -> bool:
             oi_4h  = float(oi_data[0]["sumOpenInterest"])
             oi_chg = (oi_now / oi_4h - 1) * 100 if oi_4h > 0 else 0
             if oi_chg < -5:
-                return _log(symbol, direction, "OPEN_INTEREST", False, price)
+                result = _log(symbol, direction, "OPEN_INTEREST", False, price)
+                _mkt_cache[cache_key] = {"ts": now, "result": result}
+                return result
 
         r = requests.get(f"{BASE_URL}/futures/data/globalLongShortAccountRatio",
                          params={"symbol": symbol, "period": "1h", "limit": 1}, timeout=5)
@@ -165,12 +177,18 @@ def market_conditions_ok(symbol: str, direction: str, price: float) -> bool:
         if isinstance(lsr_data, list) and lsr_data:
             lsr = float(lsr_data[-1]["longShortRatio"])
             if direction == "LONG"  and lsr > 2.5:
-                return _log(symbol, direction, "LONG_SHORT_RATIO", False, price)
+                result = _log(symbol, direction, "LONG_SHORT_RATIO", False, price)
+                _mkt_cache[cache_key] = {"ts": now, "result": result}
+                return result
             if direction == "SHORT" and lsr < 0.4:
-                return _log(symbol, direction, "LONG_SHORT_RATIO", False, price)
+                result = _log(symbol, direction, "LONG_SHORT_RATIO", False, price)
+                _mkt_cache[cache_key] = {"ts": now, "result": result}
+                return result
     except Exception:
         pass
-    return _log(symbol, direction, "MARKET_CONDITIONS", True, price)
+    result = _log(symbol, direction, "MARKET_CONDITIONS", True, price)
+    _mkt_cache[cache_key] = {"ts": now, "result": result}
+    return result
 
 
 def htf_1h_ok(symbol: str, direction: str, price: float) -> bool:

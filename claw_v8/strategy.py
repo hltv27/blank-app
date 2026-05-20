@@ -7,7 +7,8 @@ from config import (
     RSI_OVERSOLD, RSI_OVERBOUGHT, STOCH_VETO_LONG, STOCH_VETO_SHORT,
     SCORE_ALERTA, SCORE_FORTE, ATR_MIN_PCT, RATIO_ALVO,
     RISCO_USDC, SYMBOL_PRECISION, BB_PERIOD,
-    ATR_SL_MULT_MIN, ATR_SL_MULT_MAX
+    ATR_SL_MULT_MIN, ATR_SL_MULT_MAX,
+    ADX_TREND_MIN, EMA_SLOPE_MIN
 )
 from indicators import (
     ema, rsi, atr, stoch_rsi, adx, supertrend,
@@ -24,7 +25,7 @@ def detect_market_mode(closes: list, atr_val: float) -> str:
         return "MORTO"
     ema_vals = ema(closes, EMA_TREND)
     slope    = (ema_vals[-1] - ema_vals[-6]) / ema_vals[-6] if ema_vals[-6] != 0 else 0
-    if abs(slope) < 0.0008:
+    if abs(slope) < EMA_SLOPE_MIN:
         return "MORTO"
     return "TRENDING"
 
@@ -46,7 +47,7 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list):
     atr_val  = atr(highs, lows, closes)
     adx_val  = adx(highs, lows, closes)
 
-    if adx_val < 22.5:
+    if adx_val < ADX_TREND_MIN:
         return None, 0, f"VETO_ADX {adx_val:.1f}"
     if sr_val > STOCH_VETO_LONG:
         return None, 0, f"VETO_SR_LONG {sr_val:.1f}"

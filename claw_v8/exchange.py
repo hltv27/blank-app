@@ -276,7 +276,6 @@ def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
                 "type":          "TAKE_PROFIT_MARKET",
                 "stopPrice":     f"{tp_price:.{decimals}f}",
                 "closePosition": "true",
-                "timeInForce":   "GTC",
             }),
             headers=_headers(), timeout=10
         )

@@ -248,11 +248,14 @@ def gerir_posicoes(mem: dict):
     """Verifica posições abertas — SL/TP, partial TP, emergency cut."""
 
     # BTC crash guard
+    btc_crash_fired = False
+    posicoes_all = None
     if btc_crash_detectado():
-        posicoes_crash = get_positions() or {}
+        btc_crash_fired = True
+        posicoes_all   = get_positions() or {}
         trades_bot     = mem.get("trades_abertos", {})
         fechados = []
-        for sym, pos in posicoes_crash.items():
+        for sym, pos in posicoes_all.items():
             if sym not in trades_bot:
                 continue  # não toca em trades manuais
             if pos["side"] == "LONG" and sym != "BTCUSDC":
@@ -271,7 +274,9 @@ def gerir_posicoes(mem: dict):
     # ── Guarda de 25% — só conta posições do bot, nunca fecha trades manuais
     saldo_atual = get_balance()
     if saldo_atual and saldo_atual > 0:
-        posicoes_dd  = get_positions() or {}
+        if posicoes_all is None:
+            posicoes_all = get_positions() or {}
+        posicoes_dd  = posicoes_all
         trades_bot   = mem.get("trades_abertos", {})
         pnl_total_aberto = sum(
             pos.get("pnl", 0)
@@ -303,7 +308,9 @@ def gerir_posicoes(mem: dict):
     # Salvaguarda de margem — só fecha posições do bot
     ratio = get_margin_ratio()
     if ratio is not None and ratio >= MARGIN_RATIO_MAX:
-        posicoes_todas = get_positions() or {}
+        if posicoes_all is None:
+            posicoes_all = get_positions() or {}
+        posicoes_todas = posicoes_all
         trades_bot     = mem.get("trades_abertos", {})
         for sym, pos in posicoes_todas.items():
             if sym not in trades_bot:
@@ -319,7 +326,9 @@ def gerir_posicoes(mem: dict):
         )
         return
 
-    posicoes_binance = get_positions()
+    if posicoes_all is None:
+        posicoes_all = get_positions()
+    posicoes_binance = posicoes_all
     if posicoes_binance is None:
         print("[AVISO] gerir_posicoes: API falhou")
         return
