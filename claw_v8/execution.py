@@ -380,6 +380,10 @@ def gerir_posicoes(mem: dict):
                     except Exception:
                         pass
                 new_lock_id = place_stop_market(symbol, lock_side, lock_price, qty)
+                if not new_lock_id:
+                    # Stop falhou — não actualiza nível para tentar de novo no próximo ciclo
+                    tg(f"⚠️ <b>LOCK falhou</b> — {symbol}\nStop a {lock_price:.4f} não colocado — a tentar novamente.")
+                    continue
                 mem["trades_abertos"][symbol]["stop_order_id"]     = new_lock_id
                 mem["trades_abertos"][symbol]["profit_lock_level"] = new_lock
                 mem["trades_abertos"][symbol]["sl"]                = lock_price
