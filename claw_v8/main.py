@@ -181,25 +181,31 @@ def run():
 
             for symbol, pos in posicoes_reais.items():
                 if symbol in SYMBOLS and symbol not in mem.get("trades_abertos", {}):
-                    # Posição não conhecida — sincroniza e coloca trailing stop
+                    # Posição órfã do bot — sincroniza e coloca stop com reduceOnly (nunca closePosition)
                     kl_sync = get_klines(symbol)
                     sync_stop_id = None
+                    sync_sl = 0.0
                     if kl_sync and len(kl_sync) > 14:
                         from indicators import atr as calc_atr
+                        from exchange import place_stop_market as _psm
                         h_s = [float(k[2]) for k in kl_sync]
                         l_s = [float(k[3]) for k in kl_sync]
                         c_s = [float(k[4]) for k in kl_sync]
-                        atr_s    = calc_atr(h_s, l_s, c_s)
-                        entry_s  = pos["entry"] if pos["entry"] > 0 else c_s[-1]
-                        cb_rate  = max(0.5, min(5.0, round((atr_s * 1.5 / entry_s) * 100, 1)))
+                        atr_s   = calc_atr(h_s, l_s, c_s)
+                        entry_s = pos["entry"] if pos["entry"] > 0 else c_s[-1]
+                        qty_s   = abs(pos["qty"])
                         stop_side_s = "SELL" if pos["side"] == "LONG" else "BUY"
-                        from exchange import place_trailing_stop
-                        sync_stop_id = place_trailing_stop(symbol, stop_side_s, cb_rate, c_s[-1])
+                        if pos["side"] == "LONG":
+                            sync_sl = round(entry_s - atr_s * 1.5, 8)
+                        else:
+                            sync_sl = round(entry_s + atr_s * 1.5, 8)
+                        # reduceOnly=true — nunca conflitua com TP orders existentes
+                        sync_stop_id = _psm(symbol, stop_side_s, sync_sl, qty_s)
 
                     mem.setdefault("trades_abertos", {})[symbol] = {
                         "direction":     pos["side"],
                         "entry":         pos["entry"],
-                        "sl":            0,
+                        "sl":            sync_sl,
                         "tp":            0,
                         "qty":           pos["qty"],
                         "qty_inicial":   abs(pos["qty"]),
