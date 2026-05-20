@@ -156,6 +156,11 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
     set_leverage(symbol)
     side  = "BUY" if direction == "LONG" else "SELL"
+
+    # Marca o símbolo como "ordem em curso" — sync usa isto para distinguir bot de manual
+    mem.setdefault("pending_sync", {})[symbol] = time.time()
+    save_memory(mem)
+
     order = place_order(symbol, side, qty)
 
     if order and "orderId" in order:
@@ -221,6 +226,8 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         stop_txt = f"🛑 SL @ {sl:.4f} (#{stop_id})" if stop_id else f"🛑 SL @ {sl:.4f} (software)"
         tp_txt   = f"TP#{tp_order_id}" if tp_order_id else "TP em memória"
         rr_icon  = f"RR {rr_actual}:1" + (" 🚀" if rr_actual >= 3 else "")
+        mem.get("pending_sync", {}).pop(symbol, None)
+        save_memory(mem)
         tg(
             f"📈 <b>{dir_icon}</b> — {symbol}\n"
             f"Entrada: {fill_price:.4f}\n"
@@ -230,6 +237,8 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             f"Detalhe: {detalhe}"
         )
     else:
+        mem.get("pending_sync", {}).pop(symbol, None)
+        save_memory(mem)
         erro = order.get("msg", str(order)[:120]) if isinstance(order, dict) else "sem resposta"
         print(f"[ERRO] Ordem {symbol} resposta completa: {order}")
         tg(f"⚠️ <b>Ordem falhou</b> — {symbol}\nDirecção: {direction} | Erro: {erro}")
