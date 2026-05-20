@@ -238,24 +238,15 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
     try:
         decimals = SYMBOL_PRECISION.get(symbol, 4)
-        # reduceOnly + qty: compatível com TP em aberto (closePosition conflictuava)
-        if qty and qty > 0:
-            params = {
-                "symbol":     symbol,
-                "side":       side,
-                "type":       "STOP_MARKET",
-                "stopPrice":  f"{stop_price:.{decimals}f}",
-                "quantity":   f"{qty:.{decimals}f}",
-                "reduceOnly": "true",
-            }
-        else:
-            params = {
-                "symbol":        symbol,
-                "side":          side,
-                "type":          "STOP_MARKET",
-                "stopPrice":     f"{stop_price:.{decimals}f}",
-                "closePosition": "true",
-            }
+        # closePosition=true: compatível com conta EU/BNFCR (reduceOnly não suportado)
+        # O chamador deve cancelar qualquer stop anterior antes de invocar esta função
+        params = {
+            "symbol":        symbol,
+            "side":          side,
+            "type":          "STOP_MARKET",
+            "stopPrice":     f"{stop_price:.{decimals}f}",
+            "closePosition": "true",
+        }
         r = requests.post(
             f"{BASE_URL}/fapi/v1/order",
             params=_sign(params), headers=_headers(), timeout=10
@@ -269,7 +260,6 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
         if "orderId" in data:
             return data["orderId"]
         print(f"[AVISO] stop_market {symbol}: {data.get('msg', data)}")
-        tg(f"⚠️ STOP falhou em {symbol}: {data.get('msg','?')}")
     except Exception as e:
         print(f"[ERRO] place_stop_market {symbol}: {e}")
     return None
