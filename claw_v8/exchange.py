@@ -238,27 +238,34 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
     try:
         decimals = SYMBOL_PRECISION.get(symbol, 4)
-        r = requests.post(
-            f"{BASE_URL}/fapi/v1/order",
-            params=_sign({
+        # reduceOnly + qty: compatível com TP em aberto (closePosition conflictuava)
+        if qty and qty > 0:
+            params = {
+                "symbol":      symbol,
+                "side":        side,
+                "type":        "STOP_MARKET",
+                "stopPrice":   f"{stop_price:.{decimals}f}",
+                "quantity":    f"{qty:.{decimals}f}",
+                "reduceOnly":  "true",
+                "timeInForce": "GTC",
+            }
+        else:
+            params = {
                 "symbol":        symbol,
                 "side":          side,
                 "type":          "STOP_MARKET",
                 "stopPrice":     f"{stop_price:.{decimals}f}",
                 "closePosition": "true",
-                "timeInForce":   "GTC",
-            }),
-            headers=_headers(), timeout=10
+            }
+        r = requests.post(
+            f"{BASE_URL}/fapi/v1/order",
+            params=_sign(params), headers=_headers(), timeout=10
         )
         data = r.json()
         if _is_timestamp_error(data):
             sync_time()
             r = requests.post(f"{BASE_URL}/fapi/v1/order",
-                              params=_sign({"symbol": symbol, "side": side,
-                                            "type": "STOP_MARKET",
-                                            "stopPrice": f"{stop_price:.{decimals}f}",
-                                            "closePosition": "true", "timeInForce": "GTC"}),
-                              headers=_headers(), timeout=10)
+                              params=_sign(params), headers=_headers(), timeout=10)
             data = r.json()
         if "orderId" in data:
             return data["orderId"]
