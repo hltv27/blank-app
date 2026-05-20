@@ -180,31 +180,74 @@ def run():
                 continue
 
             for symbol, pos in posicoes_reais.items():
-                if symbol not in mem.get("trades_abertos", {}) and \
-                        symbol not in mem.get("posicoes_externas", {}):
-                    # Posição manual — monitorizar sem gerir, P&L não conta para o bot
-                    externas = mem.setdefault("posicoes_externas", {})
-                    externas[symbol] = {
-                        "direction":  pos["side"],
-                        "entry":      pos["entry"],
-                        "qty":        pos["qty"],
-                        "opened_at":  time.time(),
-                        "alertas":    [],
+                if symbol in SYMBOLS and symbol not in mem.get("trades_abertos", {}):
+                    # Posição não conhecida — sincroniza e coloca trailing stop
+                    kl_sync = get_klines(symbol)
+                    sync_stop_id = None
+                    if kl_sync and len(kl_sync) > 14:
+                        from indicators import atr as calc_atr
+                        h_s = [float(k[2]) for k in kl_sync]
+                        l_s = [float(k[3]) for k in kl_sync]
+                        c_s = [float(k[4]) for k in kl_sync]
+                        atr_s    = calc_atr(h_s, l_s, c_s)
+                        entry_s  = pos["entry"] if pos["entry"] > 0 else c_s[-1]
+                        cb_rate  = max(0.5, min(5.0, round((atr_s * 1.5 / entry_s) * 100, 1)))
+                        stop_side_s = "SELL" if pos["side"] == "LONG" else "BUY"
+                        from exchange import place_trailing_stop
+                        sync_stop_id = place_trailing_stop(symbol, stop_side_s, cb_rate, c_s[-1])
+
+                    mem.setdefault("trades_abertos", {})[symbol] = {
+                        "direction":     pos["side"],
+                        "entry":         pos["entry"],
+                        "sl":            0,
+                        "tp":            0,
+                        "qty":           pos["qty"],
+                        "qty_inicial":   abs(pos["qty"]),
+                        "mode":          "SYNC",
+                        "opened_at":     time.time(),
+                        "stop_order_id": sync_stop_id,
                     }
                     save_memory(mem)
+                    log_state_transition(symbol, None, "OPEN", "SYNC",
+                                        f"entry={pos['entry']} side={pos['side']}")
+                    try:
+                        from storage import open_position as db_open_pos
+                        db_open_pos(symbol, pos["side"], pos["entry"],
+                                    0, 0, abs(pos["qty"]), "SYNC",
+                                    sync_stop_id, None)
+                    except Exception as _db_e:
+                        print(f"[AVISO] db_open_pos sync falhou: {_db_e}")
                     dir_icon = "🟢 LONG" if pos["side"] == "LONG" else "🔴 SHORT"
-                    notional = abs(pos["qty"]) * pos["entry"] if pos["entry"] > 0 else 0
-                    na_lista = " (par do bot)" if symbol in SYMBOLS else " (fora da lista)"
-                    print(f"[{hora}] EXTERNA detectada: {symbol} {pos['side']}{na_lista}")
+                    stop_txt = f"Stop#{sync_stop_id}" if sync_stop_id else "⚠️ stop falhou"
+                    print(f"[{hora}] {symbol} sincronizado da Binance")
                     tg(
-                        f"👁 <b>Posição manual detectada</b>\n"
-                        f"{dir_icon} <b>{symbol}</b>{na_lista}\n"
-                        f"Entrada: <code>{pos['entry']:.6g}</code> | "
-                        f"Qty: {abs(pos['qty']):.4g} | "
-                        f"Notional: ~{notional:.1f} USDC\n"
-                        f"<i>Monitorizada — bot não gere nem coloca stops.\n"
-                        f"P&amp;L não conta para limites do bot.</i>"
+                        f"🔄 <b>{dir_icon}</b> — {symbol} (sincronizada)\n"
+                        f"Entrada: {pos['entry']:.4f} | 🔒 {stop_txt}"
                     )
+
+                elif symbol not in SYMBOLS and symbol not in mem.get("trades_abertos", {}):
+                    # Posição manual fora da lista do bot — monitorizar sem gerir
+                    externas = mem.setdefault("posicoes_externas", {})
+                    if symbol not in externas:
+                        externas[symbol] = {
+                            "direction":  pos["side"],
+                            "entry":      pos["entry"],
+                            "qty":        pos["qty"],
+                            "opened_at":  time.time(),
+                            "alertas":    [],
+                        }
+                        save_memory(mem)
+                        dir_icon = "🟢 LONG" if pos["side"] == "LONG" else "🔴 SHORT"
+                        notional = abs(pos["qty"]) * pos["entry"] if pos["entry"] > 0 else 0
+                        print(f"[{hora}] EXTERNA detectada: {symbol} {pos['side']}")
+                        tg(
+                            f"👁 <b>Posição externa detectada</b>\n"
+                            f"{dir_icon} <b>{symbol}</b> (fora da lista do bot)\n"
+                            f"Entrada: <code>{pos['entry']:.6g}</code> | "
+                            f"Qty: {abs(pos['qty']):.4g} | "
+                            f"Notional: ~{notional:.1f} USDC\n"
+                            f"<i>Monitorizada — não gerida pelo bot</i>"
+                        )
 
             # ── Monitorização de posições externas ───────────────────────
             externas = mem.get("posicoes_externas", {})
@@ -257,9 +300,8 @@ def run():
             if fechadas_ext:
                 save_memory(mem)
 
-            trades_bot_count = len(mem.get("trades_abertos", {}))
-            if trades_bot_count >= MAX_TRADES_ABERTOS:
-                print(f"[{hora}] Max trades abertos ({trades_bot_count})")
+            if len(posicoes_reais) >= MAX_TRADES_ABERTOS:
+                print(f"[{hora}] Max trades abertos ({len(posicoes_reais)})")
                 continue
 
             saldo_pre = get_balance()
@@ -312,10 +354,9 @@ def run():
                         print(f"[{hora}] {symbol} VETO_VWAP SHORT acima {vwap:.4f}")
                         continue
 
-                # Tecto direcional — só conta posições do bot, não manuais
-                trades_bot_dir = mem.get("trades_abertos", {})
-                longs_reais  = [s for s, t in trades_bot_dir.items() if t.get("direction") == "LONG"]
-                shorts_reais = [s for s, t in trades_bot_dir.items() if t.get("direction") == "SHORT"]
+                # Tecto direcional
+                longs_reais  = [s for s, p in posicoes_reais.items() if p["side"] == "LONG"]
+                shorts_reais = [s for s, p in posicoes_reais.items() if p["side"] == "SHORT"]
                 longs_alt    = [s for s in longs_reais  if s not in BTC_SYMBOLS]
                 shorts_alt   = [s for s in shorts_reais if s not in BTC_SYMBOLS]
 
