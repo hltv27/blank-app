@@ -361,7 +361,7 @@ def close_position(symbol: str, qty: float, side: str):
     return place_order(symbol, close_side, abs(qty))
 
 
-def get_top_futures_symbols(n: int = 20, min_days: int = 30) -> tuple:
+def get_top_futures_symbols(n: int = 20, min_days: int = 7) -> tuple:
     """
     Busca top N pares USDC-M por volume 24h.
     Retorna (lista_symbols, qty_precision_map, price_precision_map).

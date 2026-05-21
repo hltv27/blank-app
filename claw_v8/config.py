@@ -17,7 +17,7 @@ BASE_URL = "https://fapi.binance.com"
 # ─────────────────────────────────────────────
 #  PARES
 # ─────────────────────────────────────────────
-TOP_N_FUTURES = 20   # número de pares a negociar (20 ou 50)
+TOP_N_FUTURES = 50   # número de pares a negociar (50 = praticamente todos os USDC-M)
 
 # Lista base de fallback (usada se a fetch dinâmica falhar)
 SYMBOLS = [
