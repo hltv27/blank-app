@@ -189,6 +189,27 @@ def get_margin_ratio() -> float | None:
     return None
 
 
+def get_wallet_balance() -> float | None:
+    """Saldo total da conta (totalMarginBalance) — inclui margem usada em posições.
+    Usar no drawdown guard, NÃO em verificações de margem disponível para novas ordens."""
+    for attempt in range(2):
+        try:
+            r = requests.get(
+                f"{BASE_URL}/fapi/v2/account",
+                params=_sign({}), headers=_headers(), timeout=10
+            )
+            data = r.json()
+            if _is_timestamp_error(data):
+                sync_time()
+                continue
+            val = float(data.get("totalMarginBalance", 0))
+            return val if val > 0 else None
+        except Exception as e:
+            print(f"[ERRO] get_wallet_balance: {e}")
+            break
+    return None
+
+
 def get_price(symbol: str) -> float | None:
     try:
         r = requests.get(

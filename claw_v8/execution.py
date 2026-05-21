@@ -14,7 +14,7 @@ from config import (
     BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT
 )
 from exchange import (
-    tg, get_balance, get_positions, get_margin_ratio, get_price,
+    tg, get_balance, get_wallet_balance, get_positions, get_margin_ratio, get_price,
     set_leverage, place_order, place_stop_market, place_trailing_stop,
     place_take_profit, close_position, cancel_order, cancel_algo_order
 )
@@ -266,8 +266,8 @@ def gerir_posicoes(mem: dict):
                 f"Longs fechados: {', '.join(fechados)}"
             )
 
-    # ── Guarda de 25% — só conta posições do bot, nunca fecha trades manuais
-    saldo_atual = get_balance()
+    # ── Guarda de 25% — usa saldo total (não availableBalance que é tiny com posições)
+    saldo_atual = get_wallet_balance()
     if saldo_atual and saldo_atual > 0:
         if posicoes_all is None:
             posicoes_all = get_positions() or {}
