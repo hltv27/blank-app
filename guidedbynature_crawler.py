@@ -17,6 +17,7 @@ import asyncio
 import json
 import re
 import time
+import xml.etree.ElementTree as ET
 from urllib.parse import urljoin
 
 import pandas as pd
@@ -73,8 +74,10 @@ CATEGORIAS = [
 
 # ── Descoberta de URLs ─────────────────────────────────────────────────────────
 
+ITEM_RE = re.compile(r'https://guidedbynature\.pt/pt/(poi|event|tour|p)/[^"<\s]+/(\d+)/?')
+
+
 def _extract_links(html: str, base: str) -> set[str]:
-    """Extrai URLs de items (poi/event/tour/p) do HTML."""
     urls = set()
     for m in re.finditer(r'href="(/pt/(poi|event|tour|p)/[^"]+/(\d+)/)"', html):
         full = urljoin(base, m.group(1)).rstrip("/") + "/"
@@ -82,43 +85,128 @@ def _extract_links(html: str, base: str) -> set[str]:
     return urls
 
 
-async def discover_urls(context: BrowserContext) -> list[str]:
+def _extract_sitemap_urls(xml_text: str) -> list[str]:
+    """Extrai <loc> de um sitemap XML (índice ou folha)."""
+    locs = re.findall(r'<loc>(https://[^<]+)</loc>', xml_text)
+    return locs
+
+
+async def _fetch_text(page, url: str) -> tuple[int, str]:
+    try:
+        resp = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        if not resp:
+            return 0, ""
+        content = await page.content()
+        return resp.status, content
+    except Exception as e:
+        print(f"  [ERRO] {url}: {e}")
+        return 0, ""
+
+
+async def discover_via_sitemap(context: BrowserContext) -> set[str]:
+    """Descobre URLs via sitemap.xml — pode encontrar milhares de items."""
     urls: set[str] = set()
+    page = await context.new_page()
+
+    candidates = [
+        f"{BASE_URL}/sitemap.xml",
+        f"{BASE_URL}/sitemap_index.xml",
+        f"{BASE_URL}/pt/sitemap.xml",
+        f"{BASE_URL}/robots.txt",
+    ]
+
+    pending_sitemaps: list[str] = []
+
+    for url in candidates:
+        status, text = await _fetch_text(page, url)
+        if status != 200 or not text:
+            continue
+
+        if "robots.txt" in url:
+            for m in re.finditer(r'Sitemap:\s*(https?://\S+)', text):
+                pending_sitemaps.append(m.group(1))
+            print(f"[robots.txt] {len(pending_sitemaps)} sitemaps encontrados")
+        else:
+            pending_sitemaps.append(url)
+        break
+
+    if not pending_sitemaps:
+        await page.close()
+        return urls
+
+    visited_sitemaps: set[str] = set()
+    while pending_sitemaps:
+        sm_url = pending_sitemaps.pop(0)
+        if sm_url in visited_sitemaps:
+            continue
+        visited_sitemaps.add(sm_url)
+
+        status, text = await _fetch_text(page, sm_url)
+        if status != 200 or not text:
+            continue
+
+        locs = _extract_sitemap_urls(text)
+
+        # Índice de sitemaps — contém outros sitemaps
+        if "<sitemapindex" in text or any(l.endswith(".xml") for l in locs):
+            sub_maps = [l for l in locs if l.endswith(".xml") and l not in visited_sitemaps]
+            pending_sitemaps.extend(sub_maps)
+            print(f"[Sitemap índice] {sm_url}: {len(sub_maps)} sub-sitemaps")
+
+        # URLs de items
+        item_locs = [l for l in locs if ITEM_RE.search(l)]
+        for loc in item_locs:
+            urls.add(loc.rstrip("/") + "/")
+
+        print(f"[Sitemap] {sm_url}: +{len(item_locs)} items (total {len(urls)})")
+        await asyncio.sleep(0.2)
+
+    await page.close()
+    return urls
+
+
+async def discover_via_categories(context: BrowserContext, known: set[str]) -> set[str]:
+    """Fallback: navega por categoria com Playwright."""
+    urls: set[str] = set(known)
     page = await context.new_page()
 
     for tipo, cat in CATEGORIAS:
         cat_url = f"{BASE_URL}/pt/{tipo}/{cat}/"
-        print(f"[Cat] {tipo}/{cat}")
 
-        for pg in range(1, 100):
+        for pg in range(1, 500):
             url = cat_url if pg == 1 else f"{cat_url}?page={pg}"
-            try:
-                resp = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                if not resp or resp.status == 404:
-                    break
-            except Exception as e:
-                print(f"  [ERRO] {url}: {e}")
+            status, content = await _fetch_text(page, url)
+            if status == 404 or not content:
                 break
 
-            await page.wait_for_timeout(1200)
+            await page.wait_for_timeout(800)
             content = await page.content()
             found = _extract_links(content, BASE_URL)
-
-            # Se não encontrou links nesta página, a categoria acabou
             if not found:
                 break
 
             new = found - urls
             urls.update(found)
-            print(f"  pág {pg}: +{len(new)} (total {len(urls)})")
-
-            # Se encontrou muito poucos links novos, provavelmente é a última página
-            if len(new) == 0:
+            if new:
+                print(f"  [{tipo}/{cat}] pág {pg}: +{len(new)} (total {len(urls)})")
+            if not new:
                 break
 
         await asyncio.sleep(0.3)
 
     await page.close()
+    return urls - known
+
+
+async def discover_urls(context: BrowserContext) -> list[str]:
+    print("[1/2] A tentar sitemap...")
+    urls = await discover_via_sitemap(context)
+
+    if len(urls) < 100:
+        print(f"[Sitemap] Apenas {len(urls)} URLs — a tentar categorias como fallback...")
+        extra = await discover_via_categories(context, urls)
+        urls.update(extra)
+
     print(f"\n[Descoberta] {len(urls)} URLs no total\n")
     return list(urls)
 
@@ -286,13 +374,21 @@ async def main():
         print(f"A processar {len(urls)} páginas...\n")
         dados = []
         page = await context.new_page()
+        total = len(urls)
 
         for i, url in enumerate(urls, 1):
-            slug = url.rstrip("/").split("/")[-2]
-            print(f"[{i:4}/{len(urls)}] {slug}")
+            if i % 50 == 0 or i <= 5:
+                print(f"[{i:5}/{total}] {url.rstrip('/').split('/')[-1]}")
             row = await extract_page(page, url)
             if row:
                 dados.append(row)
+
+            # Guarda parcialmente a cada 500 items para não perder tudo se parar
+            if i % 500 == 0:
+                df_tmp = pd.DataFrame(dados)
+                df_tmp.to_excel(OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"), index=False)
+                print(f"  [Parcial] {i} items guardados")
+
             await asyncio.sleep(DELAY)
 
         await page.close()
