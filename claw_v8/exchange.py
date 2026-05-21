@@ -9,7 +9,7 @@ import time
 from urllib.parse import urlencode
 from config import (
     BASE_URL, BINANCE_API_KEY, BINANCE_API_SECRET,
-    TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, SYMBOL_PRECISION
+    TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, SYMBOL_PRECISION, PRICE_PRECISION
 )
 
 _time_offset_ms = 0
@@ -238,17 +238,19 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
     try:
-        decimals = SYMBOL_PRECISION.get(symbol, 4)
+        price_dec = PRICE_PRECISION.get(symbol, 4)
         # Binance migrou ordens condicionais para /fapi/v1/algoOrder (Dez 2025)
         # closePosition=true: compatível com conta EU/BNFCR (reduceOnly não suportado)
         # O chamador deve cancelar qualquer stop anterior antes de invocar esta função
+        # workingType=MARK_PRICE: protege contra wicks no last price
         params = {
             "symbol":        symbol,
             "side":          side,
             "orderType":     "STOP_MARKET",
             "algoType":      "CONDITIONAL",
-            "stopPrice":     f"{stop_price:.{decimals}f}",
+            "stopPrice":     f"{stop_price:.{price_dec}f}",
             "closePosition": "true",
+            "workingType":   "MARK_PRICE",
         }
         r = requests.post(
             f"{BASE_URL}/fapi/v1/algoOrder",
@@ -270,14 +272,15 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
 
 def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
     try:
-        decimals = SYMBOL_PRECISION.get(symbol, 4)
+        price_dec = PRICE_PRECISION.get(symbol, 4)
         params = {
             "symbol":        symbol,
             "side":          side,
             "orderType":     "TAKE_PROFIT_MARKET",
             "algoType":      "CONDITIONAL",
-            "stopPrice":     f"{tp_price:.{decimals}f}",
+            "stopPrice":     f"{tp_price:.{price_dec}f}",
             "closePosition": "true",
+            "workingType":   "MARK_PRICE",
         }
         r = requests.post(
             f"{BASE_URL}/fapi/v1/algoOrder",
@@ -300,14 +303,14 @@ def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
 def place_trailing_stop(symbol: str, side: str, callback_rate: float,
                         activation_price: float) -> int | None:
     try:
-        decimals = SYMBOL_PRECISION.get(symbol, 4)
+        price_dec = PRICE_PRECISION.get(symbol, 4)
         params = {
             "symbol":          symbol,
             "side":            side,
             "orderType":       "TRAILING_STOP_MARKET",
             "algoType":        "CONDITIONAL",
             "callbackRate":    f"{callback_rate}",
-            "activationPrice": f"{activation_price:.{decimals}f}",
+            "activationPrice": f"{activation_price:.{price_dec}f}",
             "closePosition":   "true",
         }
         r    = requests.post(f"{BASE_URL}/fapi/v1/algoOrder",
@@ -340,7 +343,7 @@ def close_position(symbol: str, qty: float, side: str):
 def get_top_futures_symbols(n: int = 20, min_days: int = 30) -> tuple:
     """
     Busca top N pares USDC-M por volume 24h.
-    Retorna (lista_symbols, dict_precision).
+    Retorna (lista_symbols, qty_precision_map, price_precision_map).
     Exclui: stablecoins, tokens alavancados, moedas com menos de min_days dias.
     """
     STABLES  = {"USDT","USDC","BUSD","DAI","TUSD","USDP","FDUSD","USDE","PYUSD"}
@@ -350,8 +353,9 @@ def get_top_futures_symbols(n: int = 20, min_days: int = 30) -> tuple:
 
     try:
         info = requests.get(f"{BASE_URL}/fapi/v1/exchangeInfo", timeout=10).json()
-        precision_map = {}
-        usdc_symbols  = set()
+        qty_map   = {}
+        price_map = {}
+        usdc_symbols = set()
 
         for s in info.get("symbols", []):
             if not (s.get("quoteAsset") == "USDC"
@@ -368,13 +372,16 @@ def get_top_futures_symbols(n: int = 20, min_days: int = 30) -> tuple:
 
             usdc_symbols.add(sym)
 
-            # Precisão de quantidade (LOT_SIZE stepSize)
             for f in s.get("filters", []):
-                if f.get("filterType") == "LOT_SIZE":
+                ftype = f.get("filterType")
+                if ftype == "LOT_SIZE":
                     step = f.get("stepSize", "1")
-                    decimals = len(step.rstrip("0").split(".")[1]) if "." in step else 0
-                    precision_map[sym] = decimals
-                    break
+                    dec = len(step.rstrip("0").split(".")[1]) if "." in step else 0
+                    qty_map[sym] = dec
+                elif ftype == "PRICE_FILTER":
+                    tick = f.get("tickSize", "0.01")
+                    dec = len(tick.rstrip("0").split(".")[1]) if "." in tick else 0
+                    price_map[sym] = dec
 
         tickers = requests.get(f"{BASE_URL}/fapi/v1/ticker/24hr", timeout=10).json()
         candidatos = []
@@ -396,11 +403,11 @@ def get_top_futures_symbols(n: int = 20, min_days: int = 30) -> tuple:
         print(f"[v8] Top {n} USDC-M (mín. {min_days} dias): {resultado}")
         if excluidas > 0:
             print(f"[v8] {excluidas} pares com volume mas excluídos (< {min_days} dias)")
-        return resultado, precision_map
+        return resultado, qty_map, price_map
 
     except Exception as e:
         print(f"[AVISO] get_top_futures_symbols falhou: {e} — usando lista estática")
-        return [], {}
+        return [], {}, {}
 
 
 def cancel_order(symbol: str, order_id) -> bool:

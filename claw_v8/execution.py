@@ -42,7 +42,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
     price = closes[-1]
 
-    # ── Filtros globais ──────────────────────────────────────────────────
+    # ── Filtros locais (sem API — descartam rápido sem custo) ────────────
     if macro_event_proximo():
         print(f"[AVISO] {symbol}: evento macro próximo — sem entrada")
         return
@@ -51,22 +51,6 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         tg(f"⚡ <b>REGIME VIOLENTO</b> — {symbol}\nATR extremo. Sem entrada.")
         return
 
-    if not spread_ok(symbol, direction, price):
-        return
-
-    if not market_conditions_ok(symbol, direction, price):
-        print(f"[AVISO] {symbol}: condições de mercado desfavoráveis para {direction}")
-        return
-
-    # ── HTF multi-timeframe (4H → 1H → 5min) ───────────────────────────
-    if not htf_4h_ok(symbol, direction, price):
-        return
-
-    if not htf_1h_ok(symbol, direction, price):
-        print(f"[AVISO] {symbol}: HTF 1H contra {direction} — veto")
-        return
-
-    # ── Supertrend ───────────────────────────────────────────────────────
     from indicators import supertrend
     st_bull = supertrend(highs, lows, closes)
     if direction == "LONG"  and st_bull is False:
@@ -76,24 +60,35 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         print(f"[AVISO] {symbol}: Supertrend bullish — SHORT vetado")
         return
 
-    # ── Fear & Greed ─────────────────────────────────────────────────────
-    if not fear_greed_ok(symbol, direction, price):
-        return
-
-    # ── BB Squeeze ───────────────────────────────────────────────────────
     if not bb_squeeze_ok(symbol, direction, closes, volumes, price):
         return
 
-    # ── CVD ──────────────────────────────────────────────────────────────
     if not cvd_ok(symbol, direction, closes, volumes, taker_buy_vols, price):
         return
 
-    # ── OBI ──────────────────────────────────────────────────────────────
+    if klines and not vwap_ok(symbol, direction, closes, klines, price):
+        return
+
+    # ── Filtros com API (do mais leve ao mais pesado) ────────────────────
+    if not fear_greed_ok(symbol, direction, price):
+        return
+
+    if not spread_ok(symbol, direction, price):
+        return
+
+    if not market_conditions_ok(symbol, direction, price):
+        print(f"[AVISO] {symbol}: condições de mercado desfavoráveis para {direction}")
+        return
+
     if not obi_ok(symbol, direction, price):
         return
 
-    # ── VWAP ±2σ ─────────────────────────────────────────────────────────
-    if klines and not vwap_ok(symbol, direction, closes, klines, price):
+    # ── HTF multi-timeframe (busca klines remotos — mais pesado) ────────
+    if not htf_4h_ok(symbol, direction, price):
+        return
+
+    if not htf_1h_ok(symbol, direction, price):
+        print(f"[AVISO] {symbol}: HTF 1H contra {direction} — veto")
         return
 
     # ── Liquidity Sweep (confirmação — não bloqueia) ─────────────────────

@@ -32,6 +32,13 @@ SYMBOL_PRECISION = {
     "SUIUSDC": 1, "1000PEPEUSDC": 0,
 }
 
+# Casas decimais para preços (tickSize) — actualizado dinamicamente via exchangeInfo
+PRICE_PRECISION = {
+    "BTCUSDC": 1, "ETHUSDC": 2, "BNBUSDC": 2, "SOLUSDC": 3,
+    "XRPUSDC": 4, "DOGEUSDC": 5, "AVAXUSDC": 3, "LINKUSDC": 3,
+    "SUIUSDC": 4, "1000PEPEUSDC": 6,
+}
+
 BTC_SYMBOLS = {"BTCUSDC"}
 
 # ─────────────────────────────────────────────
