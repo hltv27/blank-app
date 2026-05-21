@@ -113,6 +113,10 @@ def extract_poi(url: str) -> dict | None:
         row["tipo_url"]  = "evento"
         row["slug"]      = parts[-2] if len(parts) >= 2 else ""
         row["categoria"] = parts[-3] if len(parts) >= 3 else ""
+    elif "/pt/tour/" in url:
+        row["tipo_url"]  = "tour"
+        row["slug"]      = parts[-2] if len(parts) >= 2 else ""
+        row["categoria"] = parts[-3] if len(parts) >= 3 else ""
     elif "/pt/p/" in url:
         row["tipo_url"]  = parts[-2] if len(parts) >= 2 else "p"
         row["slug"]      = ""
@@ -234,13 +238,12 @@ def extract_poi(url: str) -> dict | None:
 # ── Descoberta de URLs ────────────────────────────────────────────────────────
 
 def _collect_links(soup: BeautifulSoup, urls: set, base: str):
-    """Recolhe todos os links de items (poi, event, p) de uma página."""
+    """Recolhe todos os links de items (poi, event, tour, p) de uma página."""
     found = 0
     for a in soup.find_all("a", href=True):
-        href = a["href"]
-        # Padrões: /pt/poi/..., /pt/event/..., /pt/p/...
-        if re.search(r"/pt/(poi|event|p)/", href) and re.search(r"/\d{6,}/?$", href):
-            full = urljoin(base, href)
+        href = a["href"].split("#")[0]  # remove âncoras (#dmdtab=...)
+        if re.search(r"/pt/(poi|event|tour|p)/", href) and re.search(r"/\d{6,}/?$", href):
+            full = urljoin(base, href).rstrip("/") + "/"
             if full not in urls:
                 urls.add(full)
                 found += 1
@@ -301,7 +304,23 @@ def discover_urls() -> list[str]:
             print(f"  [event/{cat}] pág {page}: +{found}")
             time.sleep(DELAY)
 
-    # 4. Categorias /pt/p/ (contactos, praias-fluviais-ou-piscinas, eventos, etc.)
+    # 4. Categorias de Tours/Trilhos
+    categorias_tour = [
+        "caminhada-de-longa-distancia", "caminhada", "btт", "ciclismo",
+        "trail", "canoagem", "escalada", "equitacao", "outros",
+    ]
+    for cat in categorias_tour:
+        for page in range(1, 30):
+            soup = get_page(f"{BASE_URL}/pt/tour/{cat}/?page={page}")
+            if not soup:
+                break
+            found = _collect_links(soup, urls, BASE_URL)
+            if found == 0:
+                break
+            print(f"  [tour/{cat}] pág {page}: +{found}")
+            time.sleep(DELAY)
+
+    # 5. Categorias /pt/p/ (contactos, praias-fluviais-ou-piscinas, eventos, etc.)
     categorias_p = [
         "contactos", "praias-fluviais-ou-piscinas", "eventos", "noticias",
         "percursos", "alojamento", "restauracao", "servicos", "outros",
@@ -317,9 +336,9 @@ def discover_urls() -> list[str]:
             print(f"  [p/{cat}] pág {page}: +{found}")
             time.sleep(DELAY)
 
-    # 5. Páginas de topo (descoberta livre)
-    for path in ["/pt/poi/", "/pt/event/", "/pt/p/", "/pt/descobrir/",
-                 "/pt/", "/"]:
+    # 6. Páginas de topo (descoberta livre)
+    for path in ["/pt/poi/", "/pt/event/", "/pt/tour/", "/pt/p/",
+                 "/pt/descobrir/", "/pt/", "/"]:
         soup = get_page(BASE_URL + path)
         if soup:
             _collect_links(soup, urls, BASE_URL)
@@ -348,6 +367,7 @@ def main():
             "https://guidedbynature.pt/pt/p/eventos/803757503/",
             "https://guidedbynature.pt/pt/p/contactos/803158587/",
             "https://guidedbynature.pt/pt/p/praias-fluviais-ou-piscinas/803158567/",
+            "https://guidedbynature.pt/pt/tour/caminhada-de-longa-distancia/gr47-grande-rota-de-montemuro/66287236/",
         ]
 
     print(f"\nA processar {len(urls)} POIs...\n")
