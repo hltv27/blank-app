@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
 Crawler — guidedbynature.pt
-Descobre todos os POIs e exporta para Excel.
+Descobre todos os POIs e Eventos e exporta para Excel.
+
+Padrões de URL conhecidos:
+  /pt/poi/{categoria}/{slug}/{id}/   → pontos de interesse
+  /pt/p/{tipo}/{id}/                 → eventos e outros
 
 Instalar dependências (uma vez só):
     pip install requests beautifulsoup4 pandas openpyxl lxml
@@ -94,10 +98,29 @@ def extract_poi(url: str) -> dict | None:
     row: dict = {"url": url}
 
     # ── Derivar campos da URL ────────────────────────────────────────────────
+    # Padrões conhecidos:
+    #   /pt/poi/{categoria}/{slug}/{id}/
+    #   /pt/event/{categoria}/{slug}/{id}/
+    #   /pt/p/{tipo}/{id}/
     parts = url.rstrip("/").split("/")
-    row["id_poi"]    = parts[-1] if parts[-1].isdigit() else ""
-    row["slug"]      = parts[-2] if len(parts) >= 2 else ""
-    row["categoria"] = parts[-3] if len(parts) >= 3 else ""
+    row["id_poi"] = parts[-1] if parts[-1].isdigit() else ""
+
+    if "/pt/poi/" in url:
+        row["tipo_url"]  = "poi"
+        row["slug"]      = parts[-2] if len(parts) >= 2 else ""
+        row["categoria"] = parts[-3] if len(parts) >= 3 else ""
+    elif "/pt/event/" in url:
+        row["tipo_url"]  = "evento"
+        row["slug"]      = parts[-2] if len(parts) >= 2 else ""
+        row["categoria"] = parts[-3] if len(parts) >= 3 else ""
+    elif "/pt/p/" in url:
+        row["tipo_url"]  = parts[-2] if len(parts) >= 2 else "p"
+        row["slug"]      = ""
+        row["categoria"] = row["tipo_url"]
+    else:
+        row["tipo_url"]  = ""
+        row["slug"]      = parts[-2] if len(parts) >= 2 else ""
+        row["categoria"] = parts[-3] if len(parts) >= 3 else ""
 
     # ── JSON-LD (dados estruturados — mais fiáveis) ──────────────────────────
     jld = extract_jsonld(soup)
@@ -210,61 +233,96 @@ def extract_poi(url: str) -> dict | None:
 
 # ── Descoberta de URLs ────────────────────────────────────────────────────────
 
+def _collect_links(soup: BeautifulSoup, urls: set, base: str):
+    """Recolhe todos os links de items (poi, event, p) de uma página."""
+    found = 0
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        # Padrões: /pt/poi/..., /pt/event/..., /pt/p/...
+        if re.search(r"/pt/(poi|event|p)/", href) and re.search(r"/\d{6,}/?$", href):
+            full = urljoin(base, href)
+            if full not in urls:
+                urls.add(full)
+                found += 1
+    return found
+
+
 def discover_urls() -> list[str]:
     urls: set[str] = set()
 
-    # 1. Sitemap
-    for path in ["/sitemap.xml", "/sitemap_index.xml", "/pt/sitemap.xml",
-                 "/robots.txt"]:
+    # 1. Sitemap — procura poi, event e p
+    for path in ["/sitemap.xml", "/sitemap_index.xml", "/pt/sitemap.xml"]:
         try:
             r = session.get(BASE_URL + path, timeout=15)
-            if r.ok and "/poi/" in r.text:
-                soup = BeautifulSoup(r.text, "lxml")
-                for loc in soup.find_all("loc"):
-                    u = loc.get_text(strip=True)
-                    if "/poi/" in u:
-                        urls.add(u)
-                if urls:
-                    print(f"[Sitemap] {len(urls)} URLs encontrados em {path}")
-                    return list(urls)
+            if not r.ok:
+                continue
+            soup = BeautifulSoup(r.text, "lxml")
+            for loc in soup.find_all("loc"):
+                u = loc.get_text(strip=True)
+                if re.search(r"/pt/(poi|event|p)/", u) and re.search(r"/\d{6,}/?$", u):
+                    urls.add(u)
+            if urls:
+                print(f"[Sitemap] {len(urls)} URLs em {path}")
+                return list(urls)
         except Exception:
             pass
 
-    # 2. Páginas de listagem por categoria
-    categorias = [
+    # 2. Categorias de POI
+    categorias_poi = [
         "outras-paisagens", "trilhos", "experiencias", "alojamentos",
         "restaurantes", "praias", "parques", "miradouros", "monumentos",
         "museus", "aldeias", "cascatas", "lagos", "praias-fluviais",
-        "pontos-de-interesse", "atividades", "gastronomia",
+        "atividades", "gastronomia", "pontos-de-interesse",
     ]
-    for cat in categorias:
-        for page in range(1, 20):
-            url = f"{BASE_URL}/pt/poi/{cat}/?page={page}"
-            soup = get_page(url)
+    for cat in categorias_poi:
+        for page in range(1, 30):
+            soup = get_page(f"{BASE_URL}/pt/poi/{cat}/?page={page}")
             if not soup:
                 break
-            found = 0
-            for a in soup.find_all("a", href=True):
-                href = a["href"]
-                if "/poi/" in href and re.search(r"/\d{6,}/?$", href):
-                    full = urljoin(BASE_URL, href)
-                    if full not in urls:
-                        urls.add(full)
-                        found += 1
+            found = _collect_links(soup, urls, BASE_URL)
             if found == 0:
                 break
-            print(f"  [{cat}] página {page}: +{found} URLs")
+            print(f"  [poi/{cat}] pág {page}: +{found}")
             time.sleep(DELAY)
 
-    # 3. Página principal de POIs
-    for path in ["/pt/poi/", "/pt/pontos-de-interesse/", "/pt/descobrir/"]:
+    # 3. Categorias de Eventos
+    categorias_event = [
+        "feiras-e-tradicoes", "festivais", "mercados", "concertos",
+        "desporto", "cultura", "gastronomia", "natureza", "outros",
+    ]
+    for cat in categorias_event:
+        for page in range(1, 30):
+            soup = get_page(f"{BASE_URL}/pt/event/{cat}/?page={page}")
+            if not soup:
+                break
+            found = _collect_links(soup, urls, BASE_URL)
+            if found == 0:
+                break
+            print(f"  [event/{cat}] pág {page}: +{found}")
+            time.sleep(DELAY)
+
+    # 4. Categorias /pt/p/ (contactos, praias-fluviais-ou-piscinas, eventos, etc.)
+    categorias_p = [
+        "contactos", "praias-fluviais-ou-piscinas", "eventos", "noticias",
+        "percursos", "alojamento", "restauracao", "servicos", "outros",
+    ]
+    for cat in categorias_p:
+        for page in range(1, 30):
+            soup = get_page(f"{BASE_URL}/pt/p/{cat}/?page={page}")
+            if not soup:
+                break
+            found = _collect_links(soup, urls, BASE_URL)
+            if found == 0:
+                break
+            print(f"  [p/{cat}] pág {page}: +{found}")
+            time.sleep(DELAY)
+
+    # 5. Páginas de topo (descoberta livre)
+    for path in ["/pt/poi/", "/pt/event/", "/pt/p/", "/pt/descobrir/",
+                 "/pt/", "/"]:
         soup = get_page(BASE_URL + path)
-        if not soup:
-            continue
-        for a in soup.find_all("a", href=True):
-            href = a["href"]
-            if "/poi/" in href and re.search(r"/\d{6,}/?$", href):
-                urls.add(urljoin(BASE_URL, href))
+        if soup:
+            _collect_links(soup, urls, BASE_URL)
 
     print(f"[Descoberta] {len(urls)} URLs no total")
     return list(urls)
@@ -285,6 +343,11 @@ def main():
         urls = [
             "https://guidedbynature.pt/pt/poi/outras-paisagens/zona-de-lazer-de-fermil/803708969/",
             "https://guidedbynature.pt/pt/poi/outras-paisagens/parque-da-fraga-do-rio/803708890/",
+            "https://guidedbynature.pt/pt/poi/outras-paisagens/praia-fluvial-de-espadanedo/803709017/",
+            "https://guidedbynature.pt/pt/event/feiras-e-tradicoes/festa-do-caldo-de-quintandona/810958021/",
+            "https://guidedbynature.pt/pt/p/eventos/803757503/",
+            "https://guidedbynature.pt/pt/p/contactos/803158587/",
+            "https://guidedbynature.pt/pt/p/praias-fluviais-ou-piscinas/803158567/",
         ]
 
     print(f"\nA processar {len(urls)} POIs...\n")
