@@ -2180,9 +2180,9 @@ def run():
             for symbol, pos in posicoes_reais.items():
                 if symbol not in mem.get("trades_abertos", {}):
                     pending = mem.get("pending_sync", {})
-                    is_bot_orphan = (symbol in pending and time.time() - pending[symbol] < 300)
+                    is_bot_orphan = (symbol in pending and time.time() - pending[symbol] < 900)
 
-                    if is_bot_orphan and symbol in SYMBOLS:
+                    if is_bot_orphan:
                         mem.get("pending_sync", {}).pop(symbol, None)
                         kl_sync = get_klines(symbol)
                         sync_stop_id = None

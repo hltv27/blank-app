@@ -184,9 +184,9 @@ def run():
                     # Verifica se o bot iniciou esta ordem (marcador pending_sync)
                     pending = mem.get("pending_sync", {})
                     is_bot_orphan = (symbol in pending and
-                                     time.time() - pending[symbol] < 300)  # < 5 min
+                                     time.time() - pending[symbol] < 900)  # < 15 min
 
-                    if is_bot_orphan and symbol in SYMBOLS:
+                    if is_bot_orphan:
                         # Posição órfã do bot (ordem enviada mas memória não guardada)
                         mem.get("pending_sync", {}).pop(symbol, None)
                         kl_sync = get_klines(symbol)
