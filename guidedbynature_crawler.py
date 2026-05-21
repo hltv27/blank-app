@@ -16,6 +16,15 @@ Correr:
 Ficheiro gerado: guidedbynature_dados.xlsx
 """
 
+try:
+    import cloudscraper
+    _scraper = cloudscraper.create_scraper()
+    _USE_CLOUDSCRAPER = True
+except ImportError:
+    import requests as _requests_fallback
+    _scraper = None
+    _USE_CLOUDSCRAPER = False
+
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -31,22 +40,51 @@ DELAY     = 0.8   # segundos entre pedidos (não sobrecarregar o servidor)
 DEBUG_HTML = False  # True → guarda o HTML da primeira página para inspeção
 
 HEADERS = {
-    "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "pt-PT,pt;q=0.9,en;q=0.8",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Connection":      "keep-alive",
-    "Referer":         "https://www.google.com/",
+    "User-Agent":                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                                  "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+    "Accept":                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                                  "image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language":           "pt-PT,pt;q=0.9,en-GB;q=0.8,en;q=0.7",
+    "Accept-Encoding":           "gzip, deflate, br",
+    "Connection":                "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest":            "document",
+    "Sec-Fetch-Mode":            "navigate",
+    "Sec-Fetch-Site":            "none",
+    "Sec-Fetch-User":            "?1",
+    "Sec-CH-UA":                 '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
+    "Sec-CH-UA-Mobile":          "?0",
+    "Sec-CH-UA-Platform":        '"Windows"',
+    "Cache-Control":             "max-age=0",
 }
 
-session = requests.Session()
-session.headers.update(HEADERS)
+if _USE_CLOUDSCRAPER:
+    session = _scraper
+    session.headers.update(HEADERS)
+    print("[Info] cloudscraper activo")
+else:
+    session = requests.Session()
+    session.headers.update(HEADERS)
+    print("[Info] requests (sem cloudscraper — instala com: pip install cloudscraper)")
+
+
+def _warm_session():
+    """Visita a homepage primeiro para obter cookies de sessão."""
+    for url in [BASE_URL + "/pt/", BASE_URL + "/"]:
+        try:
+            r = session.get(url, timeout=20)
+            if r.ok:
+                print(f"[Session] cookies obtidos de {url}")
+                return True
+        except Exception:
+            pass
+    return False
 
 
 # ── Utilitários ───────────────────────────────────────────────────────────────
 
 def get_page(url: str) -> BeautifulSoup | None:
+    global DEBUG_HTML
     try:
         r = session.get(url, timeout=20)
         r.raise_for_status()
@@ -54,7 +92,6 @@ def get_page(url: str) -> BeautifulSoup | None:
             with open("debug_page.html", "w", encoding="utf-8") as f:
                 f.write(r.text)
             print(f"[DEBUG] HTML guardado em debug_page.html")
-            global DEBUG_HTML
             DEBUG_HTML = False
         return BeautifulSoup(r.text, "lxml")
     except Exception as e:
@@ -374,6 +411,7 @@ def main():
     print("  guidedbynature.pt — Crawler")
     print("=" * 60)
 
+    _warm_session()
     urls = discover_urls()
 
     if not urls:
