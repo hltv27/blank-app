@@ -363,7 +363,8 @@ def close_position(symbol: str, qty: float, side: str):
 
 def get_top_futures_symbols(n: int = 20, min_days: int = 7) -> tuple:
     """
-    Busca top N pares USDC-M por volume 24h.
+    Busca top N pares de futuros perpétuos por volume 24h.
+    USDC-M tem prioridade. USDT-M entra apenas para coins sem equivalente USDC-M.
     Retorna (lista_symbols, qty_precision_map, price_precision_map).
     Exclui: stablecoins, tokens alavancados, moedas com menos de min_days dias.
     """
@@ -374,24 +375,28 @@ def get_top_futures_symbols(n: int = 20, min_days: int = 7) -> tuple:
 
     try:
         info = requests.get(f"{BASE_URL}/fapi/v1/exchangeInfo", timeout=10).json()
-        qty_map   = {}
-        price_map = {}
-        usdc_symbols = set()
+        qty_map      = {}
+        price_map    = {}
+        usdc_symbols = set()   # pares USDC-M elegíveis
+        usdt_symbols = set()   # pares USDT-M elegíveis
+        usdc_bases   = set()   # bases com equivalente USDC-M (ex: "BTC", "ETH")
 
         for s in info.get("symbols", []):
-            if not (s.get("quoteAsset") == "USDC"
+            quote = s.get("quoteAsset", "")
+            if not (quote in ("USDC", "USDT")
                     and s.get("status") == "TRADING"
                     and s.get("contractType") == "PERPETUAL"):
                 continue
-            sym = s["symbol"]
-
-            # Filtro de maturidade — mínimo min_days dias listada
+            sym     = s["symbol"]
             onboard = s.get("onboardDate", agora_ms)
             if (agora_ms - onboard) < min_age_ms:
-                print(f"[v8] {sym} excluído — listada há menos de {min_days} dias")
                 continue
 
-            usdc_symbols.add(sym)
+            if quote == "USDC":
+                usdc_symbols.add(sym)
+                usdc_bases.add(sym.replace("USDC", "").replace("1000", ""))
+            else:
+                usdt_symbols.add(sym)
 
             for f in s.get("filters", []):
                 ftype = f.get("filterType")
@@ -408,22 +413,31 @@ def get_top_futures_symbols(n: int = 20, min_days: int = 7) -> tuple:
         candidatos = []
         for t in tickers:
             sym  = t.get("symbol", "")
-            if sym not in usdc_symbols:
+            is_usdc = sym in usdc_symbols
+            is_usdt = sym in usdt_symbols
+
+            if not (is_usdc or is_usdt):
                 continue
-            base = sym.replace("USDC", "").replace("1000", "")
+
+            base = sym.replace("USDC", "").replace("USDT", "").replace("1000", "")
             if base in STABLES or any(ex in base for ex in EXCLUIR):
                 continue
+
+            # USDT-M só entra se não existir equivalente USDC-M
+            if is_usdt and base in usdc_bases:
+                continue
+
             try:
                 candidatos.append((sym, float(t.get("quoteVolume", 0))))
             except Exception:
                 continue
 
         candidatos.sort(key=lambda x: x[1], reverse=True)
-        resultado = [s for s, _ in candidatos[:n]]
-        excluidas  = len(candidatos) - len(resultado)
-        print(f"[v8] Top {n} USDC-M (mín. {min_days} dias): {resultado}")
-        if excluidas > 0:
-            print(f"[v8] {excluidas} pares com volume mas excluídos (< {min_days} dias)")
+        resultado  = [s for s, _ in candidatos[:n]]
+        n_usdc     = sum(1 for s in resultado if s.endswith("USDC"))
+        n_usdt     = sum(1 for s in resultado if s.endswith("USDT"))
+        print(f"[v8] Top {n} futuros (mín. {min_days} dias): {n_usdc} USDC-M + {n_usdt} USDT-M")
+        print(f"[v8] Pares: {resultado}")
         return resultado, qty_map, price_map
 
     except Exception as e:
