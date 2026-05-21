@@ -242,7 +242,7 @@ def _collect_links(soup: BeautifulSoup, urls: set, base: str):
     found = 0
     for a in soup.find_all("a", href=True):
         href = a["href"].split("#")[0]  # remove âncoras (#dmdtab=...)
-        if re.search(r"/pt/(poi|event|tour|p)/", href) and re.search(r"/\d{6,}/?$", href):
+        if re.search(r"/pt/(poi|event|tour|p)/", href) and re.search(r"/\d+/?$", href):
             full = urljoin(base, href).rstrip("/") + "/"
             if full not in urls:
                 urls.add(full)
@@ -253,7 +253,7 @@ def _collect_links(soup: BeautifulSoup, urls: set, base: str):
 def discover_urls() -> list[str]:
     urls: set[str] = set()
 
-    # 1. Sitemap — procura poi, event e p
+    # 1. Sitemap — procura poi, event, tour e p
     for path in ["/sitemap.xml", "/sitemap_index.xml", "/pt/sitemap.xml"]:
         try:
             r = session.get(BASE_URL + path, timeout=15)
@@ -262,7 +262,7 @@ def discover_urls() -> list[str]:
             soup = BeautifulSoup(r.text, "lxml")
             for loc in soup.find_all("loc"):
                 u = loc.get_text(strip=True)
-                if re.search(r"/pt/(poi|event|p)/", u) and re.search(r"/\d{6,}/?$", u):
+                if re.search(r"/pt/(poi|event|tour|p)/", u) and re.search(r"/\d+/?$", u):
                     urls.add(u)
             if urls:
                 print(f"[Sitemap] {len(urls)} URLs em {path}")
@@ -270,12 +270,17 @@ def discover_urls() -> list[str]:
         except Exception:
             pass
 
-    # 2. Categorias de POI
+    # 2. Categorias de POI (inclui tipos descobertos via ícones SVG do mapa)
     categorias_poi = [
         "outras-paisagens", "trilhos", "experiencias", "alojamentos",
         "restaurantes", "praias", "parques", "miradouros", "monumentos",
         "museus", "aldeias", "cascatas", "lagos", "praias-fluviais",
         "atividades", "gastronomia", "pontos-de-interesse",
+        # tipos observados nos ícones SVG carregados pelo mapa
+        "guided-tour-poi", "holiday-house", "direct-marketed", "location-city",
+        "igrejas", "churches", "accommodation", "food", "infrastructure",
+        "natural-monument", "cultural-monument", "winter-sport",
+        "water-sport", "cycling", "climbing",
     ]
     for cat in categorias_poi:
         for page in range(1, 30):
