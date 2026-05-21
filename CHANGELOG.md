@@ -160,5 +160,31 @@ Motor de backtesting criado de raiz:
 | Gestão de posições | 10s (com posições abertas) |
 | Max trades abertos | 5 |
 | Circuit breaker diário | 15 USDC |
-| Drawdown guard | 25% do saldo total |
+| Drawdown guard | 25% do saldo total (`get_wallet_balance`) |
 | Sessão UTC | 05h–23h |
+
+---
+
+## Pendente / Próximos passos
+
+### Alta prioridade
+- [ ] **Analisar primeiros trades reais** com os 150 pares — ver `analytics.py`
+  após 20-30 trades para perceber quais filtros estão a cortar lucro vs. proteger
+- [ ] **Verificar MITOUSDT** nos logs — apareceu no GUARDA 25% a ser fechado,
+  sendo par USDT não deveria estar em `trades_abertos`; investigar origem
+
+### Médio prazo
+- [ ] **ML Filtering** — Random Forest para filtrar sinais maus com base no
+  histórico SQLite. Só faz sentido após 200+ trades limpos
+- [ ] **Backtesting com dados reais** — correr `python backtest.py --days 90`
+  no VPS para validar parâmetros actuais (RSI, ADX, score thresholds)
+- [ ] **Actualizar `claw_v8_single.py`** — reflectir todas as alterações desta
+  sessão (actualmente desactualizado)
+
+### Notas de contexto para próxima sessão
+- Bot corre no **VPS** via `auto_deploy.sh` (cron 5min, branch `main`)
+- Log VPS: `tail -f /root/claw.log`
+- Kill switch: `touch /root/blank-app/claw_v8/KILL_SWITCH`
+- Reset cooldown: `sqlite3 ~/blank-app/claw_v8/claw_v8.db "UPDATE bot_state SET value='0' WHERE key IN ('bloqueado_ate','perdas_seguidas'); UPDATE bot_state SET value='0.0' WHERE key='loss_dia';"`
+- Credenciais em `~/.bashrc` — **nunca mostrar no chat**
+- Conta EU BNFCR: `closePosition=true` obrigatório, `reduceOnly=true` não suportado
