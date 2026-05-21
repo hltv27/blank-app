@@ -237,11 +237,47 @@ def extract_poi(url: str) -> dict | None:
 
 # ── Descoberta de URLs ────────────────────────────────────────────────────────
 
-def _collect_links(soup: BeautifulSoup, urls: set, base: str):
+# Categorias de fallback (caso a descoberta automática não encontre nada)
+_FALLBACK_CATS: dict[str, list[str]] = {
+    "poi": [
+        # MERGULHAR
+        "praias-ou-piscinas", "docas-cais-e-fluvinas", "termas-e-spa",
+        # CONHECER
+        "paisagens", "historia-e-cultura", "gastronomia",
+        # PLANEAR
+        "onde-comer", "onde-dormir", "postos-de-turismo",
+        # categorias anteriores
+        "outras-paisagens", "trilhos", "experiencias", "alojamentos",
+        "restaurantes", "praias", "parques", "miradouros", "monumentos",
+        "museus", "aldeias", "cascatas", "lagos", "praias-fluviais",
+        "atividades", "pontos-de-interesse",
+    ],
+    "event": [
+        "feiras-e-tradicoes", "festivais", "mercados", "concertos",
+        "desporto", "cultura", "gastronomia", "natureza", "outros",
+    ],
+    "tour": [
+        # PASSEAR (menu visível)
+        "caminhadas", "bicicleta", "roteiros-tematicos",
+        # categorias anteriores
+        "caminhada-de-longa-distancia", "caminhada", "btt", "ciclismo",
+        "trail", "canoagem", "escalada", "equitacao", "outros",
+    ],
+    "p": [
+        # PARTICIPAR
+        "desafios", "experiencias-guiadas", "comprar-produtos-locais",
+        # anteriores
+        "contactos", "praias-fluviais-ou-piscinas", "eventos", "noticias",
+        "percursos", "alojamento", "restauracao", "servicos", "outros",
+    ],
+}
+
+
+def _collect_links(soup: BeautifulSoup, urls: set, base: str) -> int:
     """Recolhe todos os links de items (poi, event, tour, p) de uma página."""
     found = 0
     for a in soup.find_all("a", href=True):
-        href = a["href"].split("#")[0]  # remove âncoras (#dmdtab=...)
+        href = a["href"].split("#")[0]
         if re.search(r"/pt/(poi|event|tour|p)/", href) and re.search(r"/\d+/?$", href):
             full = urljoin(base, href).rstrip("/") + "/"
             if full not in urls:
@@ -250,10 +286,50 @@ def _collect_links(soup: BeautifulSoup, urls: set, base: str):
     return found
 
 
+def _discover_nav_categories() -> dict[str, list[str]]:
+    """
+    Crawla a navegação do site para descobrir automaticamente todas as
+    categorias existentes. Retorna {tipo: [slug, ...]}
+    """
+    found: dict[str, set[str]] = {"poi": set(), "event": set(), "tour": set(), "p": set()}
+
+    for path in ["/pt/", "/"]:
+        soup = get_page(BASE_URL + path)
+        if not soup:
+            continue
+        for a in soup.find_all("a", href=True):
+            href = urljoin(BASE_URL, a["href"].split("#")[0]).rstrip("/")
+            m = re.match(r"https?://[^/]+/pt/(poi|event|tour|p)/([^/?#]+)$", href)
+            if m:
+                tipo, slug = m.group(1), m.group(2)
+                if not re.search(r"^\d+$", slug):  # ignorar IDs directos
+                    found[tipo].add(slug)
+
+    result = {k: sorted(v) for k, v in found.items() if v}
+    if result:
+        for tipo, cats in result.items():
+            print(f"[Nav] {tipo}: {', '.join(cats)}")
+    return result
+
+
+def _crawl_categories(base_type: str, cats: list[str], urls: set):
+    """Pagina por cada categoria e recolhe URLs de items."""
+    for cat in cats:
+        for page in range(1, 50):
+            soup = get_page(f"{BASE_URL}/pt/{base_type}/{cat}/?page={page}")
+            if not soup:
+                break
+            found = _collect_links(soup, urls, BASE_URL)
+            if found == 0:
+                break
+            print(f"  [{base_type}/{cat}] pág {page}: +{found}")
+            time.sleep(DELAY)
+
+
 def discover_urls() -> list[str]:
     urls: set[str] = set()
 
-    # 1. Sitemap — procura poi, event, tour e p
+    # 1. Sitemap
     for path in ["/sitemap.xml", "/sitemap_index.xml", "/pt/sitemap.xml"]:
         try:
             r = session.get(BASE_URL + path, timeout=15)
@@ -270,80 +346,19 @@ def discover_urls() -> list[str]:
         except Exception:
             pass
 
-    # 2. Categorias de POI (inclui tipos descobertos via ícones SVG do mapa)
-    categorias_poi = [
-        "outras-paisagens", "trilhos", "experiencias", "alojamentos",
-        "restaurantes", "praias", "parques", "miradouros", "monumentos",
-        "museus", "aldeias", "cascatas", "lagos", "praias-fluviais",
-        "atividades", "gastronomia", "pontos-de-interesse",
-        # tipos observados nos ícones SVG carregados pelo mapa
-        "guided-tour-poi", "holiday-house", "direct-marketed", "location-city",
-        "igrejas", "churches", "accommodation", "food", "infrastructure",
-        "natural-monument", "cultural-monument", "winter-sport",
-        "water-sport", "cycling", "climbing",
-    ]
-    for cat in categorias_poi:
-        for page in range(1, 30):
-            soup = get_page(f"{BASE_URL}/pt/poi/{cat}/?page={page}")
-            if not soup:
-                break
-            found = _collect_links(soup, urls, BASE_URL)
-            if found == 0:
-                break
-            print(f"  [poi/{cat}] pág {page}: +{found}")
-            time.sleep(DELAY)
+    # 2. Descoberta automática de categorias a partir da navegação
+    nav_cats = _discover_nav_categories()
 
-    # 3. Categorias de Eventos
-    categorias_event = [
-        "feiras-e-tradicoes", "festivais", "mercados", "concertos",
-        "desporto", "cultura", "gastronomia", "natureza", "outros",
-    ]
-    for cat in categorias_event:
-        for page in range(1, 30):
-            soup = get_page(f"{BASE_URL}/pt/event/{cat}/?page={page}")
-            if not soup:
-                break
-            found = _collect_links(soup, urls, BASE_URL)
-            if found == 0:
-                break
-            print(f"  [event/{cat}] pág {page}: +{found}")
-            time.sleep(DELAY)
+    # 3. Para cada tipo, usa categorias da nav + fallback (sem duplicados)
+    for tipo in ("poi", "event", "tour", "p"):
+        nav = nav_cats.get(tipo, [])
+        fallback = _FALLBACK_CATS.get(tipo, [])
+        # nav primeiro; fallback acrescenta categorias não descobertas pela nav
+        all_cats = list(dict.fromkeys(nav + [c for c in fallback if c not in nav]))
+        _crawl_categories(tipo, all_cats, urls)
 
-    # 4. Categorias de Tours/Trilhos
-    categorias_tour = [
-        "caminhada-de-longa-distancia", "caminhada", "btт", "ciclismo",
-        "trail", "canoagem", "escalada", "equitacao", "outros",
-    ]
-    for cat in categorias_tour:
-        for page in range(1, 30):
-            soup = get_page(f"{BASE_URL}/pt/tour/{cat}/?page={page}")
-            if not soup:
-                break
-            found = _collect_links(soup, urls, BASE_URL)
-            if found == 0:
-                break
-            print(f"  [tour/{cat}] pág {page}: +{found}")
-            time.sleep(DELAY)
-
-    # 5. Categorias /pt/p/ (contactos, praias-fluviais-ou-piscinas, eventos, etc.)
-    categorias_p = [
-        "contactos", "praias-fluviais-ou-piscinas", "eventos", "noticias",
-        "percursos", "alojamento", "restauracao", "servicos", "outros",
-    ]
-    for cat in categorias_p:
-        for page in range(1, 30):
-            soup = get_page(f"{BASE_URL}/pt/p/{cat}/?page={page}")
-            if not soup:
-                break
-            found = _collect_links(soup, urls, BASE_URL)
-            if found == 0:
-                break
-            print(f"  [p/{cat}] pág {page}: +{found}")
-            time.sleep(DELAY)
-
-    # 6. Páginas de topo (descoberta livre)
-    for path in ["/pt/poi/", "/pt/event/", "/pt/tour/", "/pt/p/",
-                 "/pt/descobrir/", "/pt/", "/"]:
+    # 4. Páginas de topo (apanha links soltos)
+    for path in ["/pt/poi/", "/pt/event/", "/pt/tour/", "/pt/p/", "/pt/", "/"]:
         soup = get_page(BASE_URL + path)
         if soup:
             _collect_links(soup, urls, BASE_URL)
