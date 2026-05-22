@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """
-Crawler — guidedbynature.pt (Playwright)
-Usa um browser real para navegar o site e exporta para Excel.
+Crawler — guidedbynature.pt
+Descobre todos os POIs e Eventos e exporta para Excel.
+
+Padrões de URL conhecidos:
+  /pt/poi/{categoria}/{slug}/{id}/   → pontos de interesse
+  /pt/p/{tipo}/{id}/                 → eventos e outros
 
 Instalar dependências (uma vez só):
-    pip install playwright pandas openpyxl
-    playwright install chromium
+    pip install requests beautifulsoup4 pandas openpyxl lxml
 
 Correr:
     python guidedbynature_crawler.py
@@ -13,322 +16,254 @@ Correr:
 Ficheiro gerado: guidedbynature_dados.xlsx
 """
 
-import asyncio
+try:
+    import cloudscraper
+    _scraper = cloudscraper.create_scraper()
+    _USE_CLOUDSCRAPER = True
+except ImportError:
+    import requests as _requests_fallback
+    _scraper = None
+    _USE_CLOUDSCRAPER = False
+
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
 import json
 import re
-import time
-import xml.etree.ElementTree as ET
+import os
 from urllib.parse import urljoin
 
-import pandas as pd
-from playwright.async_api import async_playwright, Page, BrowserContext
+BASE_URL  = "https://guidedbynature.pt"
+OUTPUT    = "guidedbynature_dados.xlsx"
+DELAY     = 0.8   # segundos entre pedidos (não sobrecarregar o servidor)
+DEBUG_HTML = False  # True → guarda o HTML da primeira página para inspeção
 
-BASE_URL = "https://guidedbynature.pt"
-OUTPUT   = "guidedbynature_dados.xlsx"
-DELAY    = 0.5   # segundos entre páginas de detalhe
+HEADERS = {
+    "User-Agent":                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                                  "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+    "Accept":                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                                  "image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language":           "pt-PT,pt;q=0.9,en-GB;q=0.8,en;q=0.7",
+    "Accept-Encoding":           "gzip, deflate, br",
+    "Connection":                "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest":            "document",
+    "Sec-Fetch-Mode":            "navigate",
+    "Sec-Fetch-Site":            "none",
+    "Sec-Fetch-User":            "?1",
+    "Sec-CH-UA":                 '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
+    "Sec-CH-UA-Mobile":          "?0",
+    "Sec-CH-UA-Platform":        '"Windows"',
+    "Cache-Control":             "max-age=0",
+}
 
-# Categorias a crawlar — (tipo, slug)
-CATEGORIAS = [
-    # PASSEAR
-    ("tour", "caminhadas"),
-    ("tour", "bicicleta"),
-    ("tour", "roteiros-tematicos"),
-    ("tour", "caminhada-de-longa-distancia"),
-    ("tour", "caminhada"),
-    ("tour", "btt"),
-    ("tour", "ciclismo"),
-    ("tour", "trail"),
-    # MERGULHAR
-    ("poi", "praias-ou-piscinas"),
-    ("poi", "docas-cais-e-fluvinas"),
-    ("poi", "termas-e-spa"),
-    # CONHECER
-    ("poi", "paisagens"),
-    ("poi", "historia-e-cultura"),
-    ("poi", "gastronomia"),
-    ("poi", "miradouros"),
-    ("poi", "monumentos"),
-    ("poi", "museus"),
-    ("poi", "aldeias"),
-    ("poi", "cascatas"),
-    ("poi", "lagos"),
-    ("poi", "praias-fluviais"),
-    # PLANEAR
-    ("poi", "onde-comer"),
-    ("poi", "onde-dormir"),
-    ("poi", "postos-de-turismo"),
-    # EVENTOS
-    ("event", "feiras-e-tradicoes"),
-    ("event", "festivais"),
-    ("event", "mercados"),
-    ("event", "concertos"),
-    ("event", "desporto"),
-    ("event", "cultura"),
-    ("event", "natureza"),
-    # PARTICIPAR
-    ("p", "desafios"),
-    ("p", "experiencias-guiadas"),
-    ("p", "comprar-produtos-locais"),
-]
+if _USE_CLOUDSCRAPER:
+    session = _scraper
+    session.headers.update(HEADERS)
+    print("[Info] cloudscraper activo")
+else:
+    session = requests.Session()
+    session.headers.update(HEADERS)
+    print("[Info] requests (sem cloudscraper — instala com: pip install cloudscraper)")
 
 
-# ── Descoberta de URLs ─────────────────────────────────────────────────────────
-
-ITEM_RE = re.compile(r'https://guidedbynature\.pt/pt/(poi|event|tour|p)/[^"<\s]+/(\d+)/?')
-
-
-def _extract_links(html: str, base: str) -> set[str]:
-    urls = set()
-    for m in re.finditer(r'href="(/pt/(poi|event|tour|p)/[^"]+/(\d+)/)"', html):
-        full = urljoin(base, m.group(1)).rstrip("/") + "/"
-        urls.add(full)
-    return urls
-
-
-def _extract_sitemap_urls(xml_text: str) -> list[str]:
-    """Extrai <loc> de um sitemap XML (índice ou folha)."""
-    locs = re.findall(r'<loc>(https://[^<]+)</loc>', xml_text)
-    return locs
+def _warm_session():
+    """Visita a homepage primeiro para obter cookies de sessão."""
+    for url in [BASE_URL + "/pt/", BASE_URL + "/"]:
+        try:
+            r = session.get(url, timeout=20)
+            if r.ok:
+                print(f"[Session] cookies obtidos de {url}")
+                return True
+        except Exception:
+            pass
+    return False
 
 
-async def _fetch_text(page, url: str) -> tuple[int, str]:
+# ── Utilitários ───────────────────────────────────────────────────────────────
+
+def get_page(url: str) -> BeautifulSoup | None:
+    global DEBUG_HTML
     try:
-        resp = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-        if not resp:
-            return 0, ""
-        content = await page.content()
-        return resp.status, content
-    except Exception as e:
-        print(f"  [ERRO] {url}: {e}")
-        return 0, ""
-
-
-async def discover_via_sitemap(context: BrowserContext) -> set[str]:
-    """Descobre URLs via sitemap.xml — pode encontrar milhares de items."""
-    urls: set[str] = set()
-    page = await context.new_page()
-
-    candidates = [
-        f"{BASE_URL}/sitemap.xml",
-        f"{BASE_URL}/sitemap_index.xml",
-        f"{BASE_URL}/pt/sitemap.xml",
-        f"{BASE_URL}/robots.txt",
-    ]
-
-    pending_sitemaps: list[str] = []
-
-    for url in candidates:
-        status, text = await _fetch_text(page, url)
-        if status != 200 or not text:
-            continue
-
-        if "robots.txt" in url:
-            for m in re.finditer(r'Sitemap:\s*(https?://\S+)', text):
-                pending_sitemaps.append(m.group(1))
-            print(f"[robots.txt] {len(pending_sitemaps)} sitemaps encontrados")
-        else:
-            pending_sitemaps.append(url)
-        break
-
-    if not pending_sitemaps:
-        await page.close()
-        return urls
-
-    visited_sitemaps: set[str] = set()
-    while pending_sitemaps:
-        sm_url = pending_sitemaps.pop(0)
-        if sm_url in visited_sitemaps:
-            continue
-        visited_sitemaps.add(sm_url)
-
-        status, text = await _fetch_text(page, sm_url)
-        if status != 200 or not text:
-            continue
-
-        locs = _extract_sitemap_urls(text)
-
-        # Índice de sitemaps — contém outros sitemaps
-        if "<sitemapindex" in text or any(l.endswith(".xml") for l in locs):
-            sub_maps = [l for l in locs if l.endswith(".xml") and l not in visited_sitemaps]
-            pending_sitemaps.extend(sub_maps)
-            print(f"[Sitemap índice] {sm_url}: {len(sub_maps)} sub-sitemaps")
-
-        # URLs de items
-        item_locs = [l for l in locs if ITEM_RE.search(l)]
-        for loc in item_locs:
-            urls.add(loc.rstrip("/") + "/")
-
-        print(f"[Sitemap] {sm_url}: +{len(item_locs)} items (total {len(urls)})")
-        await asyncio.sleep(0.2)
-
-    await page.close()
-    return urls
-
-
-async def discover_via_categories(context: BrowserContext, known: set[str]) -> set[str]:
-    """Fallback: navega por categoria com Playwright."""
-    urls: set[str] = set(known)
-    page = await context.new_page()
-
-    for tipo, cat in CATEGORIAS:
-        cat_url = f"{BASE_URL}/pt/{tipo}/{cat}/"
-
-        for pg in range(1, 500):
-            url = cat_url if pg == 1 else f"{cat_url}?page={pg}"
-            status, content = await _fetch_text(page, url)
-            if status == 404 or not content:
-                break
-
-            await page.wait_for_timeout(800)
-            content = await page.content()
-            found = _extract_links(content, BASE_URL)
-            if not found:
-                break
-
-            new = found - urls
-            urls.update(found)
-            if new:
-                print(f"  [{tipo}/{cat}] pág {pg}: +{len(new)} (total {len(urls)})")
-            if not new:
-                break
-
-        await asyncio.sleep(0.3)
-
-    await page.close()
-    return urls - known
-
-
-async def discover_urls(context: BrowserContext) -> list[str]:
-    print("[1/2] A tentar sitemap...")
-    urls = await discover_via_sitemap(context)
-
-    if len(urls) < 100:
-        print(f"[Sitemap] Apenas {len(urls)} URLs — a tentar categorias como fallback...")
-        extra = await discover_via_categories(context, urls)
-        urls.update(extra)
-
-    print(f"\n[Descoberta] {len(urls)} URLs no total\n")
-    return list(urls)
-
-
-# ── Extracção de dados de cada página ─────────────────────────────────────────
-
-def _text(el) -> str:
-    return el.inner_text().strip() if el else ""
-
-
-async def extract_page(page: Page, url: str) -> dict | None:
-    try:
-        resp = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-        if not resp or resp.status >= 400:
-            return None
+        r = session.get(url, timeout=20)
+        r.raise_for_status()
+        if DEBUG_HTML:
+            with open("debug_page.html", "w", encoding="utf-8") as f:
+                f.write(r.text)
+            print(f"[DEBUG] HTML guardado em debug_page.html")
+            DEBUG_HTML = False
+        return BeautifulSoup(r.text, "lxml")
     except Exception as e:
         print(f"  [ERRO] {url}: {e}")
         return None
 
-    await page.wait_for_timeout(800)
+
+def _text(el) -> str:
+    return el.get_text(" ", strip=True) if el else ""
+
+
+# ── Extracção de campos ───────────────────────────────────────────────────────
+
+def extract_jsonld(soup: BeautifulSoup) -> dict:
+    for script in soup.find_all("script", type="application/ld+json"):
+        try:
+            data = json.loads(script.string or "")
+            if isinstance(data, list):
+                data = data[0]
+            return data
+        except Exception:
+            pass
+    return {}
+
+
+def extract_meta(soup: BeautifulSoup) -> dict:
+    meta = {}
+    for tag in soup.find_all("meta"):
+        key = tag.get("property") or tag.get("name") or ""
+        val = tag.get("content", "").strip()
+        if key and val:
+            meta[key] = val
+    return meta
+
+
+def extract_poi(url: str) -> dict | None:
+    soup = get_page(url)
+    if not soup:
+        return None
 
     row: dict = {"url": url}
 
-    # Derivar campos da URL
+    # ── Derivar campos da URL ────────────────────────────────────────────────
+    # Padrões conhecidos:
+    #   /pt/poi/{categoria}/{slug}/{id}/
+    #   /pt/event/{categoria}/{slug}/{id}/
+    #   /pt/p/{tipo}/{id}/
     parts = url.rstrip("/").split("/")
-    row["id"] = parts[-1] if parts[-1].isdigit() else ""
+    row["id_poi"] = parts[-1] if parts[-1].isdigit() else ""
+
     if "/pt/poi/" in url:
-        row["tipo_url"] = "poi"
-        row["slug"]     = parts[-2]
-        row["categoria"]= parts[-3] if len(parts) >= 3 else ""
+        row["tipo_url"]  = "poi"
+        row["slug"]      = parts[-2] if len(parts) >= 2 else ""
+        row["categoria"] = parts[-3] if len(parts) >= 3 else ""
     elif "/pt/event/" in url:
-        row["tipo_url"] = "evento"
-        row["slug"]     = parts[-2]
-        row["categoria"]= parts[-3] if len(parts) >= 3 else ""
+        row["tipo_url"]  = "evento"
+        row["slug"]      = parts[-2] if len(parts) >= 2 else ""
+        row["categoria"] = parts[-3] if len(parts) >= 3 else ""
     elif "/pt/tour/" in url:
-        row["tipo_url"] = "tour"
-        row["slug"]     = parts[-2]
-        row["categoria"]= parts[-3] if len(parts) >= 3 else ""
+        row["tipo_url"]  = "tour"
+        row["slug"]      = parts[-2] if len(parts) >= 2 else ""
+        row["categoria"] = parts[-3] if len(parts) >= 3 else ""
     elif "/pt/p/" in url:
-        row["tipo_url"] = parts[-2]
-        row["slug"]     = ""
-        row["categoria"]= parts[-2]
+        row["tipo_url"]  = parts[-2] if len(parts) >= 2 else "p"
+        row["slug"]      = ""
+        row["categoria"] = row["tipo_url"]
     else:
-        row["tipo_url"] = ""
-        row["slug"]     = parts[-2] if len(parts) >= 2 else ""
-        row["categoria"]= parts[-3] if len(parts) >= 3 else ""
+        row["tipo_url"]  = ""
+        row["slug"]      = parts[-2] if len(parts) >= 2 else ""
+        row["categoria"] = parts[-3] if len(parts) >= 3 else ""
 
-    # JSON-LD
-    jld_tags = await page.query_selector_all('script[type="application/ld+json"]')
-    for tag in jld_tags:
-        try:
-            data = json.loads(await tag.inner_text())
-            if isinstance(data, list):
-                data = data[0]
-            row["nome"]      = data.get("name", "")
-            row["descricao"] = data.get("description", "")
-            row["tipo"]      = data.get("@type", "")
-            row["website"]   = data.get("url", "")
-            row["telefone"]  = data.get("telephone", "")
-            row["email"]     = data.get("email", "")
-            addr = data.get("address", {})
-            if isinstance(addr, dict):
-                row["morada"]    = addr.get("streetAddress", "")
-                row["localidade"]= addr.get("addressLocality", "")
-                row["regiao"]    = addr.get("addressRegion", "")
-                row["pais"]      = addr.get("addressCountry", "")
-            geo = data.get("geo", {})
-            if isinstance(geo, dict):
-                row["latitude"]  = geo.get("latitude", "")
-                row["longitude"] = geo.get("longitude", "")
-            row["preco"]   = str(data.get("priceRange", "") or data.get("price", ""))
-            row["horario"] = str(data.get("openingHours", "") or "")
-            row["imagem"]  = str(data.get("image", ""))
-            break
-        except Exception:
-            pass
+    # ── JSON-LD (dados estruturados — mais fiáveis) ──────────────────────────
+    jld = extract_jsonld(soup)
+    if jld:
+        row["nome"]      = jld.get("name", "")
+        row["descricao"] = jld.get("description", "")
+        row["tipo"]      = jld.get("@type", "")
+        row["website"]   = jld.get("url", "")
+        row["telefone"]  = jld.get("telephone", "")
+        row["email"]     = jld.get("email", "")
 
-    # Open Graph como fallback
+        addr = jld.get("address", {})
+        if isinstance(addr, dict):
+            row["morada"]    = addr.get("streetAddress", "")
+            row["localidade"]= addr.get("addressLocality", "")
+            row["regiao"]    = addr.get("addressRegion", "")
+            row["pais"]      = addr.get("addressCountry", "")
+        elif isinstance(addr, str):
+            row["morada"] = addr
+
+        geo = jld.get("geo", {})
+        if isinstance(geo, dict):
+            row["latitude"]  = geo.get("latitude", "")
+            row["longitude"] = geo.get("longitude", "")
+
+        row["preco"]         = str(jld.get("priceRange", "") or jld.get("price", ""))
+        row["horario"]       = str(jld.get("openingHours", "") or jld.get("openingHoursSpecification", ""))
+        row["imagem_jsonld"] = str(jld.get("image", ""))
+
+    # ── Open Graph / meta tags ───────────────────────────────────────────────
+    meta = extract_meta(soup)
     if not row.get("nome"):
-        el = await page.query_selector('meta[property="og:title"]')
-        row["nome"] = (await el.get_attribute("content") or "") if el else ""
+        row["nome"] = meta.get("og:title", meta.get("title", ""))
     if not row.get("descricao"):
-        el = await page.query_selector('meta[property="og:description"], meta[name="description"]')
-        row["descricao"] = (await el.get_attribute("content") or "") if el else ""
-    og_img = await page.query_selector('meta[property="og:image"]')
-    row["og_image"] = (await og_img.get_attribute("content") or "") if og_img else ""
+        row["descricao"] = meta.get("og:description", meta.get("description", ""))
+    row["og_image"] = meta.get("og:image", "")
 
-    # H1
-    h1 = await page.query_selector("h1")
-    if h1 and not row.get("nome"):
-        row["nome"] = await h1.inner_text()
+    # ── Título H1 ────────────────────────────────────────────────────────────
+    h1 = soup.find("h1")
+    if h1:
+        row["h1"] = _text(h1)
 
-    # Dados específicos de tours (distância, desnível, dificuldade, duração)
-    for label in ["distância", "desnível", "dificuldade", "duração", "distance",
-                  "elevation", "difficulty", "duration", "comprimento"]:
-        els = await page.query_selector_all(f'[class*="detail"], [class*="info"], dl dt, th')
-        for el in els:
-            txt = (await el.inner_text()).strip().lower()
-            if label in txt:
-                # tenta encontrar o valor associado
-                parent = await el.evaluate_handle("el => el.parentElement")
-                val_el = await parent.query_selector("dd, td, [class*='value']")
-                if val_el:
-                    val = (await val_el.inner_text()).strip()
-                    key = re.sub(r"[^\w]", "_", label)
-                    if val and key not in row:
-                        row[f"campo_{key}"] = val
+    # ── Pares label → valor (dt/dd, th/td, strong+span, etc.) ───────────────
+    pares: list[tuple[str, str]] = []
 
-    # Tags / badges
+    for dl in soup.find_all("dl"):
+        dts = dl.find_all("dt")
+        dds = dl.find_all("dd")
+        for dt, dd in zip(dts, dds):
+            pares.append((_text(dt), _text(dd)))
+
+    for tr in soup.find_all("tr"):
+        ths = tr.find_all("th")
+        tds = tr.find_all("td")
+        for th, td in zip(ths, tds):
+            pares.append((_text(th), _text(td)))
+
+    for el in soup.find_all(class_=re.compile(r"field|detail|info|meta|attr|prop", re.I)):
+        label = el.find(["label", "strong", "b", "dt", "th", "span"],
+                        class_=re.compile(r"label|key|title|name", re.I))
+        value = el.find(["span", "p", "div", "dd", "td"],
+                        class_=re.compile(r"value|content|data|text", re.I))
+        if label and value:
+            pares.append((_text(label), _text(value)))
+
+    for label_txt, val_txt in pares:
+        if not label_txt or not val_txt or label_txt == val_txt:
+            continue
+        key = re.sub(r"[^\w]", "_", label_txt.lower().strip("_"))[:40]
+        key = f"campo_{key}"
+        if key not in row:
+            row[key] = val_txt
+
+    # ── Imagens ──────────────────────────────────────────────────────────────
+    imgs = []
+    for img in soup.find_all("img", src=True):
+        src = img["src"]
+        if any(x in src for x in ["/photo", "/image", "/media", "/upload", "/poi"]):
+            imgs.append(urljoin(BASE_URL, src))
+    row["imagens"] = " | ".join(dict.fromkeys(imgs))  # sem duplicados
+
+    # ── Descrição longa (texto livre) ────────────────────────────────────────
+    if not row.get("descricao"):
+        for tag in soup.find_all(["p", "div"],
+                                 class_=re.compile(r"desc|content|body|text|about", re.I)):
+            txt = _text(tag)
+            if len(txt) > 120:
+                row["descricao"] = txt[:3000]
+                break
+
+    # ── Tags / categorias adicionais ─────────────────────────────────────────
     tags = []
-    tag_els = await page.query_selector_all('[class*="tag"], [class*="badge"], [class*="chip"]')
-    for el in tag_els:
-        t = (await el.inner_text()).strip()
+    for tag in soup.find_all(class_=re.compile(r"\btag\b|\bbadge\b|\blabel\b|\bchip\b", re.I)):
+        t = _text(tag)
         if t and len(t) < 60:
             tags.append(t)
     row["tags"] = " | ".join(dict.fromkeys(tags))
 
-    # Redes sociais
+    # ── Redes sociais ────────────────────────────────────────────────────────
     sociais = []
-    links = await page.query_selector_all("a[href]")
-    for a in links:
-        href = await a.get_attribute("href") or ""
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
         if any(s in href for s in ["facebook.com", "instagram.com", "twitter.com",
                                    "youtube.com", "tiktok.com", "linkedin.com"]):
             sociais.append(href)
@@ -337,82 +272,237 @@ async def extract_page(page: Page, url: str) -> dict | None:
     return row
 
 
-# ── Main ───────────────────────────────────────────────────────────────────────
+# ── Descoberta de URLs ────────────────────────────────────────────────────────
 
-async def main():
+# Categorias de fallback (caso a descoberta automática não encontre nada)
+_FALLBACK_CATS: dict[str, list[str]] = {
+    "poi": [
+        # MERGULHAR
+        "praias-ou-piscinas", "docas-cais-e-fluvinas", "termas-e-spa",
+        # CONHECER
+        "paisagens", "historia-e-cultura", "gastronomia",
+        # PLANEAR
+        "onde-comer", "onde-dormir", "postos-de-turismo",
+        # categorias anteriores
+        "outras-paisagens", "trilhos", "experiencias", "alojamentos",
+        "restaurantes", "praias", "parques", "miradouros", "monumentos",
+        "museus", "aldeias", "cascatas", "lagos", "praias-fluviais",
+        "atividades", "pontos-de-interesse",
+    ],
+    "event": [
+        "feiras-e-tradicoes", "festivais", "mercados", "concertos",
+        "desporto", "cultura", "gastronomia", "natureza", "outros",
+    ],
+    "tour": [
+        # PASSEAR (menu visível)
+        "caminhadas", "bicicleta", "roteiros-tematicos",
+        # categorias anteriores
+        "caminhada-de-longa-distancia", "caminhada", "btt", "ciclismo",
+        "trail", "canoagem", "escalada", "equitacao", "outros",
+    ],
+    "p": [
+        # PARTICIPAR
+        "desafios", "experiencias-guiadas", "comprar-produtos-locais",
+        # anteriores
+        "contactos", "praias-fluviais-ou-piscinas", "eventos", "noticias",
+        "percursos", "alojamento", "restauracao", "servicos", "outros",
+    ],
+}
+
+
+def _collect_links(soup: BeautifulSoup, urls: set, base: str) -> int:
+    """Recolhe todos os links de items (poi, event, tour, p) de uma página."""
+    found = 0
+    for a in soup.find_all("a", href=True):
+        href = a["href"].split("#")[0]
+        if re.search(r"/pt/(poi|event|tour|p)/", href) and re.search(r"/\d+/?$", href):
+            full = urljoin(base, href).rstrip("/") + "/"
+            if full not in urls:
+                urls.add(full)
+                found += 1
+    return found
+
+
+def _discover_nav_categories() -> dict[str, list[str]]:
+    """
+    Crawla a navegação do site para descobrir automaticamente todas as
+    categorias existentes. Retorna {tipo: [slug, ...]}
+    """
+    found: dict[str, set[str]] = {"poi": set(), "event": set(), "tour": set(), "p": set()}
+
+    for path in ["/pt/", "/"]:
+        soup = get_page(BASE_URL + path)
+        if not soup:
+            continue
+        for a in soup.find_all("a", href=True):
+            href = urljoin(BASE_URL, a["href"].split("#")[0]).rstrip("/")
+            m = re.match(r"https?://[^/]+/pt/(poi|event|tour|p)/([^/?#]+)$", href)
+            if m:
+                tipo, slug = m.group(1), m.group(2)
+                if not re.search(r"^\d+$", slug):  # ignorar IDs directos
+                    found[tipo].add(slug)
+
+    result = {k: sorted(v) for k, v in found.items() if v}
+    if result:
+        for tipo, cats in result.items():
+            print(f"[Nav] {tipo}: {', '.join(cats)}")
+    return result
+
+
+def _crawl_categories(base_type: str, cats: list[str], urls: set):
+    """Pagina por cada categoria e recolhe URLs de items."""
+    for cat in cats:
+        for page in range(1, 50):
+            soup = get_page(f"{BASE_URL}/pt/{base_type}/{cat}/?page={page}")
+            if not soup:
+                break
+            found = _collect_links(soup, urls, BASE_URL)
+            if found == 0:
+                break
+            print(f"  [{base_type}/{cat}] pág {page}: +{found}")
+            time.sleep(DELAY)
+
+
+def _fetch_sitemap(url: str, urls: set, visited: set, depth: int = 0):
+    """Segue sitemap recursivamente (índices + folhas)."""
+    if url in visited or depth > 5:
+        return
+    visited.add(url)
+    try:
+        r = session.get(url, timeout=20)
+        if not r.ok:
+            return
+        soup = BeautifulSoup(r.text, "lxml-xml")  # parser XML nativo
+        locs = [loc.get_text(strip=True) for loc in soup.find_all("loc")]
+
+        # Índice de sitemaps — segue recursivamente
+        if soup.find("sitemapindex") or soup.find("sitemap"):
+            sub = [l for l in locs if l.endswith(".xml") and l not in visited]
+            print(f"[Sitemap índice] {url}: {len(sub)} sub-sitemaps")
+            for s in sub:
+                _fetch_sitemap(s, urls, visited, depth + 1)
+            return
+
+        # Folha — extrai URLs de items
+        before = len(urls)
+        for u in locs:
+            if re.search(r"/pt/(poi|event|tour|p)/", u) and re.search(r"/\d+/?$", u):
+                urls.add(u.rstrip("/") + "/")
+        added = len(urls) - before
+        if added:
+            print(f"[Sitemap] {url}: +{added} (total {len(urls)})")
+    except Exception as e:
+        print(f"  [Sitemap ERRO] {url}: {e}")
+
+
+def discover_urls() -> list[str]:
+    urls: set[str] = set()
+    visited: set[str] = set()
+
+    # 1. Sitemap — segue índices recursivamente
+    # Também tenta ler o robots.txt para encontrar o sitemap oficial
+    try:
+        r = session.get(BASE_URL + "/robots.txt", timeout=10)
+        if r.ok:
+            for m in re.finditer(r"(?i)Sitemap:\s*(\S+)", r.text):
+                _fetch_sitemap(m.group(1), urls, visited)
+    except Exception:
+        pass
+
+    if not urls:
+        for path in ["/sitemap.xml", "/sitemap_index.xml", "/pt/sitemap.xml"]:
+            _fetch_sitemap(BASE_URL + path, urls, visited)
+            if urls:
+                break
+
+    if urls:
+        print(f"[Sitemap] Total: {len(urls)} URLs descobertas")
+        return list(urls)
+
+    # 2. Descoberta automática de categorias a partir da navegação
+    nav_cats = _discover_nav_categories()
+
+    # 3. Para cada tipo, usa categorias da nav + fallback (sem duplicados)
+    for tipo in ("poi", "event", "tour", "p"):
+        nav = nav_cats.get(tipo, [])
+        fallback = _FALLBACK_CATS.get(tipo, [])
+        # nav primeiro; fallback acrescenta categorias não descobertas pela nav
+        all_cats = list(dict.fromkeys(nav + [c for c in fallback if c not in nav]))
+        _crawl_categories(tipo, all_cats, urls)
+
+    # 4. Páginas de topo (apanha links soltos)
+    for path in ["/pt/poi/", "/pt/event/", "/pt/tour/", "/pt/p/", "/pt/", "/"]:
+        soup = get_page(BASE_URL + path)
+        if soup:
+            _collect_links(soup, urls, BASE_URL)
+
+    print(f"[Descoberta] {len(urls)} URLs no total")
+    return list(urls)
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+def main():
     print("=" * 60)
-    print("  guidedbynature.pt — Crawler (Playwright)")
+    print("  guidedbynature.pt — Crawler")
     print("=" * 60)
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                       "AppleWebKit/537.36 (KHTML, like Gecko) "
-                       "Chrome/136.0.0.0 Safari/537.36",
-            locale="pt-PT",
-        )
+    _warm_session()
+    urls = discover_urls()
 
-        # Warm-up
-        page = await context.new_page()
-        await page.goto(BASE_URL + "/pt/", wait_until="domcontentloaded", timeout=30000)
-        await page.wait_for_timeout(1000)
-        await page.close()
-        print("[Session] cookies obtidos\n")
+    if not urls:
+        print("\n[Aviso] Não foi possível descobrir URLs automaticamente.")
+        print("A usar URLs de exemplo fornecidos.")
+        urls = [
+            "https://guidedbynature.pt/pt/poi/outras-paisagens/zona-de-lazer-de-fermil/803708969/",
+            "https://guidedbynature.pt/pt/poi/outras-paisagens/parque-da-fraga-do-rio/803708890/",
+            "https://guidedbynature.pt/pt/poi/outras-paisagens/praia-fluvial-de-espadanedo/803709017/",
+            "https://guidedbynature.pt/pt/event/feiras-e-tradicoes/festa-do-caldo-de-quintandona/810958021/",
+            "https://guidedbynature.pt/pt/p/eventos/803757503/",
+            "https://guidedbynature.pt/pt/p/contactos/803158587/",
+            "https://guidedbynature.pt/pt/p/praias-fluviais-ou-piscinas/803158567/",
+            "https://guidedbynature.pt/pt/tour/caminhada-de-longa-distancia/gr47-grande-rota-de-montemuro/66287236/",
+        ]
 
-        # Descoberta
-        urls = await discover_urls(context)
+    total = len(urls)
+    print(f"\nA processar {total} POIs...\n")
 
-        if not urls:
-            print("[Aviso] Nenhuma URL descoberta — a usar exemplos de fallback")
-            urls = [
-                f"{BASE_URL}/pt/tour/caminhadas/ecopista-do-tamega/63694722/",
-                f"{BASE_URL}/pt/poi/paisagens/zona-de-lazer-de-fermil/803708969/",
-            ]
+    dados = []
+    for i, url in enumerate(urls, 1):
+        if i <= 5 or i % 100 == 0:
+            print(f"[{i:5}/{total}] {url.split('/')[-2] or url}")
+        row = extract_poi(url)
+        if row:
+            dados.append(row)
 
-        # Extracção
-        print(f"A processar {len(urls)} páginas...\n")
-        dados = []
-        page = await context.new_page()
-        total = len(urls)
-
-        for i, url in enumerate(urls, 1):
-            if i % 50 == 0 or i <= 5:
-                print(f"[{i:5}/{total}] {url.rstrip('/').split('/')[-1]}")
-            row = await extract_page(page, url)
-            if row:
-                dados.append(row)
-
-            # Guarda parcialmente a cada 500 items para não perder tudo se parar
-            if i % 500 == 0:
-                df_tmp = pd.DataFrame(dados)
-                df_tmp.to_excel(OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"), index=False)
-                print(f"  [Parcial] {i} items guardados")
-
-            await asyncio.sleep(DELAY)
-
-        await page.close()
-        await browser.close()
+        # Guarda parcialmente a cada 500 items
+        if i % 500 == 0 and dados:
+            pd.DataFrame(dados).to_excel(OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"), index=False)
+            print(f"  [Parcial] {i}/{total} guardados")
+        time.sleep(DELAY)
 
     if not dados:
-        print("\n[Erro] Nenhum dado extraído.")
+        print("\n[Erro] Nenhum dado extraído. O site pode estar a bloquear.")
+        print("Abra debug_page.html no browser para ver o HTML.")
         return
 
     df = pd.DataFrame(dados)
-    priority = ["id", "nome", "categoria", "slug", "tipo_url", "tipo",
-                "descricao", "morada", "localidade", "regiao", "pais",
-                "latitude", "longitude", "telefone", "email", "website",
-                "preco", "horario", "imagem", "og_image", "tags",
-                "redes_sociais", "url"]
+
+    # Reordenar colunas: campos principais primeiro
+    priority = ["id_poi", "nome", "h1", "categoria", "slug", "tipo",
+                 "descricao", "morada", "localidade", "regiao", "pais",
+                 "latitude", "longitude", "telefone", "email", "website",
+                 "preco", "horario", "imagem_jsonld", "og_image", "imagens",
+                 "tags", "redes_sociais", "url"]
     cols = [c for c in priority if c in df.columns]
     extra = [c for c in df.columns if c not in cols]
     df = df[cols + extra]
 
     df.to_excel(OUTPUT, index=False)
-    print(f"\nExportado: {OUTPUT}")
+    print(f"\n✅ Exportado: {OUTPUT}")
     print(f"   {len(dados)} linhas  ×  {len(df.columns)} colunas")
-    print(f"\nCampos: {', '.join(df.columns.tolist())}")
+    print(f"\nCampos extraídos: {', '.join(df.columns.tolist())}")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
