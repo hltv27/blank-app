@@ -11,7 +11,8 @@ from config import (
     PARTIAL_TP_RATIO, PARTIAL_TP_QTY, PARTIAL_TP2_RATIO, PARTIAL_TP2_QTY,
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
     MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, BTC_CRASH_PCT, CORR_MAX,
-    BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT
+    BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
+    ROI_TP_IMEDIATO, TIME_TP_MIN_MIN
 )
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_price,
@@ -369,8 +370,19 @@ def gerir_posicoes(mem: dict):
         opened_at = trade.get("opened_at")
         elapsed   = (time.time() - opened_at) if opened_at else 1800
 
+        # ROI alto → fecha imediatamente, sem esperar tempo
+        if roi >= ROI_TP_IMEDIATO:
+            close_position(symbol, pos["qty"], side)
+            _registar_fecho(symbol, side, entry, sl, tp, qty,
+                            pos["pnl"], "ROI_TP", True, mem)
+            tg(
+                f"🎯 <b>ROI TP</b> — {symbol}\n"
+                f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} | {int(elapsed/60)}min"
+            )
+            continue
+
         # Saída por tempo + ROI ≥ 5%
-        if elapsed >= 30 * 60 and roi >= 5.0:
+        if elapsed >= TIME_TP_MIN_MIN * 60 and roi >= 5.0:
             close_position(symbol, pos["qty"], side)
             _registar_fecho(symbol, side, entry, sl, tp, qty,
                             pos["pnl"], "TIME_TP", True, mem)

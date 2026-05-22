@@ -112,6 +112,9 @@ MAX_MARGEM_TRADE    = 0.20   # máx 20% do capital por posição (60 USDC em 300
 PROFIT_LOCK_USDC    = 1.0    # activa lock a partir deste PnL
 PROFIT_LOCK_STEP    = 0.5    # a cada +0.5 USDC move o stop para esse nível
 
+ROI_TP_IMEDIATO     = 7.0    # % ROI → fecha imediatamente, sem esperar tempo
+TIME_TP_MIN_MIN     = 10     # minutos mínimos para TIME_TP (era 30)
+
 OBI_VETO        = 0.3
 EQUITY_EMA_N    = 20
 CORR_MAX        = 0.75
