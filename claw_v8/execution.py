@@ -399,10 +399,14 @@ def gerir_posicoes(mem: dict):
             current_lock = trade.get("profit_lock_level", 0.0)
             new_lock = math.floor(pos["pnl"] / PROFIT_LOCK_STEP) * PROFIT_LOCK_STEP
             if new_lock >= PROFIT_LOCK_USDC and new_lock > current_lock + 1e-9:
+                # Stop no nível ANTERIOR garante distância mínima ao preço actual.
+                # Binance rejeita stops a < 0.1% do mark price — a fórmula "entry + new_lock/qty"
+                # coincide quase exactamente com o preço corrente quando o PnL acabou de cruzar o limiar.
+                lock_usdc = max(new_lock - PROFIT_LOCK_STEP, 0.0)
                 if side == "LONG":
-                    lock_price = round(entry + new_lock / qty, 8)
+                    lock_price = round(entry + lock_usdc / qty, 8) if lock_usdc > 0 else round(entry * 1.0005, 8)
                 else:
-                    lock_price = round(entry - new_lock / qty, 8)
+                    lock_price = round(entry - lock_usdc / qty, 8) if lock_usdc > 0 else round(entry * 0.9995, 8)
 
                 # Cancela stop antigo PRIMEIRO (closePosition só permite um de cada vez)
                 old_stop_lock = trade.get("stop_order_id")
@@ -410,18 +414,29 @@ def gerir_posicoes(mem: dict):
                     cancel_algo_order(symbol, old_stop_lock)
                     mem["trades_abertos"][symbol]["stop_order_id"] = None
 
-                # Coloca novo stop closePosition=true (sem conflito — o antigo foi cancelado)
-                new_lock_id = place_stop_market(symbol, lock_side, lock_price, qty)
+                # Tenta colocar stop — 3 tentativas com buffer crescente se falhar
+                new_lock_id = None
+                for attempt in range(3):
+                    new_lock_id = place_stop_market(symbol, lock_side, lock_price, qty)
+                    if new_lock_id:
+                        break
+                    # Afasta o stop 0.15% a cada tentativa para evitar rejeição Binance
+                    if side == "LONG":
+                        lock_price = round(lock_price * (1 - 0.0015), 8)
+                    else:
+                        lock_price = round(lock_price * (1 + 0.0015), 8)
+                    time.sleep(0.5)
 
                 mem["trades_abertos"][symbol]["profit_lock_level"] = new_lock
                 mem["trades_abertos"][symbol]["sl"]                = lock_price
                 if new_lock_id:
                     mem["trades_abertos"][symbol]["stop_order_id"] = new_lock_id
                 else:
-                    print(f"[AVISO] {symbol}: lock stop {lock_price:.4f} falhou — software SL activo")
+                    print(f"[AVISO] {symbol}: lock stop falhou após 3 tentativas — software SL activo")
+                    tg(f"⚠️ <b>{symbol}</b> — stop lock FALHOU (3 tentativas)\nSL software: {lock_price:.4f} | PnL: +{pos['pnl']:.2f}")
                 save_memory(mem)
                 emoji = "🔒" if current_lock == 0.0 else "📈"
-                stop_info = f"#{new_lock_id}" if new_lock_id else "software"
+                stop_info = f"#{new_lock_id}" if new_lock_id else "SOFTWARE ⚠️"
                 tg(
                     f"{emoji} <b>LOCK +{new_lock:.1f} USDC</b> — {symbol}\n"
                     f"Stop → {lock_price:.4f} ({stop_info}) | PnL: +{pos['pnl']:.2f} USDC"
