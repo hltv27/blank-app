@@ -11,10 +11,11 @@ from config import (
     PARTIAL_TP_RATIO, PARTIAL_TP_QTY, PARTIAL_TP2_RATIO, PARTIAL_TP2_QTY,
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
     MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, BTC_CRASH_PCT, CORR_MAX,
-    BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT
+    BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
+    ROI_TP_IMEDIATO, TIME_TP_MIN_MIN
 )
 from exchange import (
-    tg, get_balance, get_wallet_balance, get_positions, get_margin_ratio, get_price,
+    tg, get_balance, get_positions, get_margin_ratio, get_price,
     set_leverage, place_order, place_stop_market, place_trailing_stop,
     place_take_profit, close_position, cancel_order, cancel_algo_order
 )
@@ -42,35 +43,13 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
     price = closes[-1]
 
-    # ── Filtros locais (sem API — descartam rápido sem custo) ────────────
+    # ── Filtros globais ──────────────────────────────────────────────────
     if macro_event_proximo():
         print(f"[AVISO] {symbol}: evento macro próximo — sem entrada")
         return
 
     if not volatility_regime_ok(symbol, closes, highs, lows, direction, price):
         tg(f"⚡ <b>REGIME VIOLENTO</b> — {symbol}\nATR extremo. Sem entrada.")
-        return
-
-    from indicators import supertrend
-    st_bull = supertrend(highs, lows, closes)
-    if direction == "LONG"  and st_bull is False:
-        print(f"[AVISO] {symbol}: Supertrend bearish — LONG vetado")
-        return
-    if direction == "SHORT" and st_bull is True:
-        print(f"[AVISO] {symbol}: Supertrend bullish — SHORT vetado")
-        return
-
-    if not bb_squeeze_ok(symbol, direction, closes, volumes, price):
-        return
-
-    if not cvd_ok(symbol, direction, closes, volumes, taker_buy_vols, price):
-        return
-
-    if klines and not vwap_ok(symbol, direction, closes, klines, price):
-        return
-
-    # ── Filtros com API (do mais leve ao mais pesado) ────────────────────
-    if not fear_greed_ok(symbol, direction, price):
         return
 
     if not spread_ok(symbol, direction, price):
@@ -80,15 +59,42 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         print(f"[AVISO] {symbol}: condições de mercado desfavoráveis para {direction}")
         return
 
-    if not obi_ok(symbol, direction, price):
-        return
-
-    # ── HTF multi-timeframe (busca klines remotos — mais pesado) ────────
+    # ── HTF multi-timeframe (4H → 1H → 5min) ───────────────────────────
     if not htf_4h_ok(symbol, direction, price):
         return
 
     if not htf_1h_ok(symbol, direction, price):
         print(f"[AVISO] {symbol}: HTF 1H contra {direction} — veto")
+        return
+
+    # ── Supertrend ───────────────────────────────────────────────────────
+    from indicators import supertrend
+    st_bull = supertrend(highs, lows, closes)
+    if direction == "LONG"  and st_bull is False:
+        print(f"[AVISO] {symbol}: Supertrend bearish — LONG vetado")
+        return
+    if direction == "SHORT" and st_bull is True:
+        print(f"[AVISO] {symbol}: Supertrend bullish — SHORT vetado")
+        return
+
+    # ── Fear & Greed ─────────────────────────────────────────────────────
+    if not fear_greed_ok(symbol, direction, price):
+        return
+
+    # ── BB Squeeze ───────────────────────────────────────────────────────
+    if not bb_squeeze_ok(symbol, direction, closes, volumes, price):
+        return
+
+    # ── CVD ──────────────────────────────────────────────────────────────
+    if not cvd_ok(symbol, direction, closes, volumes, taker_buy_vols, price):
+        return
+
+    # ── OBI ──────────────────────────────────────────────────────────────
+    if not obi_ok(symbol, direction, price):
+        return
+
+    # ── VWAP ±2σ ─────────────────────────────────────────────────────────
+    if klines and not vwap_ok(symbol, direction, closes, klines, price):
         return
 
     # ── Liquidity Sweep (confirmação — não bloqueia) ─────────────────────
@@ -266,8 +272,8 @@ def gerir_posicoes(mem: dict):
                 f"Longs fechados: {', '.join(fechados)}"
             )
 
-    # ── Guarda de 25% — usa saldo total (não availableBalance que é tiny com posições)
-    saldo_atual = get_wallet_balance()
+    # ── Guarda de 25% — só conta posições do bot, nunca fecha trades manuais
+    saldo_atual = get_balance()
     if saldo_atual and saldo_atual > 0:
         if posicoes_all is None:
             posicoes_all = get_positions() or {}
@@ -364,8 +370,19 @@ def gerir_posicoes(mem: dict):
         opened_at = trade.get("opened_at")
         elapsed   = (time.time() - opened_at) if opened_at else 1800
 
+        # ROI alto → fecha imediatamente, sem esperar tempo
+        if roi >= ROI_TP_IMEDIATO:
+            close_position(symbol, pos["qty"], side)
+            _registar_fecho(symbol, side, entry, sl, tp, qty,
+                            pos["pnl"], "ROI_TP", True, mem)
+            tg(
+                f"🎯 <b>ROI TP</b> — {symbol}\n"
+                f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} | {int(elapsed/60)}min"
+            )
+            continue
+
         # Saída por tempo + ROI ≥ 5%
-        if elapsed >= 30 * 60 and roi >= 5.0:
+        if elapsed >= TIME_TP_MIN_MIN * 60 and roi >= 5.0:
             close_position(symbol, pos["qty"], side)
             _registar_fecho(symbol, side, entry, sl, tp, qty,
                             pos["pnl"], "TIME_TP", True, mem)
@@ -382,10 +399,14 @@ def gerir_posicoes(mem: dict):
             current_lock = trade.get("profit_lock_level", 0.0)
             new_lock = math.floor(pos["pnl"] / PROFIT_LOCK_STEP) * PROFIT_LOCK_STEP
             if new_lock >= PROFIT_LOCK_USDC and new_lock > current_lock + 1e-9:
+                # Stop no nível ANTERIOR garante distância mínima ao preço actual.
+                # Binance rejeita stops a < 0.1% do mark price — a fórmula "entry + new_lock/qty"
+                # coincide quase exactamente com o preço corrente quando o PnL acabou de cruzar o limiar.
+                lock_usdc = max(new_lock - PROFIT_LOCK_STEP, 0.0)
                 if side == "LONG":
-                    lock_price = round(entry + new_lock / qty, 8)
+                    lock_price = round(entry + lock_usdc / qty, 8) if lock_usdc > 0 else round(entry * 1.0005, 8)
                 else:
-                    lock_price = round(entry - new_lock / qty, 8)
+                    lock_price = round(entry - lock_usdc / qty, 8) if lock_usdc > 0 else round(entry * 0.9995, 8)
 
                 # Cancela stop antigo PRIMEIRO (closePosition só permite um de cada vez)
                 old_stop_lock = trade.get("stop_order_id")
@@ -393,18 +414,29 @@ def gerir_posicoes(mem: dict):
                     cancel_algo_order(symbol, old_stop_lock)
                     mem["trades_abertos"][symbol]["stop_order_id"] = None
 
-                # Coloca novo stop closePosition=true (sem conflito — o antigo foi cancelado)
-                new_lock_id = place_stop_market(symbol, lock_side, lock_price, qty)
+                # Tenta colocar stop — 3 tentativas com buffer crescente se falhar
+                new_lock_id = None
+                for attempt in range(3):
+                    new_lock_id = place_stop_market(symbol, lock_side, lock_price, qty)
+                    if new_lock_id:
+                        break
+                    # Afasta o stop 0.15% a cada tentativa para evitar rejeição Binance
+                    if side == "LONG":
+                        lock_price = round(lock_price * (1 - 0.0015), 8)
+                    else:
+                        lock_price = round(lock_price * (1 + 0.0015), 8)
+                    time.sleep(0.5)
 
                 mem["trades_abertos"][symbol]["profit_lock_level"] = new_lock
                 mem["trades_abertos"][symbol]["sl"]                = lock_price
                 if new_lock_id:
                     mem["trades_abertos"][symbol]["stop_order_id"] = new_lock_id
                 else:
-                    print(f"[AVISO] {symbol}: lock stop {lock_price:.4f} falhou — software SL activo")
+                    print(f"[AVISO] {symbol}: lock stop falhou após 3 tentativas — software SL activo")
+                    tg(f"⚠️ <b>{symbol}</b> — stop lock FALHOU (3 tentativas)\nSL software: {lock_price:.4f} | PnL: +{pos['pnl']:.2f}")
                 save_memory(mem)
                 emoji = "🔒" if current_lock == 0.0 else "📈"
-                stop_info = f"#{new_lock_id}" if new_lock_id else "software"
+                stop_info = f"#{new_lock_id}" if new_lock_id else "SOFTWARE ⚠️"
                 tg(
                     f"{emoji} <b>LOCK +{new_lock:.1f} USDC</b> — {symbol}\n"
                     f"Stop → {lock_price:.4f} ({stop_info}) | PnL: +{pos['pnl']:.2f} USDC"

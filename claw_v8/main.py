@@ -19,11 +19,7 @@ from config import (
     CHECK_POSICOES_FAST, CHECK_POSICOES, CAPITAL_MAX_BOT, RISCO_USDC,
     ALAVANCAGEM, TOP_N_FUTURES
 )
-from exchange import (
-    tg, get_klines, get_positions, get_balance, get_price, sync_time,
-    get_public_ip, get_top_futures_symbols, cancel_algo_order, close_position,
-    place_stop_market as _psm,
-)
+from exchange import tg, get_klines, get_positions, get_balance, get_price, sync_time, get_public_ip, get_top_futures_symbols, place_stop_market as _psm
 from indicators import atr, get_daily_vwap
 from strategy import detect_market_mode, signal_trending
 from filters import calc_correlation
@@ -31,26 +27,6 @@ from risk import em_sessao, circuit_breaker_activo, verificar_veto_simbolo
 from execution import abrir_trade, gerir_posicoes
 from storage import init_db, load_memory, save_memory, log_state_transition
 from analytics import print_full_report
-
-
-def _kill_all(mem: dict):
-    """Cancela stops/TP e fecha todas as posições do bot. Chamado pelo kill switch."""
-    posicoes = get_positions() or {}
-    trades_bot = mem.get("trades_abertos", {})
-    fechados = []
-    for sym in list(trades_bot.keys()):
-        pos = posicoes.get(sym)
-        for key in ("stop_order_id", "tp_order_id"):
-            oid = trades_bot[sym].get(key)
-            if oid:
-                cancel_algo_order(sym, oid)
-        if pos:
-            close_position(sym, pos["qty"], pos["side"])
-            fechados.append(sym)
-        trades_bot.pop(sym, None)
-    save_memory(mem)
-    tg(f"✅ Kill switch executado — fechados: {', '.join(fechados) if fechados else 'nenhum'}")
-    print(f"[KILL_SWITCH] Done. Fechados: {fechados}")
 
 
 def _validate_credentials():
@@ -75,13 +51,11 @@ def run():
     sync_time()
 
     # Fetch dinâmico dos top N pares USDC-M por volume + precisão
-    dinamicos, precisoes_qty, precisoes_price = get_top_futures_symbols(TOP_N_FUTURES)
+    dinamicos, precisoes = get_top_futures_symbols(TOP_N_FUTURES)
     if dinamicos:
         config.SYMBOLS = dinamicos
-    if precisoes_qty:
-        config.SYMBOL_PRECISION.update(precisoes_qty)
-    if precisoes_price:
-        config.PRICE_PRECISION.update(precisoes_price)
+    if precisoes:
+        config.SYMBOL_PRECISION.update(precisoes)
     SYMBOLS = config.SYMBOLS
 
     ultima_actualizacao_symbols = time.time()
@@ -106,27 +80,18 @@ def run():
             hora    = now_utc.strftime("%H:%M")
             mem     = load_memory()
 
-            # Kill switch — cria ficheiro KILL_SWITCH para parar o bot de emergência
-            if os.path.exists("KILL_SWITCH"):
-                tg("🛑 <b>KILL SWITCH activado</b> — bot a fechar tudo e a parar")
-                print("[KILL_SWITCH] Ficheiro detectado — a fechar todas as posições")
-                _kill_all(mem)
-                break
-
             if now_utc.hour != ultima_sync_hora:
                 sync_time()
                 ultima_sync_hora = now_utc.hour
 
             # Actualiza lista de pares a cada 24h
             if time.time() - ultima_actualizacao_symbols > 86400:
-                novos, precisoes_qty_n, precisoes_price_n = get_top_futures_symbols(TOP_N_FUTURES)
+                novos, precisoes_novas = get_top_futures_symbols(TOP_N_FUTURES)
                 if novos:
                     config.SYMBOLS = novos
                     SYMBOLS = config.SYMBOLS
-                if precisoes_qty_n:
-                    config.SYMBOL_PRECISION.update(precisoes_qty_n)
-                if precisoes_price_n:
-                    config.PRICE_PRECISION.update(precisoes_price_n)
+                if precisoes_novas:
+                    config.SYMBOL_PRECISION.update(precisoes_novas)
                 print(f"[{hora}] Pares actualizados: {len(SYMBOLS)}")
                 ultima_actualizacao_symbols = time.time()
 
@@ -156,10 +121,9 @@ def run():
                         kl = get_klines(sym)
                         if not kl or len(kl) < 30:
                             continue
-                        kl_c = kl[:-1]
-                        h_r = [float(k[2]) for k in kl_c]
-                        l_r = [float(k[3]) for k in kl_c]
-                        c_r = [float(k[4]) for k in kl_c]
+                        h_r = [float(k[2]) for k in kl]
+                        l_r = [float(k[3]) for k in kl]
+                        c_r = [float(k[4]) for k in kl]
                         from indicators import atr as _atr
                         from strategy import detect_market_mode as _dmm
                         atr_r = _atr(h_r, l_r, c_r)
@@ -220,9 +184,9 @@ def run():
                     # Verifica se o bot iniciou esta ordem (marcador pending_sync)
                     pending = mem.get("pending_sync", {})
                     is_bot_orphan = (symbol in pending and
-                                     time.time() - pending[symbol] < 900)  # < 15 min
+                                     time.time() - pending[symbol] < 300)  # < 5 min
 
-                    if is_bot_orphan:
+                    if is_bot_orphan and symbol in SYMBOLS:
                         # Posição órfã do bot (ordem enviada mas memória não guardada)
                         mem.get("pending_sync", {}).pop(symbol, None)
                         kl_sync = get_klines(symbol)
@@ -231,10 +195,9 @@ def run():
                         if kl_sync and len(kl_sync) > 14:
                             from indicators import atr as calc_atr
                             from exchange import place_stop_market as _psm
-                            kl_sync_c = kl_sync[:-1]
-                            h_s = [float(k[2]) for k in kl_sync_c]
-                            l_s = [float(k[3]) for k in kl_sync_c]
-                            c_s = [float(k[4]) for k in kl_sync_c]
+                            h_s = [float(k[2]) for k in kl_sync]
+                            l_s = [float(k[3]) for k in kl_sync]
+                            c_s = [float(k[4]) for k in kl_sync]
                             atr_s   = calc_atr(h_s, l_s, c_s)
                             entry_s = pos["entry"] if pos["entry"] > 0 else c_s[-1]
                             stop_side_s = "SELL" if pos["side"] == "LONG" else "BUY"
@@ -373,13 +336,11 @@ def run():
                 if not klines or len(klines) < LOOKBACK // 2:
                     continue
 
-                # Exclui a vela a formar — usa só velas fechadas para sinais
-                closed         = klines[:-1]
-                closes         = [float(k[4]) for k in closed]
-                highs          = [float(k[2]) for k in closed]
-                lows           = [float(k[3]) for k in closed]
-                volumes        = [float(k[5]) for k in closed]
-                taker_buy_vols = [float(k[9]) for k in closed]
+                closes         = [float(k[4]) for k in klines]
+                highs          = [float(k[2]) for k in klines]
+                lows           = [float(k[3]) for k in klines]
+                volumes        = [float(k[5]) for k in klines]
+                taker_buy_vols = [float(k[9]) for k in klines]
 
                 atr_val = atr(highs, lows, closes)
                 vwap    = get_daily_vwap(klines)

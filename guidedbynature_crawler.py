@@ -363,25 +363,61 @@ def _crawl_categories(base_type: str, cats: list[str], urls: set):
             time.sleep(DELAY)
 
 
+def _fetch_sitemap(url: str, urls: set, visited: set, depth: int = 0):
+    """Segue sitemap recursivamente (índices + folhas)."""
+    if url in visited or depth > 5:
+        return
+    visited.add(url)
+    try:
+        r = session.get(url, timeout=20)
+        if not r.ok:
+            return
+        soup = BeautifulSoup(r.text, "lxml-xml")  # parser XML nativo
+        locs = [loc.get_text(strip=True) for loc in soup.find_all("loc")]
+
+        # Índice de sitemaps — segue recursivamente
+        if soup.find("sitemapindex") or soup.find("sitemap"):
+            sub = [l for l in locs if l.endswith(".xml") and l not in visited]
+            print(f"[Sitemap índice] {url}: {len(sub)} sub-sitemaps")
+            for s in sub:
+                _fetch_sitemap(s, urls, visited, depth + 1)
+            return
+
+        # Folha — extrai URLs de items
+        before = len(urls)
+        for u in locs:
+            if re.search(r"/pt/(poi|event|tour|p)/", u) and re.search(r"/\d+/?$", u):
+                urls.add(u.rstrip("/") + "/")
+        added = len(urls) - before
+        if added:
+            print(f"[Sitemap] {url}: +{added} (total {len(urls)})")
+    except Exception as e:
+        print(f"  [Sitemap ERRO] {url}: {e}")
+
+
 def discover_urls() -> list[str]:
     urls: set[str] = set()
+    visited: set[str] = set()
 
-    # 1. Sitemap
-    for path in ["/sitemap.xml", "/sitemap_index.xml", "/pt/sitemap.xml"]:
-        try:
-            r = session.get(BASE_URL + path, timeout=15)
-            if not r.ok:
-                continue
-            soup = BeautifulSoup(r.text, "lxml")
-            for loc in soup.find_all("loc"):
-                u = loc.get_text(strip=True)
-                if re.search(r"/pt/(poi|event|tour|p)/", u) and re.search(r"/\d+/?$", u):
-                    urls.add(u)
+    # 1. Sitemap — segue índices recursivamente
+    # Também tenta ler o robots.txt para encontrar o sitemap oficial
+    try:
+        r = session.get(BASE_URL + "/robots.txt", timeout=10)
+        if r.ok:
+            for m in re.finditer(r"(?i)Sitemap:\s*(\S+)", r.text):
+                _fetch_sitemap(m.group(1), urls, visited)
+    except Exception:
+        pass
+
+    if not urls:
+        for path in ["/sitemap.xml", "/sitemap_index.xml", "/pt/sitemap.xml"]:
+            _fetch_sitemap(BASE_URL + path, urls, visited)
             if urls:
-                print(f"[Sitemap] {len(urls)} URLs em {path}")
-                return list(urls)
-        except Exception:
-            pass
+                break
+
+    if urls:
+        print(f"[Sitemap] Total: {len(urls)} URLs descobertas")
+        return list(urls)
 
     # 2. Descoberta automática de categorias a partir da navegação
     nav_cats = _discover_nav_categories()
@@ -428,14 +464,21 @@ def main():
             "https://guidedbynature.pt/pt/tour/caminhada-de-longa-distancia/gr47-grande-rota-de-montemuro/66287236/",
         ]
 
-    print(f"\nA processar {len(urls)} POIs...\n")
+    total = len(urls)
+    print(f"\nA processar {total} POIs...\n")
 
     dados = []
     for i, url in enumerate(urls, 1):
-        print(f"[{i:4}/{len(urls)}] {url.split('/')[-2] or url}")
+        if i <= 5 or i % 100 == 0:
+            print(f"[{i:5}/{total}] {url.split('/')[-2] or url}")
         row = extract_poi(url)
         if row:
             dados.append(row)
+
+        # Guarda parcialmente a cada 500 items
+        if i % 500 == 0 and dados:
+            pd.DataFrame(dados).to_excel(OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"), index=False)
+            print(f"  [Parcial] {i}/{total} guardados")
         time.sleep(DELAY)
 
     if not dados:

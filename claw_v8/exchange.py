@@ -9,7 +9,7 @@ import time
 from urllib.parse import urlencode
 from config import (
     BASE_URL, BINANCE_API_KEY, BINANCE_API_SECRET,
-    TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, SYMBOL_PRECISION, PRICE_PRECISION
+    TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, SYMBOL_PRECISION
 )
 
 _time_offset_ms = 0
@@ -189,27 +189,6 @@ def get_margin_ratio() -> float | None:
     return None
 
 
-def get_wallet_balance() -> float | None:
-    """Saldo total da conta (totalMarginBalance) — inclui margem usada em posições.
-    Usar no drawdown guard, NÃO em verificações de margem disponível para novas ordens."""
-    for attempt in range(2):
-        try:
-            r = requests.get(
-                f"{BASE_URL}/fapi/v2/account",
-                params=_sign({}), headers=_headers(), timeout=10
-            )
-            data = r.json()
-            if _is_timestamp_error(data):
-                sync_time()
-                continue
-            val = float(data.get("totalMarginBalance", 0))
-            return val if val > 0 else None
-        except Exception as e:
-            print(f"[ERRO] get_wallet_balance: {e}")
-            break
-    return None
-
-
 def get_price(symbol: str) -> float | None:
     try:
         r = requests.get(
@@ -259,19 +238,17 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
     try:
-        price_dec = PRICE_PRECISION.get(symbol, 4)
+        decimals = SYMBOL_PRECISION.get(symbol, 4)
         # Binance migrou ordens condicionais para /fapi/v1/algoOrder (Dez 2025)
         # closePosition=true: compatível com conta EU/BNFCR (reduceOnly não suportado)
         # O chamador deve cancelar qualquer stop anterior antes de invocar esta função
-        # workingType=MARK_PRICE: protege contra wicks no last price
         params = {
             "symbol":        symbol,
             "side":          side,
             "orderType":     "STOP_MARKET",
             "algoType":      "CONDITIONAL",
-            "stopPrice":     f"{stop_price:.{price_dec}f}",
+            "stopPrice":     f"{stop_price:.{decimals}f}",
             "closePosition": "true",
-            "workingType":   "MARK_PRICE",
         }
         r = requests.post(
             f"{BASE_URL}/fapi/v1/algoOrder",
@@ -293,15 +270,14 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
 
 def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
     try:
-        price_dec = PRICE_PRECISION.get(symbol, 4)
+        decimals = SYMBOL_PRECISION.get(symbol, 4)
         params = {
             "symbol":        symbol,
             "side":          side,
             "orderType":     "TAKE_PROFIT_MARKET",
             "algoType":      "CONDITIONAL",
-            "stopPrice":     f"{tp_price:.{price_dec}f}",
+            "stopPrice":     f"{tp_price:.{decimals}f}",
             "closePosition": "true",
-            "workingType":   "MARK_PRICE",
         }
         r = requests.post(
             f"{BASE_URL}/fapi/v1/algoOrder",
@@ -324,14 +300,14 @@ def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
 def place_trailing_stop(symbol: str, side: str, callback_rate: float,
                         activation_price: float) -> int | None:
     try:
-        price_dec = PRICE_PRECISION.get(symbol, 4)
+        decimals = SYMBOL_PRECISION.get(symbol, 4)
         params = {
             "symbol":          symbol,
             "side":            side,
             "orderType":       "TRAILING_STOP_MARKET",
             "algoType":        "CONDITIONAL",
             "callbackRate":    f"{callback_rate}",
-            "activationPrice": f"{activation_price:.{price_dec}f}",
+            "activationPrice": f"{activation_price:.{decimals}f}",
             "closePosition":   "true",
         }
         r    = requests.post(f"{BASE_URL}/fapi/v1/algoOrder",
@@ -361,11 +337,10 @@ def close_position(symbol: str, qty: float, side: str):
     return place_order(symbol, close_side, abs(qty))
 
 
-def get_top_futures_symbols(n: int = 20, min_days: int = 7) -> tuple:
+def get_top_futures_symbols(n: int = 20, min_days: int = 30) -> tuple:
     """
-    Busca top N pares de futuros perpétuos por volume 24h.
-    USDC-M tem prioridade. USDT-M entra apenas para coins sem equivalente USDC-M.
-    Retorna (lista_symbols, qty_precision_map, price_precision_map).
+    Busca top N pares USDC-M por volume 24h.
+    Retorna (lista_symbols, dict_precision).
     Exclui: stablecoins, tokens alavancados, moedas com menos de min_days dias.
     """
     STABLES  = {"USDT","USDC","BUSD","DAI","TUSD","USDP","FDUSD","USDE","PYUSD"}
@@ -375,74 +350,57 @@ def get_top_futures_symbols(n: int = 20, min_days: int = 7) -> tuple:
 
     try:
         info = requests.get(f"{BASE_URL}/fapi/v1/exchangeInfo", timeout=10).json()
-        qty_map      = {}
-        price_map    = {}
-        usdc_symbols = set()   # pares USDC-M elegíveis
-        usdt_symbols = set()   # pares USDT-M elegíveis
-        usdc_bases   = set()   # bases com equivalente USDC-M (ex: "BTC", "ETH")
+        precision_map = {}
+        usdc_symbols  = set()
 
         for s in info.get("symbols", []):
-            quote = s.get("quoteAsset", "")
-            if not (quote in ("USDC", "USDT")
+            if not (s.get("quoteAsset") == "USDC"
                     and s.get("status") == "TRADING"
                     and s.get("contractType") == "PERPETUAL"):
                 continue
-            sym     = s["symbol"]
+            sym = s["symbol"]
+
+            # Filtro de maturidade — mínimo min_days dias listada
             onboard = s.get("onboardDate", agora_ms)
             if (agora_ms - onboard) < min_age_ms:
+                print(f"[v8] {sym} excluído — listada há menos de {min_days} dias")
                 continue
 
-            if quote == "USDC":
-                usdc_symbols.add(sym)
-                usdc_bases.add(sym.replace("USDC", "").replace("1000", ""))
-            else:
-                usdt_symbols.add(sym)
+            usdc_symbols.add(sym)
 
+            # Precisão de quantidade (LOT_SIZE stepSize)
             for f in s.get("filters", []):
-                ftype = f.get("filterType")
-                if ftype == "LOT_SIZE":
+                if f.get("filterType") == "LOT_SIZE":
                     step = f.get("stepSize", "1")
-                    dec = len(step.rstrip("0").split(".")[1]) if "." in step else 0
-                    qty_map[sym] = dec
-                elif ftype == "PRICE_FILTER":
-                    tick = f.get("tickSize", "0.01")
-                    dec = len(tick.rstrip("0").split(".")[1]) if "." in tick else 0
-                    price_map[sym] = dec
+                    decimals = len(step.rstrip("0").split(".")[1]) if "." in step else 0
+                    precision_map[sym] = decimals
+                    break
 
         tickers = requests.get(f"{BASE_URL}/fapi/v1/ticker/24hr", timeout=10).json()
         candidatos = []
         for t in tickers:
             sym  = t.get("symbol", "")
-            is_usdc = sym in usdc_symbols
-            is_usdt = sym in usdt_symbols
-
-            if not (is_usdc or is_usdt):
+            if sym not in usdc_symbols:
                 continue
-
-            base = sym.replace("USDC", "").replace("USDT", "").replace("1000", "")
+            base = sym.replace("USDC", "").replace("1000", "")
             if base in STABLES or any(ex in base for ex in EXCLUIR):
                 continue
-
-            # USDT-M só entra se não existir equivalente USDC-M
-            if is_usdt and base in usdc_bases:
-                continue
-
             try:
                 candidatos.append((sym, float(t.get("quoteVolume", 0))))
             except Exception:
                 continue
 
         candidatos.sort(key=lambda x: x[1], reverse=True)
-        resultado  = [s for s, _ in candidatos[:n]]
-        n_usdc     = sum(1 for s in resultado if s.endswith("USDC"))
-        n_usdt     = sum(1 for s in resultado if s.endswith("USDT"))
-        print(f"[v8] Top {n} futuros (mín. {min_days} dias): {n_usdc} USDC-M + {n_usdt} USDT-M")
-        print(f"[v8] Pares: {resultado}")
-        return resultado, qty_map, price_map
+        resultado = [s for s, _ in candidatos[:n]]
+        excluidas  = len(candidatos) - len(resultado)
+        print(f"[v8] Top {n} USDC-M (mín. {min_days} dias): {resultado}")
+        if excluidas > 0:
+            print(f"[v8] {excluidas} pares com volume mas excluídos (< {min_days} dias)")
+        return resultado, precision_map
 
     except Exception as e:
         print(f"[AVISO] get_top_futures_symbols falhou: {e} — usando lista estática")
-        return [], {}, {}
+        return [], {}
 
 
 def cancel_order(symbol: str, order_id) -> bool:
