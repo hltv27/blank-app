@@ -183,8 +183,10 @@ def run():
                 if symbol not in mem.get("trades_abertos", {}):
                     # Verifica se o bot iniciou esta ordem (marcador pending_sync)
                     pending = mem.get("pending_sync", {})
+                    already_external = symbol in mem.get("posicoes_externas", {})
                     is_bot_orphan = (symbol in pending and
-                                     time.time() - pending[symbol] < 300)  # < 5 min
+                                     time.time() - pending[symbol] < 300  # < 5 min
+                                     and not already_external)
 
                     if is_bot_orphan and symbol in SYMBOLS:
                         # Posição órfã do bot (ordem enviada mas memória não guardada)

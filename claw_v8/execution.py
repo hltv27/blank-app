@@ -158,6 +158,11 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     set_leverage(symbol)
     side  = "BUY" if direction == "LONG" else "SELL"
 
+    # Bloqueia se já existe posição neste símbolo (bot ou manual) — nunca adoptar posição do utilizador
+    if symbol in mem.get("trades_abertos", {}) or symbol in mem.get("posicoes_externas", {}):
+        print(f"[VETO] {symbol}: posição já existe — sem entrada")
+        return
+
     # Marca o símbolo como "ordem em curso" — sync usa isto para distinguir bot de manual
     mem.setdefault("pending_sync", {})[symbol] = time.time()
     save_memory(mem)

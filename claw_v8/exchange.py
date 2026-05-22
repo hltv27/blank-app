@@ -239,9 +239,6 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
     try:
         decimals = SYMBOL_PRECISION.get(symbol, 4)
-        # Binance migrou ordens condicionais para /fapi/v1/algoOrder (Dez 2025)
-        # closePosition=true: compatível com conta EU/BNFCR (reduceOnly não suportado)
-        # O chamador deve cancelar qualquer stop anterior antes de invocar esta função
         params = {
             "symbol":        symbol,
             "side":          side,
@@ -250,15 +247,25 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
             "stopPrice":     f"{stop_price:.{decimals}f}",
             "closePosition": "true",
         }
+        signed = _sign(params)
+        # Binance /fapi/v1/algoOrder aceita params no body (POST) ou na query string
+        # Testamos as duas formas para compatibilidade máxima
         r = requests.post(
             f"{BASE_URL}/fapi/v1/algoOrder",
-            params=_sign(params), headers=_headers(), timeout=10
+            data=signed, headers=_headers(), timeout=10
         )
         data = r.json()
+        if data.get("code") == -1102 and "algotype" in str(data.get("msg", "")).lower():
+            # Fallback: Binance pode exigir query string em vez de body
+            r = requests.post(
+                f"{BASE_URL}/fapi/v1/algoOrder",
+                params=_sign(params), headers=_headers(), timeout=10
+            )
+            data = r.json()
         if _is_timestamp_error(data):
             sync_time()
             r = requests.post(f"{BASE_URL}/fapi/v1/algoOrder",
-                              params=_sign(params), headers=_headers(), timeout=10)
+                              data=_sign(params), headers=_headers(), timeout=10)
             data = r.json()
         if "algoId" in data:
             return data["algoId"]
