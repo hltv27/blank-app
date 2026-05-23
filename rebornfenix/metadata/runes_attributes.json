@@ -1,0 +1,495 @@
+{
+  "collection": {
+    "name": "REBORNFENIX",
+    "symbol": "RBFX",
+    "supply": 22222,
+    "description": "22,222 Viking warriors forged in the fires of Ragnarök — fathers, fighters, and survivors who stared into the abyss and refused to break. Where Norse cosmology meets the unbreakable spirit of those who trade darkness for dawn.",
+    "lore": "In the age before the final battle, Odin sacrificed his eye for wisdom. A father sacrificed his certainty for love. Both learned the same truth: that true power is not the absence of loss — it is the refusal to be defined by it. The REBORNFENIX are those souls. Warriors who carried their fallen sons through Niflheim, who held the line at Valhalla's gates when lesser men ran. They are not perfect. They are reborn.",
+    "lore_pt": "Na era antes da batalha final, Odin sacrificou o seu olho pela sabedoria. Um pai sacrificou a sua certeza pelo amor. Ambos aprenderam a mesma verdade: que o verdadeiro poder não é a ausência da perda — é a recusa em ser definido por ela. Os REBORNFENIX são essas almas. Guerreiros que carregaram os seus filhos caídos através de Niflheim, que seguraram a linha às portas de Valhalla quando homens mais fracos fugiram. Não são perfeitos. São renascidos."
+  },
+
+  "rarity_tiers": [
+    {
+      "name": "Legendary",
+      "percentage": 1.0,
+      "count": 222,
+      "description": "The chosen of the Allfather. Warriors whose names echo across the Nine Realms.",
+      "description_pt": "Os escolhidos do Pai de Todos. Guerreiros cujos nomes ecoam pelos Nove Reinos."
+    },
+    {
+      "name": "Epic",
+      "percentage": 5.0,
+      "count": 1111,
+      "description": "Einherjar of the highest order. Odin's ravens carry their deeds to Asgard.",
+      "description_pt": "Einherjar da mais alta ordem. Os corvos de Odin carregam os seus feitos para Asgard."
+    },
+    {
+      "name": "Rare",
+      "percentage": 15.0,
+      "count": 3333,
+      "description": "Shield-brothers proven in battle. The skalds write sagas in their honor.",
+      "description_pt": "Irmãos de escudo provados em batalha. Os skalds escrevem sagas em sua honra."
+    },
+    {
+      "name": "Uncommon",
+      "percentage": 30.0,
+      "count": 6667,
+      "description": "Seasoned warriors who carry scars like trophies. Each wound a lesson learned.",
+      "description_pt": "Guerreiros experientes que carregam cicatrizes como troféus. Cada ferida uma lição aprendida."
+    },
+    {
+      "name": "Common",
+      "percentage": 49.0,
+      "count": 10889,
+      "description": "The backbone of the warband. Without them, no shield wall holds.",
+      "description_pt": "A espinha dorsal da banda de guerra. Sem eles, nenhuma parede de escudos aguenta."
+    }
+  ],
+
+  "elder_futhark_runes": [
+    {
+      "id": 1,
+      "symbol": "ᚠ",
+      "name": "Fehu",
+      "transliteration": "F",
+      "meaning": "Cattle, Wealth, Prosperity",
+      "meaning_pt": "Gado, Riqueza, Prosperidade",
+      "power": "The rune of earned wealth and fulfilled ambition. Fehu does not promise riches — it promises the power to build them from nothing. Those who bear Fehu understand that true wealth is not counted in gold, but in the lives they have touched and the legacies they will leave.",
+      "power_pt": "A runa da riqueza conquistada e da ambição cumprida. Fehu não promete riquezas — promete o poder de as construir do nada. Os que carregam Fehu entendem que a verdadeira riqueza não se conta em ouro, mas nas vidas que tocaram e nos legados que deixarão.",
+      "trading_wisdom": "Capital flows to those who respect it. Never risk what you cannot afford to rebuild.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 2,
+      "symbol": "ᚢ",
+      "name": "Uruz",
+      "transliteration": "U",
+      "meaning": "Aurochs, Strength, Vitality",
+      "meaning_pt": "Auroque, Força, Vitalidade",
+      "power": "The primal strength of the wild aurochs — untameable, unstoppable. Uruz grants its bearer the raw endurance to outlast any storm. When the market bleeds and lesser traders flee, the Uruz warrior stands firm, breathing slow, roots deep in the earth of their conviction.",
+      "power_pt": "A força primordial do auroque selvagem — indomável, imparável. Uruz concede ao portador a resistência bruta para sobreviver a qualquer tempestade. Quando o mercado sangra e traders mais fracos fogem, o guerreiro Uruz mantém-se firme, respirando devagar, raízes fincadas na terra das suas convicções.",
+      "trading_wisdom": "Volatility is not your enemy. It is the proving ground.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 3,
+      "symbol": "ᚦ",
+      "name": "Thurisaz",
+      "transliteration": "TH",
+      "meaning": "Giant, Thorn, Chaos",
+      "meaning_pt": "Gigante, Espinho, Caos",
+      "power": "The thorn that draws blood from the unaware. Thurisaz is the force of chaos turned to purpose — the trader who sees through market manipulation and turns the giant's own momentum against it. A destructive force, yes. But destruction precedes creation.",
+      "power_pt": "O espinho que tira sangue dos desatentos. Thurisaz é a força do caos transformada em propósito — o trader que vê através da manipulação do mercado e usa o próprio momentum do gigante contra ele. Uma força destrutiva, sim. Mas a destruição precede a criação.",
+      "trading_wisdom": "Chaos is the market's natural state. Learn its rhythm before you try to profit from it.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 4,
+      "symbol": "ᚨ",
+      "name": "Ansuz",
+      "transliteration": "A",
+      "meaning": "Odin, Wisdom, Breath of Life",
+      "meaning_pt": "Odin, Sabedoria, Sopro da Vida",
+      "power": "The rune of the Allfather himself — divine inspiration, pattern recognition, and the gift of seeing what others cannot. Those marked by Ansuz hear whispers in the data that others call noise. They find signal in chaos. They speak, and the market listens.",
+      "power_pt": "A runa do próprio Pai de Todos — inspiração divina, reconhecimento de padrões e o dom de ver o que outros não conseguem. Os marcados por Ansuz ouvem sussurros nos dados que outros chamam ruído. Encontram sinal no caos. Falam, e o mercado escuta.",
+      "trading_wisdom": "Read the signs. Odin gave his eye for wisdom — what are you willing to sacrifice?",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 5,
+      "symbol": "ᚱ",
+      "name": "Raidho",
+      "transliteration": "R",
+      "meaning": "Riding, Journey, Right Action",
+      "meaning_pt": "Cavalgar, Jornada, Ação Certa",
+      "power": "The rune of the sacred journey and the discipline of right action. Raidho teaches that every position is a journey — not just a destination. The Raidho warrior doesn't just pick entries; they plan the entire ride, from the first tick to the final close.",
+      "power_pt": "A runa da jornada sagrada e da disciplina da ação certa. Raidho ensina que cada posição é uma jornada — não apenas um destino. O guerreiro Raidho não escolhe apenas entradas; planeia toda a viagem, do primeiro tick ao fecho final.",
+      "trading_wisdom": "The journey is the trade. Plan the ride before you mount.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 6,
+      "symbol": "ᚲ",
+      "name": "Kenaz",
+      "transliteration": "K/C",
+      "meaning": "Torch, Knowledge, Inner Fire",
+      "meaning_pt": "Tocha, Conhecimento, Fogo Interior",
+      "power": "The torch that illuminates the path through darkness. Kenaz is the fire of understanding — technical mastery married to emotional clarity. When every candle chart looks like fog, the Kenaz warrior lights their own torch and reads the market by their own light.",
+      "power_pt": "A tocha que ilumina o caminho através da escuridão. Kenaz é o fogo da compreensão — mestria técnica casada com clareza emocional. Quando cada gráfico de velas parece névoa, o guerreiro Kenaz acende a sua própria tocha e lê o mercado pela sua própria luz.",
+      "trading_wisdom": "Illuminate before you act. Every great trade begins with a moment of clarity.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 7,
+      "symbol": "ᚷ",
+      "name": "Gebo",
+      "transliteration": "G",
+      "meaning": "Gift, Exchange, Partnership",
+      "meaning_pt": "Presente, Troca, Parceria",
+      "power": "The rune of sacred exchange — the understanding that all value flows between givers and receivers. Gebo warriors understand market dynamics at a cellular level: for every buyer a seller, for every fear a greed. They position themselves at the nexus of exchange.",
+      "power_pt": "A runa da troca sagrada — a compreensão de que todo o valor flui entre dadores e recebedores. Os guerreiros Gebo entendem a dinâmica do mercado a nível celular: para cada comprador um vendedor, para cada medo uma ganância. Posicionam-se no nexo da troca.",
+      "trading_wisdom": "The market is always a gift exchange. Know what you give and what you receive.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 8,
+      "symbol": "ᚹ",
+      "name": "Wunjo",
+      "transliteration": "W/V",
+      "meaning": "Joy, Harmony, Fellowship",
+      "meaning_pt": "Alegria, Harmonia, Companheirismo",
+      "power": "The rune of earned joy — not the shallow happiness of a lucky trade, but the deep satisfaction of a system perfected over years. Wunjo warriors don't chase excitement; they cultivate mastery, and in that mastery find a joy that no loss can permanently extinguish.",
+      "power_pt": "A runa da alegria conquistada — não a felicidade superficial de um trade afortunado, mas a satisfação profunda de um sistema aperfeiçoado ao longo de anos. Os guerreiros Wunjo não perseguem excitação; cultivam a mestria, e nessa mestria encontram uma alegria que nenhuma perda pode extinguir permanentemente.",
+      "trading_wisdom": "True joy comes from the process, not the profit.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 9,
+      "symbol": "ᚺ",
+      "name": "Hagalaz",
+      "transliteration": "H",
+      "meaning": "Hail, Disruption, Transformation",
+      "meaning_pt": "Granizo, Ruptura, Transformação",
+      "power": "The hailstorm that destroys crops and clears the field for new growth. Hagalaz is the rune of the market crash, the margin call, the devastating loss — and the extraordinary rebirth that follows. Those who bear this rune have already survived their worst day.",
+      "power_pt": "A tempestade de granizo que destrói colheitas e limpa o campo para novo crescimento. Hagalaz é a runa da queda do mercado, da chamada de margem, da perda devastadora — e do renascimento extraordinário que se segue. Os que carregam esta runa já sobreviveram ao seu pior dia.",
+      "trading_wisdom": "Every wipeout carries the seed of your greatest lesson. Let it teach you.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 10,
+      "symbol": "ᚾ",
+      "name": "Nauthiz",
+      "transliteration": "N",
+      "meaning": "Need, Necessity, Constraint",
+      "meaning_pt": "Necessidade, Constrangimento, Carência",
+      "power": "The rune of the fire-bow — the friction that creates the spark. Nauthiz warriors know scarcity intimately; they have traded from necessity, not luxury. This forge of constraint has made them harder than those who learned in comfort. Need is their teacher. Survival is their credential.",
+      "power_pt": "A runa do arco de fogo — o atrito que cria a faísca. Os guerreiros Nauthiz conhecem bem a escassez; negociaram por necessidade, não por luxo. Esta forja do constrangimento tornou-os mais duros do que aqueles que aprenderam no conforto. A necessidade é o seu mestre. A sobrevivência é a sua credencial.",
+      "trading_wisdom": "Necessity sharpens the blade of your discipline.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 11,
+      "symbol": "ᛁ",
+      "name": "Isa",
+      "transliteration": "I",
+      "meaning": "Ice, Stillness, Clarity",
+      "meaning_pt": "Gelo, Quietude, Clareza",
+      "power": "The perfect stillness of ice — crystalline, unmoving, impossibly clear. In a world of noise and FOMO, the Isa warrior goes cold. They freeze their emotions, see through the fog of their own desires, and wait. And wait. Until the perfect moment reveals itself like a crack in the ice.",
+      "power_pt": "A quietude perfeita do gelo — cristalina, imóvel, impossivelmente clara. Num mundo de ruído e FOMO, o guerreiro Isa esfria. Congela as suas emoções, vê através da névoa dos seus próprios desejos, e espera. E espera. Até que o momento perfeito se revele como uma fissura no gelo.",
+      "trading_wisdom": "Be ice. Cold, clear, patient. The market cannot manipulate what does not move.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 12,
+      "symbol": "ᛃ",
+      "name": "Jera",
+      "transliteration": "J/Y",
+      "meaning": "Year, Harvest, Cycles",
+      "meaning_pt": "Ano, Colheita, Ciclos",
+      "power": "The eternal turning of seasons — the rune that understands market cycles in their deepest rhythm. Jera warriors know that every bear market ends, that every bull market peaks, and that the wisest traders plant seeds in winter to harvest in spring. Time is their greatest ally.",
+      "power_pt": "A rotação eterna das estações — a runa que compreende os ciclos do mercado no seu ritmo mais profundo. Os guerreiros Jera sabem que cada mercado baixista termina, que cada mercado altista atinge o pico, e que os traders mais sábios plantam sementes no inverno para colher na primavera. O tempo é o seu maior aliado.",
+      "trading_wisdom": "Read the macro cycle before you read the candle.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 13,
+      "symbol": "ᛇ",
+      "name": "Eihwaz",
+      "transliteration": "EI",
+      "meaning": "Yew Tree, Death and Rebirth, Endurance",
+      "meaning_pt": "Teixo, Morte e Renascimento, Resistência",
+      "power": "The yew tree — evergreen even in death, poisonous and life-giving in the same breath. Eihwaz stands at the axis between life and death, between total loss and transformation. Warriors marked by this rune have died financially and spiritually, and returned carrying the cold fire of someone who knows the worst and chose to live anyway.",
+      "power_pt": "O teixo — sempre verde mesmo na morte, venenoso e dador de vida no mesmo sopro. Eihwaz situa-se no eixo entre vida e morte, entre perda total e transformação. Guerreiros marcados por esta runa morreram financeiramente e espiritualmente, e regressaram carregando o fogo frio de alguém que conhece o pior e escolheu viver de qualquer forma.",
+      "trading_wisdom": "You have already survived your worst trade. That is your greatest strength.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 14,
+      "symbol": "ᛈ",
+      "name": "Perthro",
+      "transliteration": "P",
+      "meaning": "Lot Cup, Fate, Mystery",
+      "meaning_pt": "Copa do Destino, Fado, Mistério",
+      "power": "The mystery of the casting cup — probability, fate, and the unknowable dance between them. Perthro warriors are the probabilistic thinkers of the warband. They do not predict; they calculate. They don't trade certainties; they trade edges. They are comfortable with not knowing — because in that uncertainty lives their edge.",
+      "power_pt": "O mistério da copa do destino — probabilidade, fado e a dança incognoscível entre eles. Os guerreiros Perthro são os pensadores probabilísticos da banda de guerra. Não prevêem; calculam. Não negociam certezas; negociam vantagens. Sentem-se confortáveis com o não saber — porque nessa incerteza vive a sua vantagem.",
+      "trading_wisdom": "Trade probabilities, not predictions. The cup knows only odds.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 15,
+      "symbol": "ᛉ",
+      "name": "Algiz",
+      "transliteration": "Z/R",
+      "meaning": "Elk, Protection, Defense",
+      "meaning_pt": "Alce, Proteção, Defesa",
+      "power": "The raised antlers of the elk — the universal gesture of sacred protection. Algiz is the stop-loss of the Norse cosmos: it does not prevent battle, but it ensures you survive it. Every Algiz warrior knows their maximum exposure before they enter the trade. Risk management is not cowardice. It is wisdom.",
+      "power_pt": "As hastes erguidas do alce — o gesto universal de proteção sagrada. Algiz é o stop-loss do cosmos nórdico: não previne a batalha, mas garante que a sobrevives. Cada guerreiro Algiz conhece a sua exposição máxima antes de entrar no trade. A gestão de risco não é cobardia. É sabedoria.",
+      "trading_wisdom": "Protect your capital as you would protect your kin. Without it, there is no tomorrow.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 16,
+      "symbol": "ᛊ",
+      "name": "Sowilo",
+      "transliteration": "S",
+      "meaning": "Sun, Victory, Life Force",
+      "meaning_pt": "Sol, Vitória, Força Vital",
+      "power": "The solar wheel spinning at full power — unstoppable momentum, clarifying light, the force of a thousand winning trades aligned into a single directed beam. Sowilo warriors don't wait for confirmation; they ARE the signal. Their winning streaks become legend because they understand momentum and surrender to it completely.",
+      "power_pt": "A roda solar girando a plena potência — momentum imparável, luz clarificadora, a força de mil trades vencedores alinhados num único raio direcionado. Os guerreiros Sowilo não esperam confirmação; ELES SÃO o sinal. As suas sequências vencedoras tornam-se lenda porque entendem o momentum e a ele se rendem completamente.",
+      "trading_wisdom": "When the momentum is yours, ride the sun. Do not second-guess the light.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 17,
+      "symbol": "ᛏ",
+      "name": "Tiwaz",
+      "transliteration": "T",
+      "meaning": "Tyr, Justice, Sacrifice",
+      "meaning_pt": "Tyr, Justiça, Sacrifício",
+      "power": "Tyr, who placed his hand in the wolf's mouth for the safety of all. The rune of sacred sacrifice and perfect justice. Tiwaz warriors cut their losses without ego. They close the losing trade with the same calm they used to open it. They sacrifice the battle to win the war. A hand for Fenrir. A loss for the system.",
+      "power_pt": "Tyr, que colocou a mão na boca do lobo pela segurança de todos. A runa do sacrifício sagrado e da justiça perfeita. Os guerreiros Tiwaz cortam as suas perdas sem ego. Fecham o trade perdedor com a mesma calma que usaram para abri-lo. Sacrificam a batalha para ganhar a guerra. Uma mão para Fenrir. Uma perda para o sistema.",
+      "trading_wisdom": "Justice demands you honor your stop. Close it clean. Move on.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 18,
+      "symbol": "ᛒ",
+      "name": "Berkano",
+      "transliteration": "B",
+      "meaning": "Birch Tree, Growth, Renewal",
+      "meaning_pt": "Bétula, Crescimento, Renovação",
+      "power": "The birch tree that bends in the storm and springs back stronger. Berkano is the rune of the parent-warrior — the one who fights not for themselves, but so their child can have a different life. This rune knows that the deepest growth happens not in victory, but in the patient tending of something fragile and precious.",
+      "power_pt": "A bétula que se dobra na tempestade e regressa mais forte. Berkano é a runa do guerreiro-pai — o que luta não para si, mas para que o seu filho possa ter uma vida diferente. Esta runa sabe que o crescimento mais profundo não acontece na vitória, mas no cuidado paciente de algo frágil e precioso.",
+      "trading_wisdom": "Trade for something greater than profit. Purpose amplifies discipline.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 19,
+      "symbol": "ᛖ",
+      "name": "Ehwaz",
+      "transliteration": "E",
+      "meaning": "Horse, Movement, Partnership",
+      "meaning_pt": "Cavalo, Movimento, Parceria",
+      "power": "The sacred bond between horse and rider — mutual trust that creates something faster than either alone. Ehwaz is the rune of the algorithmic trader: the human mind and the systematic strategy working in perfect partnership. Neither one dominates. Together, they cross terrain that neither could traverse alone.",
+      "power_pt": "O vínculo sagrado entre cavalo e cavaleiro — confiança mútua que cria algo mais rápido do que qualquer um isolado. Ehwaz é a runa do trader algorítmico: a mente humana e a estratégia sistemática trabalhando em parceria perfeita. Nenhum domina. Juntos, atravessam terreno que nenhum poderia percorrer sozinho.",
+      "trading_wisdom": "Trust your system as you trust your horse. Micromanagement kills both.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 20,
+      "symbol": "ᛗ",
+      "name": "Mannaz",
+      "transliteration": "M",
+      "meaning": "Mankind, Self, Intelligence",
+      "meaning_pt": "Humanidade, Ego, Inteligência",
+      "power": "The rune of the evolved human — self-aware, reflective, capable of learning from failure in ways that no other creature can. Mannaz warriors are not embarrassed by their losses; they study them. They journal, they backtest, they face their own psychological patterns with the courage of a warrior facing a berserker.",
+      "power_pt": "A runa do humano evoluído — consciente de si, reflexivo, capaz de aprender com o fracasso de formas que nenhuma outra criatura consegue. Os guerreiros Mannaz não se envergonham das suas perdas; estudam-nas. Fazem jornais, backtestam, enfrentam os seus próprios padrões psicológicos com a coragem de um guerreiro a enfrentar um berserker.",
+      "trading_wisdom": "Know thyself. Your psychology is the final boss.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 21,
+      "symbol": "ᛚ",
+      "name": "Laguz",
+      "transliteration": "L",
+      "meaning": "Lake, Water, Flow",
+      "meaning_pt": "Lago, Água, Fluxo",
+      "power": "Water that takes the shape of any container yet never loses its essential nature. Laguz warriors are adaptable — they flow around obstacles, fill the spaces others miss, and maintain their depth even in shallow markets. They are not rigid. They read the flow of the market and become it.",
+      "power_pt": "Água que toma a forma de qualquer recipiente mas nunca perde a sua natureza essencial. Os guerreiros Laguz são adaptáveis — fluem em torno dos obstáculos, preenchem os espaços que outros perdem, e mantêm a sua profundidade mesmo em mercados rasos. Não são rígidos. Leem o fluxo do mercado e tornam-se ele.",
+      "trading_wisdom": "Flow with the market structure. Fighting the current is how traders drown.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 22,
+      "symbol": "ᛜ",
+      "name": "Ingwaz",
+      "transliteration": "NG",
+      "meaning": "Ing, Fertility, Gestation",
+      "meaning_pt": "Ing, Fertilidade, Gestação",
+      "power": "The seed-force that completes its cycle and releases — the energy of the trade that has been set, managed perfectly, and allowed to close at its peak. Ingwaz warriors master exits. They don't overstay. They know that a trade closed at 80% of its potential beats one held for 100% and given back to 50%.",
+      "power_pt": "A força semente que completa o seu ciclo e liberta — a energia do trade que foi estabelecido, gerido perfeitamente e permitido a fechar no seu pico. Os guerreiros Ingwaz dominam as saídas. Não ficam demasiado tempo. Sabem que um trade fechado a 80% do seu potencial supera aquele mantido por 100% e devolvido a 50%.",
+      "trading_wisdom": "Know when the cycle is complete. Exit clean, exit whole.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 23,
+      "symbol": "ᛞ",
+      "name": "Dagaz",
+      "transliteration": "D",
+      "meaning": "Dawn, Breakthrough, Transformation",
+      "meaning_pt": "Amanhecer, Avanço Decisivo, Transformação",
+      "power": "The moment between night and day — the sacred threshold where everything changes in an instant. Dagaz is the rune of the breakthrough: the 3 AM insight that rewrites your strategy, the trade that turns the losing month positive, the dawn that follows the longest night. Those who bear Dagaz know that after total darkness comes absolute clarity.",
+      "power_pt": "O momento entre a noite e o dia — o limiar sagrado onde tudo muda num instante. Dagaz é a runa do avanço decisivo: o insight das 3 da manhã que reescreve a sua estratégia, o trade que transforma o mês de perdas em positivo, o amanhecer que segue a noite mais longa. Os que carregam Dagaz sabem que após a escuridão total vem a clareza absoluta.",
+      "trading_wisdom": "Every losing streak has a dawn. Hold on until you see it.",
+      "rarity_weight": 4.2
+    },
+    {
+      "id": 24,
+      "symbol": "ᛟ",
+      "name": "Othala",
+      "transliteration": "O",
+      "meaning": "Heritage, Home, Legacy",
+      "meaning_pt": "Herança, Lar, Legado",
+      "power": "The ancestral estate — what we build for those who come after us. Othala is the father rune, the legacy rune, the rune carved into the lintel of every great family's hall. Othala warriors do not trade for themselves. They trade for the child who will never have to start from nothing. Every pip gained is a brick in that hall.",
+      "power_pt": "A propriedade ancestral — o que construímos para os que vêm depois de nós. Othala é a runa do pai, a runa do legado, a runa entalhada na verga de cada grande família. Os guerreiros Othala não negociam para si mesmos. Negociam pelo filho que nunca terá de começar do nada. Cada pip ganho é um tijolo nessa sala.",
+      "trading_wisdom": "Build wealth as if your children's children are watching. They are.",
+      "rarity_weight": 4.2
+    }
+  ],
+
+  "background_types": [
+    {
+      "name": "Cosmic Void",
+      "rarity_percentage": 5.0,
+      "description": "The infinite darkness between the stars of Asgard — where the Allfather watches from Hlidskjalf and sees all nine realms simultaneously. A warrior who walks the Void has gazed into nothingness and found purpose.",
+      "description_pt": "A escuridão infinita entre as estrelas de Asgard — onde o Pai de Todos vigia de Hlidskjalf e vê os nove reinos simultaneamente. Um guerreiro que percorre o Vazio olhou para o nada e encontrou um propósito.",
+      "visual_palette": ["#000000", "#0a0a1a", "#1a0033", "#000814"]
+    },
+    {
+      "name": "Burning Asgard",
+      "rarity_percentage": 10.0,
+      "description": "Ragnarök is not a myth — it is a market condition. The burning walls of Asgard represent the moment everything the warrior built is tested by fire. What survives the flame is real. What burns was always hollow.",
+      "description_pt": "Ragnarök não é um mito — é uma condição de mercado. As paredes ardentes de Asgard representam o momento em que tudo o que o guerreiro construiu é testado pelo fogo. O que sobrevive à chama é real. O que arde sempre foi oco.",
+      "visual_palette": ["#FF4500", "#FF6B00", "#FFD700", "#8B0000"]
+    },
+    {
+      "name": "Frozen Niflheim",
+      "rarity_percentage": 20.0,
+      "description": "The primordial realm of ice and mist where the rivers of Élivágar freeze all ambition. To train in Niflheim is to learn discipline beyond all comfort. The warrior who survives the cold is ready for any storm.",
+      "description_pt": "O reino primordial do gelo e da névoa onde os rios de Élivágar congelam toda a ambição. Treinar em Niflheim é aprender disciplina além de qualquer conforto. O guerreiro que sobrevive ao frio está pronto para qualquer tempestade.",
+      "visual_palette": ["#E0FFFF", "#B0C4DE", "#4169E1", "#191970"]
+    },
+    {
+      "name": "Valhalla Gates",
+      "rarity_percentage": 25.0,
+      "description": "The golden halls where the worthy feast with the Allfather — not as a final reward, but as training ground for the ultimate battle. Every warrior here has died once and chosen to return. Valhalla is not paradise; it is preparation.",
+      "description_pt": "Os salões dourados onde os dignos festejam com o Pai de Todos — não como recompensa final, mas como campo de treino para a batalha suprema. Cada guerreiro aqui morreu uma vez e escolheu regressar. Valhalla não é o paraíso; é preparação.",
+      "visual_palette": ["#FFD700", "#FFF8DC", "#B8860B", "#DAA520"]
+    },
+    {
+      "name": "Matrix Rain",
+      "rarity_percentage": 40.0,
+      "description": "The Norse digital realm where ancient rune-wisdom meets modern market data. In this realm, candlestick charts ARE runes, order books ARE völva prophecies, and the algo-warrior reads both the ancient and the new with equal mastery.",
+      "description_pt": "O reino digital nórdico onde a antiga sabedoria rúnica encontra dados modernos do mercado. Neste reino, os gráficos de velas SÃO runas, os livros de ordens SÃO profecias de völva, e o guerreiro-algoritmo lê tanto o antigo como o novo com mestria igual.",
+      "visual_palette": ["#00FF00", "#003300", "#001100", "#00AA00"]
+    }
+  ],
+
+  "warrior_classes": [
+    {
+      "name": "Berserker",
+      "rarity_percentage": 8.0,
+      "description": "The bear-shirt warriors who channel Odin's battle madness into pure, focused fury. In markets, the Berserker is the high-conviction trader — all in on strong signals, position-sized to their maximum tolerance. Terrifying in momentum, they must learn when to sheathe the fury.",
+      "description_pt": "Os guerreiros da pele de urso que canalizam a loucura de batalha de Odin em fúria pura e focada. Nos mercados, o Berserker é o trader de alta convicção — totalmente comprometido em sinais fortes, dimensionado para a sua tolerância máxima. Aterrorizantes no momentum, têm de aprender quando guardar a fúria.",
+      "primary_stat": "Conviction",
+      "trading_style": "High-conviction momentum"
+    },
+    {
+      "name": "Skald",
+      "rarity_percentage": 12.0,
+      "description": "The poet-warriors who carry the stories of battles won and lost. Skalds are the journalers, the bloggers, the community builders of the trading world. They transform personal loss into collective wisdom, and in doing so, build the strongest possible edge: the community.",
+      "description_pt": "Os guerreiros-poetas que carregam as histórias de batalhas ganhas e perdidas. Os Skalds são os jornalistas, os bloggers, os construtores de comunidades do mundo do trading. Transformam a perda pessoal em sabedoria coletiva, e ao fazê-lo, constroem a vantagem mais forte possível: a comunidade.",
+      "primary_stat": "Wisdom",
+      "trading_style": "Systematic documentation and community"
+    },
+    {
+      "name": "Völva",
+      "rarity_percentage": 10.0,
+      "description": "The seeresses who travel between worlds, reading futures in the threads of fate. Völva traders are the quants — they see market patterns others cannot, run Monte Carlo simulations like shamanic rituals, and treat their backtesting as sacred divination.",
+      "description_pt": "As videntes que viajam entre mundos, lendo futuros nos fios do destino. Os traders Völva são os quants — veem padrões de mercado que outros não conseguem, executam simulações Monte Carlo como rituais xamânicos, e tratam o seu backtesting como divinhação sagrada.",
+      "primary_stat": "Foresight",
+      "trading_style": "Quantitative and systematic"
+    },
+    {
+      "name": "Jarl",
+      "rarity_percentage": 15.0,
+      "description": "The chieftains who lead not by shouting loudest, but by building the strongest systems and the most loyal teams. Jarl traders are fund managers, community leaders, signal providers — those whose discipline inspires and whose record speaks for itself.",
+      "description_pt": "Os chefes que lideram não gritando mais alto, mas construindo os sistemas mais fortes e as equipas mais leais. Os traders Jarl são gestores de fundos, líderes de comunidade, fornecedores de sinais — aqueles cuja disciplina inspira e cujo registo fala por si.",
+      "primary_stat": "Leadership",
+      "trading_style": "Portfolio management and leadership"
+    },
+    {
+      "name": "Einherjar",
+      "rarity_percentage": 25.0,
+      "description": "Odin's chosen warriors — the ones who died in battle and were deemed worthy to train in Valhalla for Ragnarök. Einherjar traders have had their accounts wiped, faced the abyss, and clawed back. They trade with the calm certainty of someone who has nothing left to fear.",
+      "description_pt": "Os guerreiros escolhidos de Odin — os que morreram em batalha e foram considerados dignos de treinar em Valhalla para Ragnarök. Os traders Einherjar tiveram as suas contas dizimadas, enfrentaram o abismo e regressaram. Negociam com a calma certeza de alguém que não tem nada mais a temer.",
+      "primary_stat": "Resilience",
+      "trading_style": "Recovery and systematic rebuilding"
+    },
+    {
+      "name": "Fenrir Guard",
+      "rarity_percentage": 30.0,
+      "description": "The wardens who stand watch over Fenrir's chains — knowing that one day the wolf will break free, and their discipline is all that stands between order and chaos. These traders are the risk managers, the position sizers, the ones who keep the warband alive when Ragnarök comes.",
+      "description_pt": "Os guardiões que vigiam as correntes de Fenrir — sabendo que um dia o lobo se libertará, e a sua disciplina é tudo o que está entre a ordem e o caos. Estes traders são os gestores de risco, os dimensionadores de posição, os que mantêm a banda de guerra viva quando Ragnarök chega.",
+      "primary_stat": "Discipline",
+      "trading_style": "Risk management and defense"
+    }
+  ],
+
+  "aura_colors": [
+    {
+      "name": "Obsidian",
+      "hex": "#1a1a2e",
+      "meaning": "The void before the beginning. Obsidian warriors carry the darkness of Niflheim, transformed into impenetrable calm. They cannot be rattled because they have already been shattered.",
+      "meaning_pt": "O vazio antes do início. Os guerreiros Obsidian carregam a escuridão de Niflheim, transformada em calma impenetrável. Não podem ser abalados porque já foram despedaçados.",
+      "rarity_percentage": 20.0
+    },
+    {
+      "name": "Gold",
+      "hex": "#FFD700",
+      "meaning": "The light of Valhalla's mead halls. Gold warriors bear Odin's favor — not given, but earned through unwavering consistency. Their patience is measured in seasons, not sessions.",
+      "meaning_pt": "A luz das salas de hidromel de Valhalla. Os guerreiros Gold carregam o favor de Odin — não dado, mas conquistado através de consistência inabalável. A sua paciência é medida em estações, não em sessões.",
+      "rarity_percentage": 15.0
+    },
+    {
+      "name": "Crimson",
+      "hex": "#DC143C",
+      "meaning": "The blood price paid in a thousand losing trades, transformed into the war paint of the survivor. Crimson warriors have been blooded. They know the cost. They trade accordingly.",
+      "meaning_pt": "O preço de sangue pago em mil trades perdedores, transformado na tinta de guerra do sobrevivente. Os guerreiros Crimson foram batizados no sangue. Conhecem o custo. Negociam em conformidade.",
+      "rarity_percentage": 20.0
+    },
+    {
+      "name": "Arctic Blue",
+      "hex": "#00CED1",
+      "meaning": "The cold clarity of Niflheim's oldest ice — formed before time had a name, perfectly clear, seeing straight through the illusions of FOMO and panic. Arctic Blue warriors make decisions no emotion can reach.",
+      "meaning_pt": "A fria clareza do gelo mais antigo de Niflheim — formado antes de o tempo ter um nome, perfeitamente claro, vendo diretamente através das ilusões do FOMO e do pânico. Os guerreiros Arctic Blue tomam decisões que nenhuma emoção consegue alcançar.",
+      "rarity_percentage": 20.0
+    },
+    {
+      "name": "Void Purple",
+      "hex": "#4B0082",
+      "meaning": "The color of seiðr magic and the völva's cloak — the mystic hue of those who perceive market forces invisible to ordinary sight. Void Purple warriors see the manipulation before it manifests, feel the reversal before the wick appears.",
+      "meaning_pt": "A cor da magia seiðr e do manto da völva — a tonalidade mística dos que percebem forças de mercado invisíveis à visão comum. Os guerreiros Void Purple veem a manipulação antes de se manifestar, sentem a reversão antes de a mecha aparecer.",
+      "rarity_percentage": 15.0
+    },
+    {
+      "name": "Phoenix Fire",
+      "hex": "#FF4500",
+      "meaning": "The sacred fire of the REBORNFENIX — not the fire that burns, but the fire that transforms. This aura belongs only to those who rose from total financial ruin. It cannot be acquired. It can only be earned through surviving what would destroy most.",
+      "meaning_pt": "O fogo sagrado do REBORNFENIX — não o fogo que queima, mas o fogo que transforma. Esta aura pertence apenas àqueles que se ergueram da ruína financeira total. Não pode ser adquirida. Só pode ser conquistada sobrevivendo ao que destruiria a maioria.",
+      "rarity_percentage": 10.0
+    }
+  ],
+
+  "special_traits": [
+    {
+      "name": "Reborn",
+      "rarity_percentage": 0.1,
+      "estimated_count": 22,
+      "description": "The rarest and most sacred designation in the REBORNFENIX collection. 'Reborn' marks a warrior who has experienced catastrophic, civilization-ending financial loss — the kind that breaks most people permanently — and returned. Not merely recovered. Returned. Different. Harder. Wiser. These are the fathers who watched their life savings vanish. The traders who rebuilt from zero while simultaneously fighting personal battles that would make Ragnarök look manageable. They did not emerge unscathed. They emerged forged. The Reborn do not seek vengeance on the market. They seek mastery over themselves.",
+      "description_pt": "A designação mais rara e sagrada da coleção REBORNFENIX. 'Reborn' marca um guerreiro que experienciou perda financeira catastrófica, do tipo que destrói civilizações — o tipo que quebra a maioria das pessoas permanentemente — e regressou. Não apenas recuperou. Regressou. Diferente. Mais duro. Mais sábio. Estes são os pais que viram as suas poupanças de vida desaparecer. Os traders que reconstruíram do zero enquanto simultaneamente lutavam batalhas pessoais que fariam Ragnarök parecer gerível. Não emergiram ilesos. Emergiram forjados. Os Reborn não buscam vingança no mercado. Buscam mestria sobre si mesmos.",
+      "visual_marker": "Fractured gold crown above the warrior's head, with flame escaping the cracks",
+      "visual_marker_pt": "Coroa de ouro fraturada acima da cabeça do guerreiro, com chama a escapar pelas fissuras",
+      "lore": "In the age before the final winter, when Fenrir's howl shook the branches of Yggdrasil, there were those who chose to stand. Not because they had nothing to lose — they had already lost everything. They stood because they had discovered something stronger than having: the warrior's refusal to be defined by what was taken from them. These are the Reborn. Twenty-two among twenty-two thousand. One in a thousand. The rarest fire.",
+      "lore_pt": "Na era antes do inverno final, quando o uivo de Fenrir sacudiu os ramos de Yggdrasil, havia aqueles que escolheram manter-se de pé. Não porque não tinham nada a perder — já tinham perdido tudo. Mantiveram-se porque tinham descoberto algo mais forte do que ter: a recusa do guerreiro em ser definido pelo que lhes foi tirado. Estes são os Reborn. Vinte e dois entre vinte e dois mil. Um em mil. O fogo mais raro."
+    }
+  ],
+
+  "metadata_standards": {
+    "standard": "Metaplex v3 / Token Metadata Program",
+    "schema_version": "1.0",
+    "image_format": "PNG",
+    "image_resolution": "1000x1000",
+    "animation_url_format": "MP4 (optional, for animated variants)"
+  }
+}

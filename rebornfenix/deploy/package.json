@@ -1,0 +1,23 @@
+{
+  "name": "rebornfenix-deploy",
+  "version": "1.0.0",
+  "description": "REBORNFENIX cNFT deployment system using Metaplex Bubblegum on Solana",
+  "type": "module",
+  "scripts": {
+    "deploy-collection": "node deploy_collection.js",
+    "create-tree": "node create_merkle_tree.js",
+    "mint": "node mint_batch.js",
+    "mint-devnet": "SOLANA_NETWORK=devnet node mint_batch.js"
+  },
+  "dependencies": {
+    "@metaplex-foundation/mpl-bubblegum": "^4.2.0",
+    "@metaplex-foundation/mpl-token-metadata": "^3.3.0",
+    "@metaplex-foundation/umi": "^0.9.2",
+    "@metaplex-foundation/umi-bundle-defaults": "^0.9.2",
+    "@solana/web3.js": "^1.98.0",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
