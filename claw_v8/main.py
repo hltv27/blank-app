@@ -149,11 +149,12 @@ def run():
                 except Exception as _e:
                     print(f"[{hora}] Resumo horário falhou: {_e}")
 
-            # ── Gestão de posições abertas ────────────────────────────────
+            # ── Gestão de posições abertas + guard de liquidação global ──
             tem_posicoes = bool(mem.get("trades_abertos"))
-            if tem_posicoes:
-                gerir_posicoes(mem)
-                mem = load_memory()
+            # gerir_posicoes corre sempre: inclui guard de liquidação global
+            # que protege a conta mesmo sem trades do bot abertos
+            gerir_posicoes(mem)
+            mem = load_memory()
 
             # ── Scan alinhado com velas de 5 min ──────────────────────────
             minuto         = now_utc.minute

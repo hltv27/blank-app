@@ -166,6 +166,29 @@ def get_positions() -> dict | None:
     return None
 
 
+def get_margin_ratio_global() -> float | None:
+    """Rácio de margem de TODA a conta (USDT-M + USDC-M). Usado para guard de liquidação."""
+    for attempt in range(2):
+        try:
+            r = requests.get(
+                f"{BASE_URL}/fapi/v2/account",
+                params=_sign({}), headers=_headers(), timeout=10
+            )
+            data = r.json()
+            if _is_timestamp_error(data):
+                sync_time()
+                continue
+            maint   = float(data.get("totalMaintMargin",  0))
+            balance = float(data.get("totalMarginBalance", 0))
+            if balance > 0:
+                return round(maint / balance * 100, 2)
+            break
+        except Exception as e:
+            print(f"[ERRO] get_margin_ratio_global: {e}")
+            break
+    return None
+
+
 def get_margin_ratio() -> float | None:
     for attempt in range(2):
         try:

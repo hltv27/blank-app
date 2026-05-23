@@ -127,6 +127,12 @@ EQUITY_EMA_N    = 20
 CORR_MAX        = 0.75
 MACRO_CACHE_MIN = 60
 
+# Guard de liquidação global (conta inteira USDT+USDC)
+LIQUIDATION_GUARD_PCT = 50.0  # > 50% → fecha todas as posições a positivo
+LIQUIDATION_WARN1_PCT = 40.0  # aviso 🟡
+LIQUIDATION_WARN2_PCT = 55.0  # aviso 🟠
+LIQUIDATION_WARN3_PCT = 70.0  # aviso 🔴 crítico
+
 # ─────────────────────────────────────────────
 #  SESSÃO / TIMING
 # ─────────────────────────────────────────────

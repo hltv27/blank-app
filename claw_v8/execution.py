@@ -12,10 +12,11 @@ from config import (
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
     MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, BTC_CRASH_PCT, CORR_MAX,
     BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
-    ROI_TP_IMEDIATO, TIME_TP_MIN_MIN
+    ROI_TP_IMEDIATO, TIME_TP_MIN_MIN,
+    LIQUIDATION_GUARD_PCT, LIQUIDATION_WARN1_PCT, LIQUIDATION_WARN2_PCT, LIQUIDATION_WARN3_PCT
 )
 from exchange import (
-    tg, get_balance, get_positions, get_margin_ratio, get_price,
+    tg, get_balance, get_positions, get_margin_ratio, get_margin_ratio_global, get_price,
     set_leverage, place_order, place_stop_market, place_trailing_stop,
     place_take_profit, close_position, cancel_order, cancel_algo_order
 )
@@ -331,6 +332,55 @@ def gerir_posicoes(mem: dict):
             f"Rácio: {ratio:.1f}% (limite: {MARGIN_RATIO_MAX:.0f}%)"
         )
         return
+
+    # ── Guard de liquidação global (USDT-M + USDC-M) ─────────────────────
+    # Monitora a conta inteira. Se > LIQUIDATION_GUARD_PCT, fecha tudo a positivo.
+    ratio_global = get_margin_ratio_global()
+    if ratio_global is not None:
+        agora_ts = time.time()
+        ultimo_alerta = mem.get("liq_alerta_ts", 0)
+        alerta_intervalo = 300  # no máximo 1 alerta por 5 minutos
+
+        if ratio_global >= LIQUIDATION_WARN3_PCT and agora_ts - ultimo_alerta > alerta_intervalo:
+            mem["liq_alerta_ts"] = agora_ts
+            save_memory(mem)
+            tg(f"🔴 <b>MARGEM CRÍTICA</b> — conta global: <b>{ratio_global:.1f}%</b>\nLiquidação iminente! Reduz posições manuais imediatamente.")
+        elif ratio_global >= LIQUIDATION_WARN2_PCT and agora_ts - ultimo_alerta > alerta_intervalo:
+            mem["liq_alerta_ts"] = agora_ts
+            save_memory(mem)
+            tg(f"🟠 <b>MARGEM ELEVADA</b> — conta global: <b>{ratio_global:.1f}%</b>\nRisco de liquidação — verifica posições manuais.")
+        elif ratio_global >= LIQUIDATION_WARN1_PCT and agora_ts - ultimo_alerta > alerta_intervalo:
+            mem["liq_alerta_ts"] = agora_ts
+            save_memory(mem)
+            tg(f"🟡 <b>MARGEM EM ATENÇÃO</b> — conta global: <b>{ratio_global:.1f}%</b>")
+
+        if ratio_global >= LIQUIDATION_GUARD_PCT:
+            # Exceção: fecha TODAS as posições a positivo (bot + manuais)
+            # para libertar margem e evitar liquidação total da conta
+            if posicoes_all is None:
+                posicoes_all = get_positions() or {}
+            fechados_liq = []
+            for sym, pos in posicoes_all.items():
+                if pos.get("pnl", 0) > 0:
+                    close_position(sym, pos["qty"], pos["side"])
+                    fechados_liq.append(f"{sym} +{pos['pnl']:.2f}")
+                    if sym in mem.get("trades_abertos", {}):
+                        t = mem["trades_abertos"][sym]
+                        _registar_fecho(sym, t.get("direction", pos["side"]),
+                                        t.get("entry", pos["entry"]), t.get("sl", 0),
+                                        t.get("tp", 0), abs(pos["qty"]), pos["pnl"],
+                                        "LIQ_GUARD", True, mem)
+                    elif sym in mem.get("posicoes_externas", {}):
+                        mem.get("posicoes_externas", {}).pop(sym, None)
+                        save_memory(mem)
+            if fechados_liq:
+                log_risk_event("LIQ_GUARD_50PCT", details=f"ratio={ratio_global:.1f}% fechados={fechados_liq}")
+                tg(
+                    f"🛡 <b>GUARD LIQUIDAÇÃO {ratio_global:.1f}%</b>\n"
+                    f"Fechadas posições a positivo (bot + manuais):\n"
+                    + "\n".join(fechados_liq)
+                )
+            return
 
     if posicoes_all is None:
         posicoes_all = get_positions()
