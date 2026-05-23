@@ -11,7 +11,7 @@
 
   "creators": [
     {
-      "address": "RBFX_CREATOR_WALLET_PLACEHOLDER",
+      "address": "AC1tXADzDpJb2UG9aUv4JZAdoMUJDgA2MyF6DiKa5S4Q",
       "share": 100
     }
   ],
@@ -38,7 +38,7 @@
   "nftStorageAuthToken": null,
   "pinataConfig": null,
 
-  "solTreasuryAccount": "RBFX_TREASURY_WALLET_PLACEHOLDER",
+  "solTreasuryAccount": "AC1tXADzDpJb2UG9aUv4JZAdoMUJDgA2MyF6DiKa5S4Q",
   "_treasury_note": "All mint proceeds go here. Use a multisig for production.",
 
   "splTokenAccount": null,
