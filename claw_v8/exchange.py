@@ -178,10 +178,14 @@ def get_margin_ratio() -> float | None:
                 print("[AVISO] get_margin_ratio: timestamp desfasado — a resincronizar")
                 sync_time()
                 continue
-            maint   = float(data.get("totalMaintMargin",  0))
-            balance = float(data.get("totalMarginBalance", 0))
-            if balance > 0:
-                return round(maint / balance * 100, 2)
+            # Usa apenas o activo USDC/BNFCR — não conta posições USDT-M do utilizador
+            for asset in data.get("assets", []):
+                if asset.get("asset") in ("USDC", "BNFCR"):
+                    maint   = float(asset.get("maintMargin",   0) or 0)
+                    balance = float(asset.get("marginBalance", 0) or 0)
+                    if balance > 0:
+                        return round(maint / balance * 100, 2)
+                    break
             break
         except Exception as e:
             print(f"[ERRO] get_margin_ratio: {e}")
