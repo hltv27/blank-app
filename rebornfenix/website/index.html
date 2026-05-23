@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="REBORNFENIX (RBFX) — 22,222 Norse Warrior NFTs on Solana. Claim your Elder Futhark rune. One rune. One soul. Forever on the blockchain." />
+  <meta name="keywords" content="NFT, Solana, Norse, Viking, RBFX, RebornFenix, Elder Futhark, runes, mint" />
+  <meta property="og:title" content="REBORNFENIX — 22,222 Warriors. One Rune. One Soul." />
+  <meta property="og:description" content="Claim your Elder Futhark rune NFT on Solana. Dark cosmic Viking aesthetic. Warrior brotherhood." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <title>REBORNFENIX (RBFX) — Claim Your Rune</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Favicon inline SVG rune -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ᚠ</text></svg>" />
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     LOADING SCREEN
+════════════════════════════════════════ -->
+<div id="loading-screen" aria-hidden="true">
+  <div class="loading-rune">ᚠ</div>
+  <div class="loading-text">Summoning the Runes</div>
+  <div class="loading-bar-wrap">
+    <div class="loading-bar"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     NAVIGATION
+════════════════════════════════════════ -->
+<nav id="navbar" role="navigation" aria-label="Main navigation">
+  <a href="#hero" class="nav-logo">REBORN<span>FENIX</span></a>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="#story">Story</a></li>
+    <li><a href="#gallery">Runes</a></li>
+    <li><a href="#rarity">Rarity</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="#mint" class="btn btn-gold btn-outline nav-cta">Mint Now</a></li>
+  </ul>
+  <button class="nav-hamburger" id="nav-hamburger" aria-label="Toggle menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- ════════════════════════════════════════
+     HERO SECTION
+════════════════════════════════════════ -->
+<section id="hero" aria-label="Hero">
+  <canvas id="particle-canvas" aria-hidden="true"></canvas>
+  <div class="hero-backdrop" aria-hidden="true"></div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">Solana NFT Collection &nbsp;·&nbsp; Elder Futhark Series</div>
+
+    <h1 class="hero-title">REBORNFENIX</h1>
+
+    <div class="hero-rune-divider" aria-hidden="true">
+      <div class="hero-rune-line"></div>
+      <span class="hero-rune-sym">ᚠ</span>
+      <span class="hero-rune-sym">ᚢ</span>
+      <span class="hero-rune-sym">ᚦ</span>
+      <div class="hero-rune-line right"></div>
+    </div>
+
+    <p class="hero-subtitle">
+      <span class="accent">22.222</span> Warriors.
+      <span class="accent">One</span> Rune.
+      <span class="accent">One</span> Soul.
+    </p>
+
+    <div class="hero-cta-group">
+      <a href="#mint" class="btn btn-gold btn-large glow-pulse">
+        ᚠ &nbsp; Claim Your Rune
+      </a>
+      <a href="#story" class="btn btn-outline">
+        Read the Manifesto
+      </a>
+    </div>
+
+    <!-- Countdown -->
+    <div class="countdown-wrapper" aria-live="polite" aria-label="Countdown to mint">
+      <div class="countdown-label">Mint Opens In</div>
+      <div class="countdown-grid">
+        <div class="countdown-item">
+          <span class="countdown-number" id="cd-days">--</span>
+          <span class="countdown-unit">Days</span>
+        </div>
+        <div class="countdown-sep" aria-hidden="true">:</div>
+        <div class="countdown-item">
+          <span class="countdown-number" id="cd-hours">--</span>
+          <span class="countdown-unit">Hours</span>
+        </div>
+        <div class="countdown-sep" aria-hidden="true">:</div>
+        <div class="countdown-item">
+          <span class="countdown-number" id="cd-mins">--</span>
+          <span class="countdown-unit">Minutes</span>
+        </div>
+        <div class="countdown-sep" aria-hidden="true">:</div>
+        <div class="countdown-item">
+          <span class="countdown-number" id="cd-secs">--</span>
+          <span class="countdown-unit">Seconds</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-scroll" aria-hidden="true">
+    <span class="hero-scroll-text">Scroll</span>
+    <div class="hero-scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     THE STORY
+════════════════════════════════════════ -->
+<section id="story" aria-labelledby="story-heading">
+  <div class="norse-bg-pattern" aria-hidden="true"></div>
+  <div class="container">
+    <div class="story-grid">
+
+      <!-- Visual -->
+      <div class="story-visual reveal-left">
+        <div class="story-phoenix">
+          <div class="phoenix-circle phoenix-c1"></div>
+          <div class="phoenix-circle phoenix-c2"></div>
+          <div class="phoenix-circle phoenix-c3"></div>
+          <div class="phoenix-rune">ᚠ</div>
+          <svg class="phoenix-dots" viewBox="0 0 280 280" aria-hidden="true">
+            <circle cx="140" cy="10"  r="2.5" fill="#c9a84c" opacity="0.8"/>
+            <circle cx="250" cy="70"  r="2"   fill="#c9a84c" opacity="0.5"/>
+            <circle cx="270" cy="160" r="3"   fill="#c9a84c" opacity="0.6"/>
+            <circle cx="200" cy="255" r="2.5" fill="#c9a84c" opacity="0.7"/>
+            <circle cx="80"  cy="265" r="2"   fill="#c9a84c" opacity="0.5"/>
+            <circle cx="15"  cy="180" r="3"   fill="#c9a84c" opacity="0.6"/>
+            <circle cx="30"  cy="80"  r="2"   fill="#c9a84c" opacity="0.4"/>
+            <circle cx="100" cy="20"  r="1.5" fill="#c9a84c" opacity="0.5"/>
+            <circle cx="190" cy="30"  r="2"   fill="#c9a84c" opacity="0.6"/>
+            <circle cx="255" cy="115" r="2"   fill="#c9a84c" opacity="0.5"/>
+            <circle cx="258" cy="205" r="2"   fill="#c9a84c" opacity="0.7"/>
+            <circle cx="160" cy="265" r="2.5" fill="#c9a84c" opacity="0.5"/>
+            <circle cx="50"  cy="240" r="2"   fill="#c9a84c" opacity="0.6"/>
+            <circle cx="12"  cy="130" r="2"   fill="#c9a84c" opacity="0.5"/>
+            <circle cx="50"  cy="40"  r="2"   fill="#c9a84c" opacity="0.4"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="story-content reveal-right">
+        <span class="section-label">The Manifesto</span>
+        <h2 class="section-title" id="story-heading">Born from the Ashes of a Trader's Trial</h2>
+
+        <p class="story-text">
+          The <strong>phoenix</strong> does not die quietly. It burns — completely, violently, without apology — and from that consuming fire it rises again, stronger, wiser, carrying the memory of every flame that touched it. That fire is not metaphor. It is the documented history of a trader who lost <strong>234 USDC</strong> in a single position, stared into the void of a blown account, and chose to rise.
+        </p>
+
+        <p class="story-text">
+          Every warrior has a rune. In the ancient Norse tradition, the <strong>Elder Futhark</strong> — 24 sacred symbols carved into stone, bone, and steel — were not merely letters. They were living forces. Each rune carried a specific power that the bearer would embody. Warriors did not choose their rune lightly. The rune chose them, in the crucible of trial.
+        </p>
+
+        <p class="story-text">
+          REBORNFENIX is not another PFP project. It is a <strong>permanent record on the Solana blockchain</strong> — proof that you faced your losses, faced your fear, and chose to keep building. 22,222 warriors. Each carrying a unique rune forged from the fires of real experience. This is the brotherhood of those who refuse to stay down.
+        </p>
+
+        <div class="story-quote">
+          <p>"The warrior who has never been defeated has never truly fought. The warrior who rises after defeat — that is the one history remembers."</p>
+          <cite>— REBORNFENIX Manifesto, 2025</cite>
+        </div>
+
+        <div class="nordic-divider" aria-hidden="true">
+          <div class="nordic-divider-symbol">᛭</div>
+          <div class="nordic-divider-symbol">᛭</div>
+          <div class="nordic-divider-symbol">᛭</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     WHAT YOU GET
+════════════════════════════════════════ -->
+<section id="benefits" aria-labelledby="benefits-heading">
+  <div class="container text-center">
+    <span class="section-label reveal">What You Receive</span>
+    <h2 class="section-title reveal" id="benefits-heading">Forged in Fire. Proven on Chain.</h2>
+    <p class="section-subtitle reveal">Three immutable gifts for every warrior who claims their rune.</p>
+
+    <div class="benefits-grid stagger-children" style="--child-gap: 0.15s;">
+
+      <div class="benefit-card reveal" style="--child-index: 0;">
+        <span class="benefit-icon" aria-hidden="true">ᚠ</span>
+        <h3 class="benefit-title">Your Unique Rune NFT</h3>
+        <p class="benefit-desc">
+          A one-of-a-kind digital artifact drawn from the 24 runes of the Elder Futhark. Each carries unique traits, background energy, and runic inscription — algorithmically unique, cosmically significant.
+        </p>
+        <span class="benefit-badge">22,222 Unique Tokens</span>
+      </div>
+
+      <div class="benefit-card reveal" style="--child-index: 1;">
+        <span class="benefit-icon" aria-hidden="true">⛓</span>
+        <h3 class="benefit-title">Permanent Blockchain Proof</h3>
+        <p class="benefit-desc">
+          Minted on Solana — the fastest, most energy-efficient blockchain. Your rune lives permanently on-chain. No company can revoke it. No server can go down. It is yours. Forever. Immutable as stone.
+        </p>
+        <span class="benefit-badge">Solana Mainnet</span>
+      </div>
+
+      <div class="benefit-card reveal" style="--child-index: 2;">
+        <span class="benefit-icon" aria-hidden="true">⚔</span>
+        <h3 class="benefit-title">Warrior Brotherhood Access</h3>
+        <p class="benefit-desc">
+          Token-gated Discord of verified RBFX holders. Collective strategies, market insights, hard-won lessons from traders who have been forged in the same fire. Brothers and sisters who know what loss feels like — and kept going.
+        </p>
+        <span class="benefit-badge">Token-Gated Community</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     RUNE GALLERY
+════════════════════════════════════════ -->
+<section id="gallery" aria-labelledby="gallery-heading">
+  <div class="container text-center">
+    <span class="section-label reveal">Elder Futhark</span>
+    <h2 class="section-title reveal" id="gallery-heading">The 24 Sacred Runes</h2>
+    <p class="section-subtitle reveal">Hover each rune to reveal its ancient meaning and power.</p>
+
+    <div class="rune-grid" id="rune-grid" role="list">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     RARITY
+════════════════════════════════════════ -->
+<section id="rarity" aria-labelledby="rarity-heading">
+  <div class="container text-center">
+    <span class="section-label reveal">Trait Distribution</span>
+    <h2 class="section-title reveal" id="rarity-heading">Rarity Tiers</h2>
+    <p class="section-subtitle reveal">Not all runes are born equal. The rarest hold the oldest power.</p>
+
+    <div class="rarity-grid reveal">
+
+      <div class="rarity-tier legendary">
+        <div class="rarity-icon" aria-hidden="true">✦</div>
+        <div class="rarity-info">
+          <div class="rarity-tier-name">Legendary — Ancient Flame</div>
+          <div class="rarity-desc">Primordial runes with cosmic backgrounds, fire effects, and double inscription. Carries the memory of the first fire.</div>
+          <div class="rarity-bar-wrap"><div class="rarity-bar"></div></div>
+        </div>
+        <div class="rarity-right">
+          <span class="rarity-pct">1%</span>
+          <span class="rarity-count">222 NFTs</span>
+        </div>
+      </div>
+
+      <div class="rarity-tier epic">
+        <div class="rarity-icon" aria-hidden="true">◈</div>
+        <div class="rarity-info">
+          <div class="rarity-tier-name">Epic — Runemaster</div>
+          <div class="rarity-desc">Animated runes with mystic aura, silver/gold dual-tone, and warrior inscription on obsidian.</div>
+          <div class="rarity-bar-wrap"><div class="rarity-bar"></div></div>
+        </div>
+        <div class="rarity-right">
+          <span class="rarity-pct">4%</span>
+          <span class="rarity-count">889 NFTs</span>
+        </div>
+      </div>
+
+      <div class="rarity-tier rare">
+        <div class="rarity-icon" aria-hidden="true">◆</div>
+        <div class="rarity-info">
+          <div class="rarity-tier-name">Rare — Shieldbearer</div>
+          <div class="rarity-desc">Runes carved in polished steel with nordic knotwork border. Nordic blue cosmic background. Battle-hardened warrior class.</div>
+          <div class="rarity-bar-wrap"><div class="rarity-bar"></div></div>
+        </div>
+        <div class="rarity-right">
+          <span class="rarity-pct">15%</span>
+          <span class="rarity-count">3,333 NFTs</span>
+        </div>
+      </div>
+
+      <div class="rarity-tier uncommon">
+        <div class="rarity-icon" aria-hidden="true">◇</div>
+        <div class="rarity-info">
+          <div class="rarity-tier-name">Uncommon — Wayfarer</div>
+          <div class="rarity-desc">Runes etched in aged stone with forest-green patina and Norse geometric border patterns. Seasoned travellers of the void.</div>
+          <div class="rarity-bar-wrap"><div class="rarity-bar"></div></div>
+        </div>
+        <div class="rarity-right">
+          <span class="rarity-pct">30%</span>
+          <span class="rarity-count">6,667 NFTs</span>
+        </div>
+      </div>
+
+      <div class="rarity-tier common">
+        <div class="rarity-icon" aria-hidden="true">○</div>
+        <div class="rarity-info">
+          <div class="rarity-tier-name">Common — Warrior</div>
+          <div class="rarity-desc">The foundation of the brotherhood. Runes carved in raw stone, dark background, pure Elder Futhark form. The warrior who chose to rise — this is enough.</div>
+          <div class="rarity-bar-wrap"><div class="rarity-bar"></div></div>
+        </div>
+        <div class="rarity-right">
+          <span class="rarity-pct">50%</span>
+          <span class="rarity-count">11,111 NFTs</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     SUPPLY / TOKENOMICS
+════════════════════════════════════════ -->
+<section id="supply" aria-labelledby="supply-heading">
+  <div class="norse-bg-pattern" aria-hidden="true"></div>
+  <div class="container text-center" style="position:relative;z-index:1;">
+    <span class="section-label reveal">Collection Details</span>
+    <h2 class="section-title reveal" id="supply-heading">Simple. Sacred. Scarce.</h2>
+
+    <div class="supply-stats reveal">
+      <div class="supply-stat" data-rune="ᚢ">
+        <span class="supply-number">22,222</span>
+        <span class="supply-label">Total Warriors</span>
+      </div>
+      <div class="supply-stat" data-rune="ᚦ">
+        <span class="supply-number">10 USDC</span>
+        <span class="supply-label">Mint Price</span>
+      </div>
+      <div class="supply-stat" data-rune="ᚨ">
+        <span class="supply-number">1 / Wallet</span>
+        <span class="supply-label">Max Per Holder</span>
+      </div>
+      <div class="supply-stat" data-rune="ᚱ">
+        <span class="supply-number">Forever</span>
+        <span class="supply-label">On-Chain Permanence</span>
+      </div>
+    </div>
+
+    <div class="nordic-divider reveal" aria-hidden="true">
+      <div class="nordic-divider-symbol">ᚠ</div>
+    </div>
+
+    <div class="reveal">
+      <p class="supply-tagline">
+        22,222 total &nbsp;·&nbsp; 1 per wallet &nbsp;·&nbsp; 10 USDC &nbsp;·&nbsp; Forever.
+      </p>
+    </div>
+
+    <div style="margin-top:2.5rem; max-width:650px; margin-left:auto; margin-right:auto;" class="reveal">
+      <p style="color:var(--silver); font-size:0.95rem; line-height:1.8;">
+        No royalties on secondary sales. No lootboxes. No artificial scarcity games.
+        One collection. One mint. Every warrior holds exactly what they claimed —
+        a permanent mark of their journey, forged in the fire of Solana's network.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     ROADMAP
+════════════════════════════════════════ -->
+<section id="roadmap" aria-labelledby="roadmap-heading">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:3.5rem;">
+      <span class="section-label reveal">The Path Forward</span>
+      <h2 class="section-title reveal" id="roadmap-heading">Four Phases of Rebirth</h2>
+      <p class="section-subtitle reveal">Every phoenix has a cycle. This is ours.</p>
+    </div>
+
+    <div class="roadmap-timeline">
+
+      <div class="roadmap-phase active reveal">
+        <div class="roadmap-dot" aria-hidden="true"></div>
+        <span class="roadmap-phase-label">Phase I — Now</span>
+        <h3 class="roadmap-phase-title">The Forge: Mint & Launch</h3>
+        <ul class="roadmap-items">
+          <li>Public mint opens — 22,222 rune NFTs available</li>
+          <li>Smart contract audit complete &amp; published</li>
+          <li>Magic Eden listing on day of mint</li>
+          <li>Holder verification bot deployed in Discord</li>
+          <li>First community snapshot &amp; holder leaderboard</li>
+        </ul>
+      </div>
+
+      <div class="roadmap-phase reveal">
+        <div class="roadmap-dot" aria-hidden="true"></div>
+        <span class="roadmap-phase-label">Phase II — Post Mint</span>
+        <h3 class="roadmap-phase-title">The Brotherhood: Community &amp; Culture</h3>
+        <ul class="roadmap-items">
+          <li>Token-gated Discord channels go live for all holders</li>
+          <li>Weekly warrior calls — market analysis, shared lessons</li>
+          <li>RBFX Manifesto NFT airdrop to all holders</li>
+          <li>Community treasury established for collective decisions</li>
+          <li>First community vote — shape the next phase</li>
+        </ul>
+      </div>
+
+      <div class="roadmap-phase reveal">
+        <div class="roadmap-dot" aria-hidden="true"></div>
+        <span class="roadmap-phase-label">Phase III — Q3 2025</span>
+        <h3 class="roadmap-phase-title">The Power: Utility &amp; Access</h3>
+        <ul class="roadmap-items">
+          <li>RBFX holder dashboard — track your rune's performance data</li>
+          <li>Exclusive trading journal tool (holder-only)</li>
+          <li>Rune trait staking — lock your NFT, earn RBFX points</li>
+          <li>Partner project whitelist access for all holders</li>
+          <li>IRL warrior meetups — first 3 cities announced</li>
+        </ul>
+      </div>
+
+      <div class="roadmap-phase reveal">
+        <div class="roadmap-dot" aria-hidden="true"></div>
+        <span class="roadmap-phase-label">Phase IV — The Eternal Return</span>
+        <h3 class="roadmap-phase-title">The Rebirth: RBFX v2 &amp; Legacy</h3>
+        <ul class="roadmap-items">
+          <li>REBORNFENIX v2 collection — holders get free claim</li>
+          <li>Cross-chain expansion — Ethereum bridge for rune holders</li>
+          <li>Physical rune artifacts — hand-carved for Legendary holders</li>
+          <li>The RBFX Foundation — funding recovery stories worldwide</li>
+          <li>Permanent on-chain manifesto — the first NFT philosophy text</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     FAQ
+════════════════════════════════════════ -->
+<section id="faq" aria-labelledby="faq-heading">
+  <div class="container text-center">
+    <span class="section-label reveal">Questions Answered</span>
+    <h2 class="section-title reveal" id="faq-heading">The Warrior's Questions</h2>
+    <p class="section-subtitle reveal">Everything you need before you claim your rune.</p>
+
+    <div class="faq-list reveal" role="list">
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-question" aria-expanded="false">
+          What is REBORNFENIX?
+          <div class="faq-chevron" aria-hidden="true"></div>
+        </button>
+        <div class="faq-answer" role="region">
+          <div class="faq-answer-inner">
+            REBORNFENIX (RBFX) is a collection of 22,222 NFTs on the Solana blockchain, each featuring a unique rune from the Elder Futhark alphabet. It was born from a personal story of financial loss and recovery — a manifesto in NFT form for everyone who has faced defeat and chosen to rise. Every token is a warrior's mark.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-question" aria-expanded="false">
+          How do I mint a REBORNFENIX NFT?
+          <div class="faq-chevron" aria-hidden="true"></div>
+        </button>
+        <div class="faq-answer" role="region">
+          <div class="faq-answer-inner">
+            Connect your Solana wallet (Phantom recommended) using the button in the Mint section below. Ensure you have at least 10.01 USDC (USDC on Solana, not native SOL) plus a small amount of SOL for transaction fees (~0.01 SOL). Click "Claim Your Rune", approve the transaction, and your rune will be assigned to your wallet within seconds. One per wallet — choose your moment carefully.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-question" aria-expanded="false">
+          Why only 1 per wallet?
+          <div class="faq-chevron" aria-hidden="true"></div>
+        </button>
+        <div class="faq-answer" role="region">
+          <div class="faq-answer-inner">
+            Because every warrior carries exactly one rune. This is not about accumulation — it is about identity. The limit ensures that 22,222 unique people can each hold one rune, building a broader brotherhood rather than concentrating power in the hands of whales. It is also the most honest possible implementation of the manifesto's core message: you need only one rune. Yours.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-question" aria-expanded="false">
+          Can I choose my specific rune?
+          <div class="faq-chevron" aria-hidden="true"></div>
+        </button>
+        <div class="faq-answer" role="region">
+          <div class="faq-answer-inner">
+            No — and this is intentional. In Norse tradition, a rune is not chosen by the warrior. It is revealed to them. Your rune is assigned at the moment of mint, drawn from the pool of remaining tokens. Trust the process. The ancient skalds believed the rune that comes to you is the one you need. Your fire will tell you which rune was waiting for you.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-question" aria-expanded="false">
+          What blockchain and standard does RBFX use?
+          <div class="faq-chevron" aria-hidden="true"></div>
+        </button>
+        <div class="faq-answer" role="region">
+          <div class="faq-answer-inner">
+            REBORNFENIX mints on <strong>Solana Mainnet</strong> using the Metaplex Token Metadata standard — the same standard used by the largest Solana NFT projects. This means your rune is compatible with all major Solana wallets (Phantom, Solflare, Backpack) and marketplaces (Magic Eden, Tensor). The mint price is paid in USDC-SPL — no native SOL required beyond a tiny gas fee.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-question" aria-expanded="false">
+          Is the smart contract audited?
+          <div class="faq-chevron" aria-hidden="true"></div>
+        </button>
+        <div class="faq-answer" role="region">
+          <div class="faq-answer-inner">
+            Yes. The REBORNFENIX mint contract is built using Metaplex's Candy Machine v3, the industry-standard minting framework on Solana with hundreds of millions in minted volume. Additional security measures include bot protection via allowlist verification, on-chain randomness for trait assignment, and an immutable metadata freeze post-mint. Audit report will be published pre-launch.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-question" aria-expanded="false">
+          What are the royalties on secondary sales?
+          <div class="faq-chevron" aria-hidden="true"></div>
+        </button>
+        <div class="faq-answer" role="region">
+          <div class="faq-answer-inner">
+            Zero mandatory royalties. We set the creator royalty at 0% enforced — what you do with your rune after mint is your business. If you choose to support the project by paying optional royalties on supported platforms, we are grateful. But we will never demand a cut of your warrior's earnings. The rune is yours.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-question" aria-expanded="false">
+          What happens if the collection doesn't sell out?
+          <div class="faq-chevron" aria-hidden="true"></div>
+        </button>
+        <div class="faq-answer" role="region">
+          <div class="faq-answer-inner">
+            The community and roadmap continue regardless of sellout status. Warriors who have already minted will receive all planned benefits — the Brotherhood, the utility tools, the airdrops. Unsold tokens will be locked in a burn wallet after 90 days, permanently reducing supply. Every warrior who minted early will own a larger share of a smaller collection. The fire burns brighter in fewer hands.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     MINT SECTION
+════════════════════════════════════════ -->
+<section id="mint" aria-labelledby="mint-heading">
+  <div class="norse-bg-pattern" aria-hidden="true"></div>
+  <div class="mint-container">
+    <div class="text-center" style="margin-bottom:2.5rem;">
+      <span class="section-label reveal">The Sacred Act</span>
+      <h2 class="section-title reveal" id="mint-heading">Claim Your Rune</h2>
+      <p class="section-subtitle reveal" style="margin-bottom:0;">
+        One warrior. One rune. One moment. Choose carefully.
+      </p>
+    </div>
+
+    <div class="mint-box nordic-border reveal" data-rune="ᚠ">
+      <div class="mint-corner tl" aria-hidden="true"></div>
+      <div class="mint-corner tr" aria-hidden="true"></div>
+      <div class="mint-corner bl" aria-hidden="true"></div>
+      <div class="mint-corner br" aria-hidden="true"></div>
+
+      <!-- Supply progress -->
+      <div>
+        <div class="mint-supply-text">
+          <span>Minted: <span class="minted" id="minted-count">0</span></span>
+          <span class="total">Total: 22,222</span>
+        </div>
+        <div class="mint-supply-bar-wrap">
+          <div class="mint-supply-bar" id="supply-bar" style="width:0%"></div>
+        </div>
+        <div style="text-align:right; margin-top:0.4rem;">
+          <span style="font-family:var(--font-mono); font-size:0.72rem; color:var(--gold-dim);" id="remaining-text">22,222 remaining</span>
+        </div>
+      </div>
+
+      <!-- Price display -->
+      <div class="mint-price-display">
+        <div class="mint-price-item">
+          <span class="mint-price-value">10</span>
+          <span class="mint-price-label">USDC</span>
+        </div>
+        <div class="mint-divider" aria-hidden="true"></div>
+        <div class="mint-price-item">
+          <span class="mint-price-value">1</span>
+          <span class="mint-price-label">Per Wallet</span>
+        </div>
+        <div class="mint-divider" aria-hidden="true"></div>
+        <div class="mint-price-item">
+          <span class="mint-price-value">∞</span>
+          <span class="mint-price-label">On-Chain Forever</span>
+        </div>
+      </div>
+
+      <!-- Wallet & mint controls -->
+      <div class="wallet-state">
+        <div id="wallet-connected-info" aria-live="polite">
+          <div style="font-family:var(--font-mono); font-size:0.7rem; letter-spacing:0.2em; color:var(--gold-dim); margin-bottom:0.3rem; text-transform:uppercase;">Wallet Connected</div>
+          <div id="wallet-address-display">—</div>
+        </div>
+
+        <button id="connect-wallet-btn" class="btn btn-gold btn-large glow-pulse" style="width:100%; justify-content:center;" aria-label="Connect Phantom wallet">
+          ◎ &nbsp; Connect Wallet
+        </button>
+
+        <button id="mint-button" class="btn btn-crimson btn-large" aria-label="Mint your REBORNFENIX NFT">
+          ᚠ &nbsp; Claim Your Rune — 10 USDC
+        </button>
+      </div>
+
+      <!-- Status messages -->
+      <div id="mint-status" class="mint-status" role="alert" aria-live="polite"></div>
+
+      <!-- Notes -->
+      <div class="mint-note">
+        <span>᛭</span> One per wallet, enforced on-chain.<br/>
+        <span>᛭</span> Your rune is revealed upon mint — the fire chooses.<br/>
+        <span>᛭</span> Requires USDC on Solana + ~0.01 SOL for fees.<br/>
+        <span>᛭</span> Phantom, Solflare, and Backpack supported.
+      </div>
+    </div>
+
+    <!-- External marketplace links -->
+    <div style="display:flex; gap:1rem; justify-content:center; margin-top:1.5rem; flex-wrap:wrap;" class="reveal">
+      <a href="https://magiceden.io" target="_blank" rel="noopener noreferrer" class="btn btn-outline" aria-label="View on Magic Eden">
+        ◈ Magic Eden
+      </a>
+      <a href="https://tensor.trade" target="_blank" rel="noopener noreferrer" class="btn btn-outline" aria-label="View on Tensor">
+        ◆ Tensor
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════ -->
+<footer>
+  <div class="footer-grid">
+
+    <div class="footer-brand">
+      <span class="footer-logo">REBORNFENIX</span>
+      <div class="footer-tagline">22,222 Warriors · One Rune · One Soul</div>
+      <p class="footer-desc">
+        A Solana NFT collection born from the ashes of loss. Every rune is a warrior's mark — permanent, immutable, and yours forever on-chain.
+      </p>
+      <div class="footer-socials">
+        <a href="https://twitter.com/rebornfenix" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="Twitter">
+          𝕏 Twitter
+        </a>
+        <a href="https://discord.gg/rebornfenix" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="Discord">
+          ⚔ Discord
+        </a>
+        <a href="https://t.me/rebornfenix" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="Telegram">
+          ✈ Telegram
+        </a>
+      </div>
+    </div>
+
+    <div>
+      <div class="footer-col-title">Navigate</div>
+      <ul class="footer-links">
+        <li><a href="#story">The Story</a></li>
+        <li><a href="#gallery">Rune Gallery</a></li>
+        <li><a href="#rarity">Rarity</a></li>
+        <li><a href="#supply">Supply</a></li>
+        <li><a href="#roadmap">Roadmap</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#mint">Mint Now</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <div class="footer-col-title">Resources</div>
+      <ul class="footer-links">
+        <li><a href="https://magiceden.io" target="_blank" rel="noopener noreferrer">Magic Eden</a></li>
+        <li><a href="https://tensor.trade" target="_blank" rel="noopener noreferrer">Tensor</a></li>
+        <li><a href="#" aria-label="Whitepaper coming soon">Whitepaper</a></li>
+        <li><a href="#" aria-label="Audit report coming soon">Audit Report</a></li>
+        <li><a href="#" aria-label="Brand kit coming soon">Brand Kit</a></li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Contract address -->
+  <div class="footer-contract">
+    <span class="contract-label">Contract</span>
+    <span class="contract-address" id="contract-address">TBA — Contract address will be published 24h before mint</span>
+    <button class="copy-btn" id="copy-contract" aria-label="Copy contract address">Copy</button>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="footer-bottom">
+    <span class="footer-copy">
+      © 2025 REBORNFENIX. All rights reserved. NFTs are not financial instruments.
+    </span>
+    <div class="footer-rune-strip" aria-hidden="true">
+      ᚠ ᚢ ᚦ ᚨ ᚱ ᚲ ᚷ ᚹ
+    </div>
+  </div>
+</footer>
+
+<!-- ════════════════════════════════════════
+     SUCCESS MODAL
+════════════════════════════════════════ -->
+<div id="success-modal" role="dialog" aria-modal="true" aria-labelledby="success-title" aria-hidden="true">
+  <div class="success-modal-box">
+    <span class="success-rune" id="success-rune-display" aria-hidden="true">ᚠ</span>
+    <h3 class="success-title" id="success-title">Rune Claimed!</h3>
+    <p class="success-subtitle">Your warrior's mark is now forever on the Solana blockchain. Welcome to the brotherhood.</p>
+    <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--gold-dim); margin: 1rem 0; letter-spacing:0.1em;" id="success-tx">TX: —</div>
+    <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+      <a href="https://magiceden.io" target="_blank" rel="noopener noreferrer" class="btn btn-outline">View on Magic Eden</a>
+      <button id="share-btn" class="btn btn-gold">Share on X</button>
+    </div>
+    <div class="success-close">
+      <button id="close-modal-btn" class="btn btn-outline" style="width:100%;">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

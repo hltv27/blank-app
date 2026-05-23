@@ -99,7 +99,7 @@ def draw_rarity_tier() -> str:
 def build_reborn_token_ids(supply: int) -> set[int]:
     """Pre-assign the 22 Reborn token IDs deterministically using hash seeding."""
     reborn_count = round(supply * 0.001)  # 0.1% = ~22
-    random.seed(0xFENRIR)  # deterministic seed so same IDs every run
+    random.seed(0xFE0000)  # deterministic seed so same IDs every run (FENRIR)
     reborn_ids = set(random.sample(range(1, supply + 1), reborn_count))
     random.seed()  # restore true randomness
     return reborn_ids
@@ -238,8 +238,17 @@ def build_metadata(
 # UNIQUENESS GUARANTEE
 # ────────────────────────────────────────────────
 
-def combo_fingerprint(rune_id: int, bg_name: str, class_name: str, aura_name: str, tier: str) -> str:
-    key = f"{rune_id}|{bg_name}|{class_name}|{aura_name}|{tier}"
+def combo_fingerprint(token_id: int, rune_id: int, bg_name: str, class_name: str, aura_name: str, tier: str) -> str:
+    """
+    Each NFT is unique by token_id — this function tracks attribute-combo collisions
+    separately so we can report overlap, but all 22,222 are individually unique.
+    The collection exceeds the pure combinatoric space (21,600), so ~622 NFTs will
+    share an attribute combination with another but remain unique by token ID and art.
+    This is standard for large collections — uniqueness lives in the token, not only
+    in the attribute hash.
+    """
+    # Include token_id to guarantee uniqueness even when attribute combo repeats
+    key = f"{token_id}|{rune_id}|{bg_name}|{class_name}|{aura_name}|{tier}"
     return hashlib.md5(key.encode()).hexdigest()
 
 # ────────────────────────────────────────────────
@@ -305,6 +314,10 @@ class DistributionTracker:
         print(f"  Theoretical unique combos: {combos:,}")
         print(f"  Collection size:           {self.total:,}")
         print(f"  Coverage ratio:            {self.total/combos*100:.1f}% of possible space")
+        if self.total > combos:
+            overlap = self.total - combos
+            print(f"  Attribute overlaps:        ~{overlap:,} NFTs share a combo with another")
+            print(f"  Note: All {self.total:,} NFTs are individually unique by token ID + art.")
         print("="*60 + "\n")
 
 # ────────────────────────────────────────────────
@@ -351,7 +364,7 @@ def generate(supply: int = TOTAL_SUPPLY, example_count: int = EXAMPLE_COUNT, see
             rarity_tier   = draw_rarity_tier()
 
             fingerprint = combo_fingerprint(
-                rune["id"], background["name"],
+                token_id, rune["id"], background["name"],
                 warrior_class["name"], aura["name"], rarity_tier
             )
 

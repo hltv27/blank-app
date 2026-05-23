@@ -1,0 +1,91 @@
+{
+  "name": "REBORNFENIX #00005",
+  "symbol": "RBFX",
+  "description": "REBORNFENIX is a collection of 22,222 Viking warriors forged in the fires of Ragnarök — fathers, fighters, and survivors who stared into the abyss and refused to break. Each warrior carries the ancient power of Elder Futhark runes, drawn from the cosmic loom of fate. Not all who trade are warriors. But every warrior who trades knows: you do not surrender. You adapt. You endure. You return.",
+  "seller_fee_basis_points": 500,
+  "image": "https://arweave.net/REBORNFENIX_PLACEHOLDER/00005.png",
+  "animation_url": null,
+  "external_url": "https://rebornfenix.io",
+  "attributes": [
+    {
+      "trait_type": "Rune",
+      "value": "ᚢ Uruz"
+    },
+    {
+      "trait_type": "Rune Meaning",
+      "value": "Aurochs, Strength, Vitality"
+    },
+    {
+      "trait_type": "Background",
+      "value": "Valhalla Gates"
+    },
+    {
+      "trait_type": "Warrior Class",
+      "value": "Einherjar"
+    },
+    {
+      "trait_type": "Aura",
+      "value": "Void Purple"
+    },
+    {
+      "trait_type": "Rarity Tier",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Rune Symbol",
+      "value": "ᚢ"
+    },
+    {
+      "trait_type": "Rune Power",
+      "value": "Volatility is not your enemy. It is the proving ground."
+    },
+    {
+      "trait_type": "Class Archetype",
+      "value": "Recovery and systematic rebuilding"
+    },
+    {
+      "trait_type": "Aura Color Hex",
+      "value": "#4B0082"
+    },
+    {
+      "trait_type": "Token ID",
+      "value": 5,
+      "display_type": "number"
+    },
+    {
+      "trait_type": "Rune Number",
+      "value": 2,
+      "display_type": "number"
+    },
+    {
+      "trait_type": "Fenrir Score",
+      "value": 115,
+      "display_type": "number"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://arweave.net/REBORNFENIX_PLACEHOLDER/00005.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image",
+    "creators": [
+      {
+        "address": "RBFX_CREATOR_WALLET_PLACEHOLDER",
+        "share": 100
+      }
+    ]
+  },
+  "collection": {
+    "name": "REBORNFENIX",
+    "family": "RBFX",
+    "verified": false,
+    "address": "RBFX_COLLECTION_PLACEHOLDER_SOLANA_ADDRESS"
+  },
+  "lore": "Born from fire. Tempered by loss. The rune of the Uruz burns in their chest — a warrior who chose to return when walking away was the easier path.",
+  "lore_pt": "Nascido do fogo. Temperado pela perda. A runa de Uruz queima no seu peito — um guerreiro que escolheu regressar quando partir era o caminho mais fácil.",
+  "metadata_version": "1.0.0",
+  "standard": "Metaplex Token Metadata v3"
+}

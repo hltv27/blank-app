@@ -1,0 +1,33 @@
+{
+  "collection": "REBORNFENIX",
+  "symbol": "RBFX",
+  "supply": 22222,
+  "example_files_generated": 5,
+  "reborn_count": 22,
+  "reborn_token_ids": [
+    711,
+    2862,
+    2903,
+    2912,
+    4268,
+    6137,
+    6144,
+    6757,
+    7138,
+    7282,
+    7314,
+    7952,
+    8993,
+    9384,
+    9634,
+    10713,
+    11463,
+    11678,
+    12661,
+    15244,
+    17667,
+    21349
+  ],
+  "output_dir": "/home/user/blank-app/rebornfenix/metadata/generated",
+  "note": "This manifest lists the first 30 Reborn token IDs for verification. Run generate() to produce all 22,222 JSON files."
+}

@@ -1,0 +1,195 @@
+{
+  "_comment": "Metaplex Sugar v2 — Candy Machine v3 Config for REBORNFENIX (RBFX)",
+  "_docs": "https://docs.metaplex.com/tools/sugar/configuration",
+  "_deploy_note": "Replace all PLACEHOLDER values before deployment. Run 'sugar validate' before 'sugar deploy'.",
+
+  "number": 22222,
+  "symbol": "RBFX",
+  "sellerFeeBasisPoints": 500,
+  "isMutable": true,
+  "isSequential": false,
+
+  "creators": [
+    {
+      "address": "RBFX_CREATOR_WALLET_PLACEHOLDER",
+      "share": 100
+    }
+  ],
+
+  "hiddenSettings": {
+    "name": "REBORNFENIX #$ID+1$",
+    "uri": "https://arweave.net/REBORNFENIX_BASE_URI_PLACEHOLDER/",
+    "hash": "REBORNFENIX_HASH_PLACEHOLDER_32BYTES"
+  },
+
+  "_hiddenSettings_note": [
+    "Hidden settings enable pre-mint deployment without uploading all metadata upfront.",
+    "After mint is complete, update the base URI to the revealed metadata folder.",
+    "hash must be the SHA-256 of the concatenation of all metadata URIs.",
+    "Run 'sugar reveal' to trigger the on-chain reveal after all mints complete.",
+    "Replace 'REBORNFENIX_BASE_URI_PLACEHOLDER' with your Arweave/IPFS base URI after upload.",
+    "Replace 'REBORNFENIX_HASH_PLACEHOLDER_32BYTES' with the actual 32-byte hash."
+  ],
+
+  "uploadMethod": "bundlr",
+  "_uploadMethod_note": "Bundlr (now Irys) for permanent Arweave storage. Alternatives: 'aws', 'nft_storage', 'pinata'.",
+
+  "awsConfig": null,
+  "nftStorageAuthToken": null,
+  "pinataConfig": null,
+
+  "solTreasuryAccount": "RBFX_TREASURY_WALLET_PLACEHOLDER",
+  "_treasury_note": "All mint proceeds go here. Use a multisig for production.",
+
+  "splTokenAccount": null,
+  "splToken": null,
+
+  "goLiveDate": "2025-01-01T00:00:00Z",
+  "_goLiveDate_note": "Replace with actual go-live UTC timestamp. Format: YYYY-MM-DDTHH:MM:SSZ",
+
+  "endSettings": {
+    "endSettingType": "amount",
+    "value": 22222
+  },
+
+  "whitelistMintSettings": {
+    "mode": "burnEveryTime",
+    "mint": "RBFX_WL_TOKEN_MINT_PLACEHOLDER",
+    "presale": true,
+    "discountPrice": null,
+    "_note": "WL holders can mint during presale window. Set discountPrice (in SOL) for WL discount, or null for same price."
+  },
+
+  "gatekeeper": null,
+  "_gatekeeper_note": "Optional: set to Civic Gateway config for bot protection. null = no captcha.",
+
+  "guards": {
+    "_note": "Metaplex Candy Machine v3 uses Guard Groups for phased minting. Configure below.",
+
+    "default": {
+      "startDate": {
+        "date": "2025-01-01T00:00:00Z"
+      },
+      "tokenPayment": {
+        "amount": 10000000,
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "_note": "10 USDC (6 decimals = 10,000,000). Mint address is USDC on Solana mainnet."
+      },
+      "mintLimit": {
+        "id": 1,
+        "limit": 10,
+        "_note": "Max 10 mints per wallet. Adjust for your launch strategy."
+      },
+      "botTax": {
+        "lamports": 10000000,
+        "lastInstruction": true,
+        "_note": "0.01 SOL bot tax to deter automated spam minting."
+      }
+    },
+
+    "presale": {
+      "label": "WL Presale",
+      "startDate": {
+        "date": "2024-12-25T00:00:00Z",
+        "_note": "Replace with actual WL presale date."
+      },
+      "endDate": {
+        "date": "2025-01-01T00:00:00Z",
+        "_note": "Replace with public mint start date."
+      },
+      "tokenGate": {
+        "mint": "RBFX_WL_TOKEN_MINT_PLACEHOLDER",
+        "amount": 1,
+        "_note": "Requires holding 1 WL token to mint during presale."
+      },
+      "tokenPayment": {
+        "amount": 8000000,
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "_note": "WL discount: 8 USDC (20% off)."
+      },
+      "mintLimit": {
+        "id": 2,
+        "limit": 3,
+        "_note": "WL wallets limited to 3 mints during presale."
+      }
+    }
+  },
+
+  "collection": {
+    "name": "REBORNFENIX",
+    "family": "RBFX",
+    "mint": "RBFX_COLLECTION_MINT_PLACEHOLDER",
+    "_note": "Create the collection NFT first with 'sugar collection create', paste its mint address here."
+  },
+
+  "ruleSet": "RBFX_RULE_SET_PLACEHOLDER",
+  "_ruleSet_note": "Metaplex Programmable NFT rule set address for royalty enforcement. null for legacy NFTs.",
+
+  "tokenStandard": "ProgrammableNonFungible",
+  "_tokenStandard_note": "pNFT standard for on-chain royalty enforcement. Use 'NonFungible' for standard NFTs.",
+
+  "pricing": {
+    "currency": "USDC",
+    "publicMintPrice": 10.00,
+    "presaleMintPrice": 8.00,
+    "unit": "USDC",
+    "usdcMintAddress": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "_note": "USDC mint address is for Solana mainnet. Use different address for devnet testing."
+  },
+
+  "royalties": {
+    "sellerFeeBasisPoints": 500,
+    "percentage": 5.0,
+    "recipient": "RBFX_CREATOR_WALLET_PLACEHOLDER",
+    "_note": "500 basis points = 5% royalties on secondary sales. Enforced via pNFT standard."
+  },
+
+  "metadata": {
+    "standard": "Metaplex Token Metadata v3",
+    "baseUri": "https://arweave.net/REBORNFENIX_BASE_URI_PLACEHOLDER/",
+    "imageFormat": "PNG",
+    "resolution": "1000x1000",
+    "animationEnabled": false,
+    "revealEnabled": true,
+    "revealUri": "https://arweave.net/REBORNFENIX_REVEALED_URI_PLACEHOLDER/"
+  },
+
+  "deploymentChecklist": [
+    "1. Replace ALL PLACEHOLDER values in this config",
+    "2. Upload art assets to Arweave/IPFS and get base URI",
+    "3. Upload metadata JSONs using 'sugar upload'",
+    "4. Run 'sugar validate' to verify config",
+    "5. Create collection NFT: 'sugar collection create'",
+    "6. Deploy candy machine: 'sugar deploy'",
+    "7. Verify deployment: 'sugar verify'",
+    "8. Set go-live date and announce",
+    "9. After sellout: run 'sugar reveal' for metadata reveal",
+    "10. Verify secondary marketplace royalties are enforced"
+  ],
+
+  "sugarCommands": {
+    "upload":     "sugar upload",
+    "validate":   "sugar validate",
+    "deploy":     "sugar deploy",
+    "verify":     "sugar verify",
+    "mint_test":  "sugar mint --number 1",
+    "reveal":     "sugar reveal",
+    "show":       "sugar show",
+    "withdraw":   "sugar withdraw"
+  },
+
+  "network": {
+    "mainnet": "https://api.mainnet-beta.solana.com",
+    "devnet":  "https://api.devnet.solana.com",
+    "rpc_note": "Use a private RPC (Helius, QuickNode, Alchemy) for production. Public RPC rate-limits during high traffic."
+  },
+
+  "lore": {
+    "tagline": "22,222 warriors. One oath. No surrender.",
+    "tagline_pt": "22.222 guerreiros. Um juramento. Sem rendição.",
+    "mission": "Born from the fires of Ragnarök. Carrying the wisdom of the Elder Futhark. For every father who kept fighting when the world said stop.",
+    "mission_pt": "Nascidos dos fogos de Ragnarök. Carregando a sabedoria das Elder Futhark. Por cada pai que continuou a lutar quando o mundo disse para parar.",
+    "reborn_lore": "Among the 22,222 stand 22 Reborn — the rarest flame. They have already survived their worst day. The Reborn trait cannot be bought. It can only be minted by fate.",
+    "reborn_lore_pt": "Entre os 22.222 encontram-se 22 Reborn — a chama mais rara. Já sobreviveram ao seu pior dia. O traço Reborn não pode ser comprado. Só pode ser cunhado pelo destino."
+  }
+}
