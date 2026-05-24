@@ -1185,6 +1185,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollReveal();
   initRarityBars();
 
+  // 5b. Puzzle lightbox (founder section)
+  initPuzzleLightbox();
+
   // 6. Wallet auto-connect (after a brief delay so provider can initialize)
   setTimeout(tryAutoConnect, 800);
 
@@ -1203,7 +1206,102 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ══════════════════════════════════════════════════
-   24. PERFORMANCE — Passive listeners & cleanup
+   24. PUZZLE LIGHTBOX
+══════════════════════════════════════════════════ */
+
+function initPuzzleLightbox() {
+  const items = document.querySelectorAll('.puzzle-item');
+  if (!items.length) return;
+
+  let lightboxEl = null;
+
+  function openLightbox(src, alt, title) {
+    // Remove existing lightbox if any
+    closeLightbox();
+
+    lightboxEl = document.createElement('div');
+    lightboxEl.className = 'puzzle-lightbox';
+    lightboxEl.setAttribute('role', 'dialog');
+    lightboxEl.setAttribute('aria-modal', 'true');
+    lightboxEl.setAttribute('aria-label', title || alt);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'puzzle-lightbox-close';
+    closeBtn.textContent = 'ESC · Fechar';
+    closeBtn.setAttribute('aria-label', 'Fechar imagem');
+
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = alt;
+    img.className = 'puzzle-lightbox-img';
+    // Prevent click on image from closing the lightbox
+    img.addEventListener('click', e => e.stopPropagation());
+
+    const caption = document.createElement('div');
+    caption.className = 'puzzle-lightbox-caption';
+    caption.textContent = title || alt;
+
+    lightboxEl.appendChild(closeBtn);
+    lightboxEl.appendChild(img);
+    lightboxEl.appendChild(caption);
+
+    document.body.appendChild(lightboxEl);
+    document.body.style.overflow = 'hidden';
+
+    // Close on backdrop click
+    lightboxEl.addEventListener('click', closeLightbox);
+
+    // Close button
+    closeBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      closeLightbox();
+    });
+
+    // Focus the close button for accessibility
+    closeBtn.focus();
+  }
+
+  function closeLightbox() {
+    if (lightboxEl) {
+      lightboxEl.remove();
+      lightboxEl = null;
+    }
+    document.body.style.overflow = '';
+  }
+
+  // Keyboard: ESC closes lightbox (add to the existing ESC handler)
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && lightboxEl) {
+      closeLightbox();
+    }
+  });
+
+  // Attach click handler to each puzzle item
+  items.forEach(item => {
+    const img   = item.querySelector('img');
+    const title = item.getAttribute('data-title') || '';
+    const alt   = img?.getAttribute('alt') || '';
+    const src   = img?.getAttribute('src') || '';
+
+    item.addEventListener('click', () => {
+      if (src) openLightbox(src, alt, title);
+    });
+
+    // Keyboard accessibility
+    item.setAttribute('tabindex', '0');
+    item.setAttribute('role', 'button');
+    item.setAttribute('aria-label', `Ver puzzle: ${title || alt}`);
+    item.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (src) openLightbox(src, alt, title);
+      }
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════
+   25. PERFORMANCE — Passive listeners & cleanup
 ══════════════════════════════════════════════════ */
 
 // Debounce utility
