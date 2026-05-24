@@ -578,10 +578,190 @@ async function mintNFT() {
   } finally {
     state.minting = false;
     if (mintBtn) {
-      mintBtn.disabled    = false;
-      mintBtn.innerHTML   = 'ᚠ &nbsp; Claim Your Rune — 10 USDC';
+      mintBtn.disabled   = false;
+      mintBtn.innerHTML  = 'ᚠ &nbsp; JOIN THE LEGION — 10 USDC';
     }
   }
+}
+
+/* ══════════════════════════════════════════════════
+   FOUNDING WARRIOR — WALLET + MINT
+══════════════════════════════════════════════════ */
+
+function showFWMintStatus(msg, type = 'info') {
+  const el = document.getElementById('fw-mint-status');
+  if (!el) return;
+  el.textContent   = msg;
+  el.className     = `mint-status ${type}`;
+  el.style.display = 'block';
+}
+
+function hideFWMintStatus() {
+  const el = document.getElementById('fw-mint-status');
+  if (el) el.style.display = 'none';
+}
+
+function setFWWalletUI(connected, address = null) {
+  const connectBtn  = document.getElementById('fw-connect-wallet-btn');
+  const mintBtn     = document.getElementById('fw-mint-button');
+  const walletInfo  = document.getElementById('fw-wallet-connected-info');
+  const addrDisplay = document.getElementById('fw-wallet-address-display');
+
+  state.fwWalletConnected = connected;
+  state.fwWalletAddress   = address;
+
+  if (connected && address) {
+    if (connectBtn)  connectBtn.style.display  = 'none';
+    if (mintBtn)     mintBtn.style.display      = 'inline-flex';
+    if (walletInfo)  walletInfo.style.display   = 'block';
+    if (addrDisplay) addrDisplay.textContent    = shortenAddress(address);
+  } else {
+    if (connectBtn)  connectBtn.style.display   = '';
+    if (mintBtn)     mintBtn.style.display       = 'none';
+    if (walletInfo)  walletInfo.style.display    = 'none';
+  }
+}
+
+async function connectFWWallet() {
+  const provider = getProvider();
+
+  if (!provider) {
+    showFWMintStatus('Phantom wallet not detected. Opening download page...', 'error');
+    setTimeout(() => window.open('https://phantom.app/', '_blank'), 1200);
+    return;
+  }
+
+  try {
+    showFWMintStatus('Requesting wallet connection...', 'info');
+    const resp   = await provider.connect();
+    const pubkey = resp.publicKey.toString();
+
+    state.walletAdapter = provider;
+    setFWWalletUI(true, pubkey);
+    showFWMintStatus(`Connected: ${shortenAddress(pubkey)}`, 'success');
+
+    provider.on('disconnect', () => {
+      setFWWalletUI(false);
+      showFWMintStatus('Wallet disconnected.', 'info');
+    });
+
+    provider.on('accountChanged', (pk) => {
+      if (pk) setFWWalletUI(true, pk.toString());
+      else provider.connect().catch(() => setFWWalletUI(false));
+    });
+
+  } catch (err) {
+    if (err.code === 4001) {
+      showFWMintStatus('Connection cancelled by user.', 'error');
+    } else {
+      showFWMintStatus(`Connection failed: ${err.message || 'Unknown error'}`, 'error');
+    }
+  }
+}
+
+async function mintFoundingWarrior() {
+  if (!state.fwWalletConnected && !state.walletConnected) {
+    showFWMintStatus('Please connect your wallet first.', 'error');
+    return;
+  }
+
+  const remaining = CONFIG.FOUNDING_WARRIOR_SUPPLY - state.foundingMinted;
+  if (remaining <= 0) {
+    showFWMintStatus('All 22 Founding Warrior slots have been claimed.', 'error');
+    return;
+  }
+
+  if (state.fwMinting) return;
+  state.fwMinting = true;
+
+  const mintBtn = document.getElementById('fw-mint-button');
+  if (mintBtn) {
+    mintBtn.disabled    = true;
+    mintBtn.textContent = '⏳  Processing...';
+  }
+
+  try {
+    // ─── PRODUCTION INTEGRATION POINT ───────────────────────────
+    // Founding Warriors use a separate Candy Machine or mint authority
+    // with a price of 100 USDC (100_000_000 micro-USDC).
+    //
+    // After minting, the team contacts the buyer via email associated
+    // with their wallet or via Discord to collect:
+    //   - Chosen warrior name
+    //   - Zodiac sign
+    //
+    // The NFT metadata is then configured and the token delivered.
+    // ────────────────────────────────────────────────────────────
+
+    showFWMintStatus('Approving transaction in your wallet... (100 USDC)', 'info');
+    await sleep(1500);
+
+    showFWMintStatus('Transaction submitted. Confirming on Solana...', 'info');
+    await sleep(2500);
+
+    // Update state
+    state.foundingMinted += 1;
+    updateFoundingWarriorCounter();
+
+    const fakeTxHash = generateFakeTxHash();
+    showFWMintStatus(`Success! Founding Warrior slot #${state.foundingMinted} claimed. Check your email — we will be in touch within 24 hours.`, 'success');
+    openFWSuccessModal(fakeTxHash);
+
+  } catch (err) {
+    console.error('Founding Warrior mint error:', err);
+
+    let userMsg = 'Mint failed. ';
+    if (err.message?.includes('insufficient funds')) {
+      userMsg += 'Insufficient USDC (100 USDC required) or SOL for fees.';
+    } else if (err.code === 4001) {
+      userMsg = 'Transaction cancelled by user.';
+    } else {
+      userMsg += err.message || 'Unknown error. Please try again.';
+    }
+
+    showFWMintStatus(userMsg, 'error');
+
+  } finally {
+    state.fwMinting = false;
+    if (mintBtn) {
+      mintBtn.disabled   = false;
+      mintBtn.innerHTML  = '⚜ &nbsp; CLAIM YOUR TITLE — 100 USDC';
+    }
+  }
+}
+
+function openFWSuccessModal(txHash) {
+  const modal   = document.getElementById('fw-success-modal');
+  const txEl    = document.getElementById('fw-success-tx');
+  const shareBtn= document.getElementById('fw-share-btn');
+  if (!modal) return;
+
+  if (txEl) txEl.textContent = `TX: ${shortenAddress(txHash)}`;
+
+  if (shareBtn) {
+    shareBtn.onclick = () => {
+      const text = encodeURIComponent(
+        `I just became one of the 22 FOUNDING WARRIORS of REBORNFENIX. ` +
+        `The Imperial Purple is mine. #RBFX #Solana #NFT #FoundingWarrior`
+      );
+      window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(window.location.href)}`, '_blank');
+    };
+  }
+
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+
+  const closeBtn = document.getElementById('fw-close-modal-btn');
+  if (closeBtn) closeBtn.focus();
+}
+
+function closeFWSuccessModal() {
+  const modal = document.getElementById('fw-success-modal');
+  if (!modal) return;
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
 }
 
 function generateFakeTxHash() {
@@ -600,17 +780,35 @@ function openSuccessModal(rune, txHash) {
   const runeDisplay = document.getElementById('success-rune-display');
   const txDisplay   = document.getElementById('success-tx');
   const shareBtn    = document.getElementById('share-btn');
+  const subtitleEl  = document.getElementById('success-subtitle');
+  const genBadgeEl  = document.getElementById('success-gen-badge');
 
   if (!modal) return;
 
   if (runeDisplay) runeDisplay.textContent = rune.sym;
   if (txDisplay)   txDisplay.textContent   = `TX: ${shortenAddress(txHash)}`;
 
+  // Determine which generation the new warrior joined
+  const tokenNumber = state.mintedCount; // already incremented before this call
+  const gen = getGenerationForToken(tokenNumber);
+
+  if (subtitleEl && gen) {
+    subtitleEl.textContent = `Token #${tokenNumber.toLocaleString()} — Generation ${gen.gen}: ${gen.name}. Your place in the Legion of Honour is now permanent on the Solana blockchain.`;
+  }
+
+  if (genBadgeEl && gen) {
+    genBadgeEl.textContent     = `GEN ${gen.gen} — ${gen.name.toUpperCase()}`;
+    genBadgeEl.style.color     = gen.color;
+    genBadgeEl.style.background= `${gen.color}18`;
+    genBadgeEl.style.border    = `1px solid ${gen.color}55`;
+  }
+
   if (shareBtn) {
     shareBtn.onclick = () => {
+      const genText = gen ? ` — Generation ${gen.gen}: ${gen.name}` : '';
       const text = encodeURIComponent(
-        `I just claimed the ${rune.name} (${rune.sym}) rune on REBORNFENIX! ` +
-        `22,222 warriors. One rune. One soul. #RBFX #Solana #NFT`
+        `I just joined the REBORNFENIX Legion of Honour${genText}! ` +
+        `Token #${tokenNumber.toLocaleString()} of 22,222. One fire. #RBFX #Solana #NFT`
       );
       window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(window.location.href)}`, '_blank');
     };
@@ -814,7 +1012,9 @@ async function tryAutoConnect() {
   try {
     // Silently check if already connected (eagerly connect)
     if (provider.isConnected && provider.publicKey) {
-      setWalletUI(true, provider.publicKey.toString());
+      const pubkey = provider.publicKey.toString();
+      setWalletUI(true, pubkey);
+      setFWWalletUI(true, pubkey);
       state.walletAdapter = provider;
     }
   } catch (e) {
@@ -862,7 +1062,7 @@ function getConnectURL() {
 ══════════════════════════════════════════════════ */
 
 function setupEventListeners() {
-  // Connect wallet
+  // ── Legion — Connect wallet ──
   document.getElementById('connect-wallet-btn')?.addEventListener('click', () => {
     const mobileLink = getConnectURL();
     if (mobileLink) {
@@ -872,23 +1072,43 @@ function setupEventListeners() {
     connectWallet();
   });
 
-  // Mint button
+  // ── Legion — Mint button ──
   document.getElementById('mint-button')?.addEventListener('click', mintNFT);
 
-  // Close success modal
+  // ── Legion — Close success modal ──
   document.getElementById('close-modal-btn')?.addEventListener('click', closeSuccessModal);
-
-  // Click outside modal to close
   document.getElementById('success-modal')?.addEventListener('click', e => {
     if (e.target === e.currentTarget) closeSuccessModal();
   });
 
-  // ESC key to close modal
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeSuccessModal();
+  // ── Founding Warrior — Connect wallet ──
+  document.getElementById('fw-connect-wallet-btn')?.addEventListener('click', () => {
+    const mobileLink = getConnectURL();
+    if (mobileLink) {
+      window.location.href = mobileLink;
+      return;
+    }
+    connectFWWallet();
   });
 
-  // Smooth scroll for anchor links
+  // ── Founding Warrior — Mint button ──
+  document.getElementById('fw-mint-button')?.addEventListener('click', mintFoundingWarrior);
+
+  // ── Founding Warrior — Close success modal ──
+  document.getElementById('fw-close-modal-btn')?.addEventListener('click', closeFWSuccessModal);
+  document.getElementById('fw-success-modal')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeFWSuccessModal();
+  });
+
+  // ── ESC key to close any open modal ──
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeSuccessModal();
+      closeFWSuccessModal();
+    }
+  });
+
+  // ── Smooth scroll for anchor links ──
   document.querySelectorAll('a[href^="#"]').forEach(a => {
     a.addEventListener('click', e => {
       const target = document.querySelector(a.getAttribute('href'));
@@ -976,8 +1196,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 9. Log helpful info to console for developers
   console.log(
-    '%c⚡ REBORNFENIX (RBFX) %c\n22,222 Warriors. One Rune. One Soul.\nSolana NFT Collection\n\nContract: ' + CONFIG.CONTRACT_ADDRESS + '\nNetwork: ' + CONFIG.NETWORK,
-    'color: #c9a84c; font-size: 18px; font-weight: bold;',
+    '%c⚡ REBORNFENIX (RBFX) %c\n22 Founding Warriors · 22,222 Legion of Honour · One fire.\nSolana NFT Collection\n\nContract: ' + CONFIG.CONTRACT_ADDRESS + '\nNetwork: ' + CONFIG.NETWORK,
+    'color: #9D4EDD; font-size: 18px; font-weight: bold;',
     'color: #a8a8b8; font-size: 12px;'
   );
 });
@@ -1006,10 +1226,15 @@ function throttle(fn, ms) {
 
 // Expose for external use if needed (e.g., Candy Machine SDK integration)
 window.RBFX = {
-  config:        CONFIG,
-  state:         state,
+  config:                   CONFIG,
+  state:                    state,
+  generations:              GENERATIONS,
   connectWallet,
   mintNFT,
+  connectFWWallet,
+  mintFoundingWarrior,
   getProvider,
   updateSupplyDisplay,
+  getGenerationForToken,
+  getCurrentGeneration,
 };

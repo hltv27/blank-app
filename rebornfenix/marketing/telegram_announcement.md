@@ -8,13 +8,14 @@
 
 ### SHORT VERSION *(3 paragraphs — for cold audiences / drop in general crypto groups)*
 
-⚔️ **REBORNFENIX** — 22,222 Norse rune warrior NFTs on Solana. $10 USDC each. Maximum 1 per wallet.
+⚔️ **REBORNFENIX** — Two tiers. One hall. 22 Founding Warriors at $100 USDC. 22,222 Legion of Honour at $10 USDC. Your generation is your legacy.
 
-Built for traders who know what liquidation feels like and came back anyway. Each NFT carries one of the 24 Elder Futhark runes — permanently encoded on-chain. The community is 22,222 warriors who chose one rune, one identity, one seat in the hall. No whales. No multi-wallet accumulation. One person, one rune.
+22 Founding Warriors carry Imperial Purple — a personalized heraldic crest with your chosen name inscribed, a unique rune sword, and your zodiac shield. Named on the website forever. 22 seats. When they're gone, they're gone. The Legion of Honour is 22,222 circular medal NFTs — each one carrying one of the 24 Elder Futhark runes, each one assigned to a generation (1–10) by purchase order. Gen 1: Red Phoenix. Gen 10: Iron Born. 1 per wallet. Maximum.
 
-Part of every mint goes to autism support — this is the founder's life, not a marketing strategy. The hall fills once. When it's full, the doors close.
+Part of every mint goes to autism support — this is the founder's life, not a marketing strategy. The hall fills once. When it's full, the doors close permanently.
 
-🔥 Mint: $10 USDC | Solana | 1 per wallet
+🔥 Founding Warriors: $100 USDC | 22 seats only
+🔥 Legion of Honour: $10 USDC | Solana | 1 per wallet
 📎 [Official Link]
 
 ---
@@ -27,34 +28,59 @@ Let me tell you what this project actually is before I tell you what it sells.
 
 The founder has been trading crypto since 2017. Multiple liquidations, multiple rebuilds, years of learning the hard way. Also the father of an autistic son — which means years of fighting *for* someone in systems that weren't built with them in mind. Both experiences teach the same thing: falling is not the end. The warrior who refuses to stay down is a different category of human.
 
-REBORNFENIX is where those two truths collide.
+REBORNFENIX is where those two truths collide. And it launches with two tiers.
 
-**The NFT:**
-22,222 unique warrior NFTs on Solana. Each carries one of the 24 Elder Futhark runes — the ancient Norse symbolic alphabet. No two are identical. Every combination of rune + warrior design + traits is singular. Find the rune that's been describing your life and you'll understand immediately.
+**TIER 1 — THE FOUNDING WARRIORS**
+22 seats. $100 USDC. Imperial Purple.
+
+In ancient Rome, Tyrian purple was illegal to wear without the Emperor's sanction. Treason. Punishable by death. Not bad taste — *treason*. The color meant: this person belongs to a category apart.
+
+The 22 Founding Warriors carry Imperial Purple because they arrived first. Before social proof. Before floor price history. Before anyone could tell them it was a good decision.
+
+Each Founding Warrior NFT is a personalized heraldic crest. "FOUNDING WARRIOR" arcs across the top. Your chosen name arcs across the bottom. A unique rune sword on the right. Your zodiac shield on the left. Your name goes on the project website — permanently. Not your wallet. Your *name*.
+
+22 seats. They close at 22. No exceptions.
+
+**TIER 2 — THE LEGION OF HONOUR**
+22,222 circular medal NFTs. $10 USDC. Maximum 1 per wallet.
+
+Each carries one of the 24 Elder Futhark runes — the ancient Norse symbolic alphabet. No two are identical. Find the rune that describes your life and you'll understand immediately why it was always yours.
+
+The Legion is divided into 10 generations — determined entirely by purchase order. Not wealth. Not whitelist. *When you arrived.*
+
+Gen 1: Red Phoenix — arrived before proof existed
+Gen 2–9: Each with their own color, their own chapter
+Gen 10: Iron Born — arrived when the hall was almost full, acted when the window was closing
+
+Every Iron Born was once someone who almost didn't buy. They did. That matters.
 
 **The rules:**
-Maximum 1 per wallet. Hard-coded. Non-negotiable. This is the design decision that defines the community — no whales accumulating power, no speculators buying 20 to flip 19. One warrior. One rune. One seat. 22,222 total.
-
-**The price:**
-$10 USDC. Built on Solana so gas is negligible. We priced it so the barrier is *commitment*, not capital. The trader who's rebuilding after a hard run should still be able to get in. This isn't for people who are already comfortable — it's for people who know what uncomfortable feels like and kept going.
+1 per wallet. Hard-coded in the smart contract. No whale accumulation. No flipping 19 of 20. One warrior. One rune. One generation. Sealed forever.
 
 **The cause:**
 A percentage of every mint goes to autism support organizations, verifiable on-chain. The founder's son is autistic. This is not cause-washing. This is the founder putting the project's money where his life already lives.
 
 **The community:**
-Discord server with verified holder channels only. Real trading discussion. Real market analysis. Real war stories — the losses, the lessons, the recoveries. One-per-wallet means the community is 22,222 individuals, not 500 whales and 21,722 bots. The Einherjar tier (30-day+ active holders) get access to deeper channels. The culture is warrior culture — honest, direct, and built to survive.
+Discord server with verified holder channels. Founding Warriors get a private inner council. The Legion gets the main hall — real trading discussion, real market analysis, real war stories. One-per-wallet means 22,222 individuals, not 500 whales and 21,722 bots.
 
 **The roadmap:**
-Phase 1: Mint + community | Phase 2: RBFX token (holder-preferential) | Phase 3: Trading tools + market intelligence for holders | Phase 4: Physical merchandise + real-world events
+Phase 1: Mint + generation reveal + Founding Warriors named on website
+Phase 2: RBFX token (Founding Warriors enhanced; Legion generation-ordered)
+Phase 3: Trading tools + market intelligence for holders
+Phase 4: Physical merchandise (cast metal brasão for Founding Warriors) + real-world events
 
 **The bottom line:**
-This is not a JPEG collection. It is a permanent identity choice made by people who have chosen their rune and sealed it on the blockchain. The hall fills once. When all 22,222 seats are taken, the doors close. The runes that found warriors are found. The unminted stay sealed.
+22 Founding Warriors in Imperial Purple. Named forever. $100 USDC.
+22,222 Legion of Honour. Your generation tells when you decided. $10 USDC.
+
+Your generation is your legacy.
 
 If you've been liquidated and rebuilt, this is for you.
 If you've fought for someone you love, this is for you.
-If you know which rune is yours before you've even looked at all 24, this is definitely for you.
+If you want to be one of the 22 — move fast. 22 is a small number.
 
-🔥 **Minting now | $10 USDC | Solana | 1 per wallet**
+🔥 **Founding Warriors: $100 USDC | 22 seats — act now**
+🔥 **Legion of Honour: $10 USDC | Solana | 1 per wallet**
 📎 [Official Mint Link]
 📎 [Discord]
 📎 [Twitter/X]
@@ -69,13 +95,14 @@ If you know which rune is yours before you've even looked at all 24, this is def
 
 ### VERSÃO CURTA *(3 parágrafos — para audiências frias / grupos gerais de crypto)*
 
-⚔️ **REBORNFENIX** — 22.222 NFTs de guerreiros com runas nórdicas na Solana. $10 USDC cada. Máximo 1 por carteira.
+⚔️ **REBORNFENIX** — Dois níveis. Um salão. 22 Founding Warriors a $100 USDC. 22.222 Legion of Honour a $10 USDC. A tua geração é o teu legado.
 
-Criado para traders que sabem o que é ser liquidado e voltaram na mesma. Cada NFT carrega uma das 24 runas do Elder Futhark — codificadas permanentemente na blockchain. A comunidade são 22.222 guerreiros que escolheram uma runa, uma identidade, um lugar no salão. Sem baleias. Sem acumulação em múltiplas carteiras. Uma pessoa, uma runa.
+22 Founding Warriors carregam Púrpura Imperial — um brasão heráldico personalizado com o teu nome inscrito, uma espada rúnica única e o teu escudo zodíaco. Nomeados no website para sempre. 22 lugares. Quando esgotarem, esgotaram. A Legion of Honour são 22.222 NFTs de medalha circular — cada um com uma das 24 runas do Elder Futhark, cada um atribuído a uma geração (1–10) por ordem de compra. Gen 1: Fénix Vermelha. Gen 10: Iron Born. 1 por carteira. Máximo.
 
-Parte de cada mint vai para apoio ao autismo — esta é a vida do fundador, não uma estratégia de marketing. O salão enche uma vez. Quando estiver cheio, as portas fecham.
+Parte de cada mint vai para apoio ao autismo — esta é a vida do fundador, não uma estratégia de marketing. O salão enche uma vez. Quando estiver cheio, as portas fecham para sempre.
 
-🔥 Mint: $10 USDC | Solana | 1 por carteira
+🔥 Founding Warriors: $100 USDC | apenas 22 lugares
+🔥 Legion of Honour: $10 USDC | Solana | 1 por carteira
 📎 [Link Oficial]
 
 ---
@@ -88,34 +115,59 @@ Deixa-me dizer-te o que este projeto realmente é antes de te dizer o que vende.
 
 O fundador opera em cripto desde 2017. Múltiplas liquidações, múltiplas reconstruções, anos a aprender da maneira mais difícil. Também é pai de um filho autista — o que significa anos a lutar *por* alguém em sistemas que não foram construídos para ele. As duas experiências ensinam a mesma coisa: cair não é o fim. O guerreiro que recusa ficar no chão é uma categoria diferente de ser humano.
 
-REBORNFENIX é onde essas duas verdades colidem.
+REBORNFENIX é onde essas duas verdades colidem. E lança com dois níveis.
 
-**O NFT:**
-22.222 NFTs únicos de guerreiros na Solana. Cada um carrega uma das 24 runas do Elder Futhark — o antigo alfabeto simbólico nórdico. Não há dois iguais. Cada combinação de runa + design de guerreiro + atributos é singular. Encontra a runa que descreve a tua vida e vais perceber imediatamente.
+**NÍVEL 1 — OS FOUNDING WARRIORS**
+22 lugares. $100 USDC. Púrpura Imperial.
+
+Na Roma antiga, a púrpura Tíria era ilegal de usar sem sanção do Imperador. Traição punível com morte. Não mau gosto — *traição*. A cor significava: esta pessoa pertence a uma categoria à parte.
+
+Os 22 Founding Warriors carregam Púrpura Imperial porque chegaram primeiro. Antes da prova social. Antes do histórico de floor price. Antes de qualquer coisa que pudesse confirmar que era uma boa decisão.
+
+Cada NFT de Founding Warrior é um brasão heráldico personalizado. "FOUNDING WARRIOR" em arco no topo. O teu nome escolhido em arco na base. Uma espada rúnica única à direita. O teu escudo zodíaco à esquerda. O teu nome vai para o website do projeto — permanentemente. Não a tua carteira. O teu *nome*.
+
+22 lugares. Fecham nos 22. Sem exceções.
+
+**NÍVEL 2 — A LEGION OF HONOUR**
+22.222 NFTs de medalha circular. $10 USDC. Máximo 1 por carteira.
+
+Cada um carrega uma das 24 runas do Elder Futhark — o antigo alfabeto simbólico nórdico. Não há dois iguais. Encontra a runa que descreve a tua vida e perceberes imediatamente porque é que sempre foi tua.
+
+A Legion está dividida em 10 gerações — determinadas inteiramente por ordem de compra. Não riqueza. Não whitelist. *Quando chegaste.*
+
+Gen 1: Fénix Vermelha — chegou antes de existir prova
+Gen 2–9: Cada uma com a sua cor, o seu capítulo
+Gen 10: Iron Born — chegou quando o salão estava quase cheio, agiu quando a janela estava a fechar
+
+Cada Iron Born foi uma vez alguém que quase não comprou. Comprou. Isso importa.
 
 **As regras:**
-Máximo 1 por carteira. Codificado no smart contract. Não negociável. Esta é a decisão de design que define a comunidade — sem baleias a acumular poder, sem especuladores a comprar 20 para vender 19. Um guerreiro. Uma runa. Um lugar. 22.222 no total.
-
-**O preço:**
-$10 USDC. Construído na Solana para que o gas seja negligenciável. Definimos o preço assim para que a barreira seja o *compromisso*, não o capital. O trader que está a reconstruir depois de uma fase difícil ainda deve conseguir entrar. Isto não é para quem já está confortável — é para quem sabe o que é estar desconfortável e continuou na mesma.
+1 por carteira. Codificado no smart contract. Sem acumulação de baleias. Sem vender 19 de 20. Um guerreiro. Uma runa. Uma geração. Selado para sempre.
 
 **A causa:**
 Uma percentagem de cada mint vai para organizações de apoio ao autismo, verificável on-chain. O filho do fundador é autista. Isto não é greenwashing de causas. É o fundador a colocar o dinheiro do projeto onde a sua vida já vive.
 
 **A comunidade:**
-Servidor Discord com canais exclusivos para holders verificados. Discussão de trading real. Análise de mercado real. Histórias de guerra reais — as perdas, as lições, as recuperações. 1-por-carteira significa que a comunidade são 22.222 indivíduos, não 500 baleias e 21.722 bots. O nível Einherjar (holders ativos há 30+ dias) têm acesso a canais mais profundos. A cultura é cultura de guerreiro — honesta, direta, e construída para sobreviver.
+Servidor Discord com canais exclusivos para holders verificados. Founding Warriors têm um conselho privado. A Legion tem o salão principal — discussão de trading real, análise de mercado real, histórias de guerra reais. 1-por-carteira significa 22.222 indivíduos, não 500 baleias e 21.722 bots.
 
 **O roadmap:**
-Fase 1: Mint + comunidade | Fase 2: Token RBFX (distribuição preferencial para holders) | Fase 3: Ferramentas de trading + inteligência de mercado para holders | Fase 4: Merchandising físico + eventos presenciais
+Fase 1: Mint + revelação de geração + Founding Warriors nomeados no website
+Fase 2: Token RBFX (Founding Warriors aumentado; Legion por ordem de geração)
+Fase 3: Ferramentas de trading + inteligência de mercado para holders
+Fase 4: Merchandising físico (brasão em metal fundido para Founding Warriors) + eventos presenciais
 
 **A linha de fundo:**
-Isto não é uma coleção de JPEGs. É uma escolha de identidade permanente feita por pessoas que escolheram a sua runa e a selaram na blockchain. O salão enche uma vez. Quando os 22.222 lugares estiverem ocupados, as portas fecham. As runas que encontraram os seus guerreiros estão encontradas. As que não encontraram ficam seladas para sempre.
+22 Founding Warriors em Púrpura Imperial. Nomeados para sempre. $100 USDC.
+22.222 Legion of Honour. A tua geração conta quando decidiste. $10 USDC.
+
+A tua geração é o teu legado.
 
 Se já foste liquidado e reconstruíste, isto é para ti.
 Se já lutaste por alguém que amas, isto é para ti.
-Se já sabes qual é a tua runa antes de teres visto as 24, isto é definitivamente para ti.
+Se queres ser um dos 22 — move-te depressa. 22 é um número pequeno.
 
-🔥 **A cunhar agora | $10 USDC | Solana | 1 por carteira**
+🔥 **Founding Warriors: $100 USDC | 22 lugares — age agora**
+🔥 **Legion of Honour: $10 USDC | Solana | 1 por carteira**
 📎 [Link Oficial de Mint]
 📎 [Discord]
 📎 [Twitter/X]

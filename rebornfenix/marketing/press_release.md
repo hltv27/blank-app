@@ -8,19 +8,37 @@
 
 ## HEADLINE
 
-**REBORNFENIX Launches 22,222-NFT Collection on Solana Built for Traders Who Know Loss — and Keep Fighting**
+**REBORNFENIX Launches Dual-Tier NFT Collection on Solana — 22 Founding Warriors Carry the Forbidden Imperial Purple That Once Reserved for Roman Emperors**
 
 ---
 
 ## SUBHEADLINE
 
-*Priced at $10 USDC with a hard limit of one per wallet, REBORNFENIX combines Norse rune symbolism, blockchain permanence, and a founding story of trading resilience and a father's love for his autistic son into what may be crypto's most personally honest NFT project.*
+*With 22 personalized heraldic crest NFTs at $100 USDC and 22,222 generation-ranked circular medal NFTs at $10 USDC, REBORNFENIX builds the most structurally honest warrior community in Web3 — founded on trading resilience, Norse rune symbolism, and a father's love for his autistic son.*
 
 ---
 
-*[CITY, DATE]* — REBORNFENIX, a new NFT collection built on the Solana blockchain, launches with 22,222 unique warrior NFTs — each carrying one of the 24 Elder Futhark runes from the ancient Norse symbolic tradition. At $10 USDC per mint with a strict maximum of one NFT per wallet, the project is positioned as both a statement against speculative NFT accumulation and a genuine attempt to build a lasting community for crypto traders who have experienced real market losses.
+*[CITY, DATE]* — REBORNFENIX, a new NFT collection built on the Solana blockchain, launches with a dual-tier structure unprecedented in the NFT space: 22 Founding Warrior heraldic crest NFTs carrying Imperial Purple at $100 USDC, and 22,222 Legion of Honour circular medal NFTs at $10 USDC — each assigned to one of ten generations determined exclusively by purchase order.
 
-The collection sells out permanently. There is no second mint, no unminted reserve for team wallets, and no whitelist that benefits early insiders at the expense of the broader community. When the 22,222 seats are filled, the hall closes.
+The collection has no whitelist, no influencer allocations, and no mechanism by which any wallet can hold more than one NFT. The 22 Founding Warrior seats close permanently at 22. The 22,222 Legion of Honour seats close permanently when the hall is full. Neither collection reopens.
+
+**The Imperial Purple**
+
+The most distinctive element of the Founding Warrior tier is its color. In ancient Rome, Tyrian purple — produced from the crushed shells of thousands of murex sea snails, at extraordinary cost and labor — was legally forbidden to any person other than the Emperor. The Roman legal code treated unauthorized use of imperial purple not as a social offense but as treason, punishable by death. The color was not merely rare. It was *regulated*, because what it signified — elevation beyond the ordinary, belonging to a category apart — was too powerful to allow into circulation.
+
+China encoded the same principle in the Forbidden City, where colors and materials inaccessible to civilian hands surrounded the Emperor as physical law.
+
+REBORNFENIX chose Imperial Purple for its 22 Founding Warriors for this reason precisely. "The Founding Warriors arrived before the floor price existed," the project founder stated. "Before social proof. Before community size that could reassure them. They believed when believing cost something and proved nothing. That deserves the color that history reserved for those who held the highest positions."
+
+Each Founding Warrior NFT is a personalized heraldic crest — a brasão in the tradition of martial nobility. "FOUNDING WARRIOR" arcs across the top; the holder's chosen name arcs across the bottom. A unique rune sword occupies the right; the holder's zodiac shield occupies the left. The 22 Founding Warriors are named permanently on the official project website — not by wallet address, but by the names they chose. That record does not change, is not editable, and belongs to the project's permanent history.
+
+**The Generation System**
+
+The 22,222 Legion of Honour operates on a generation system that converts purchase timestamp into permanent identity. The first wallets to mint belong to Generation 1 — Red Phoenix — the rarest color in the collection. Successive generations carry their own colors: Crimson Dawn, Ember Gold, Bronze Warrior, Silver Guard, Storm Blue, Obsidian Born, Twilight Ash, Shadow Steel, and finally Generation 10: Iron Born.
+
+The generation colors are revealed at mint and are permanent. No mechanism exists to upgrade a generation after purchase.
+
+"Your generation tells the story of when you decided," the founder explained. "It's not about which generation is better — they each have their own honor. Generation 1 arrived before proof. Generation 10 arrived when the hall was almost full, which is its own kind of urgency. Every Iron Born was once someone who almost didn't buy. They did. That matters."
 
 **The Origin**
 
@@ -32,39 +50,38 @@ A percentage of all mint proceeds will be donated to autism support organization
 
 **The Design Philosophy**
 
-REBORNFENIX's one-per-wallet rule is codified in the smart contract and is the project's most discussed design decision. In most NFT collections, a small number of wallets accumulate significant supply — shaping floor price dynamics, community culture, and governance outcomes in their favor. REBORNFENIX eliminates this by design.
+REBORNFENIX's one-per-wallet rule is codified in the smart contract and applies to both tiers. In most NFT collections, a small number of wallets accumulate significant supply — shaping floor price dynamics, community culture, and governance outcomes in their favor. REBORNFENIX eliminates this by design.
 
-"We could have made significantly more revenue by allowing multiple mints," the founder acknowledged. "We chose not to because this project is not about maximizing mint revenue. It's about creating a community of 22,222 individuals — not 500 whales and 21,000 bots. Every person in the hall made one deliberate choice. That changes the quality of every conversation."
+"We could have made significantly more revenue by allowing multiple mints," the founder acknowledged. "We chose not to because this project is not about maximizing mint revenue. It's about creating a community of 22,222 individuals — each with one deliberate choice that is permanent and sealed."
 
-The 24 runes of the Elder Futhark were selected as the collection's symbolic system for their direct applicability to the trading experience. Isa, the ice rune representing stillness and patience, maps to the ranging market. Sowilo, the sun rune representing breakthrough victory, maps to the breakout trade. Hagalaz, the hail rune representing sudden disruption, maps to the black swan event. The project's documentation provides a full mapping of all 24 runes to market conditions and trading psychology.
+The 24 runes of the Elder Futhark were selected as the Legion's symbolic system for their direct applicability to the trading experience. Isa, the ice rune representing stillness and patience, maps to the ranging market. Sowilo, the sun rune representing breakthrough victory, maps to the breakout trade. Hagalaz, the hail rune representing sudden disruption, maps to the black swan event. The project's documentation provides a full mapping of all 24 runes to market conditions and trading psychology.
 
 **Technical Details**
 
 - Blockchain: Solana
-- Supply: 22,222 NFTs (non-expandable)
-- Mint price: $10 USDC
-- Wallet limit: 1 per wallet (smart contract enforced)
+- Tier 1 — Founding Warriors: 22 NFTs, $100 USDC, Imperial Purple heraldic crest, personalized name + zodiac shield + rune sword, permanent website listing
+- Tier 2 — Legion of Honour: 22,222 NFTs, $10 USDC, 10 generations by purchase order, 1 per wallet (smart contract enforced)
 - Smart contract: Audited; report published before mint launch
 - Secondary market: Magic Eden (day 1 listing)
-- Token roadmap: RBFX token Phase 2, holder-preferential distribution
+- Token roadmap: RBFX token Phase 2, Founding Warriors receive enhanced allocation, Legion receives generation-ordered distribution
 
 **The Community**
 
-The REBORNFENIX Discord server is structured around verified wallet holders, with core channels accessible only to confirmed NFT holders. The server's design separates analysis channels from social channels, maintains a dedicated space for members to share trading loss stories without shame, and implements a tiered role system (Rune Seeker → Warrior → Einherjar → Fenrir Guard → Rebornfenix) that rewards long-term community participation over wallet size.
+The REBORNFENIX Discord server is structured around verified wallet holders. Founding Warriors have access to a private inner council channel. Core Legion channels are accessible only to confirmed NFT holders. The server's design separates analysis channels from social channels, maintains a dedicated space for members to share trading loss stories without shame, and implements a tiered role system that rewards long-term community participation over wallet size.
 
-"The community design is the product," the founder stated. "The NFT is the key. The Discord is the hall. The rune is the identity. When you build a community where every member made a single deliberate choice to be there — no one is a tourist."
+"The Founding Warriors are the permanent foundation," the founder stated. "The Legion is the army. Both are the community. Neither is superior in character — they simply arrived at different moments, at different prices, and that story is permanently encoded in the NFT they hold."
 
 **Roadmap**
 
-Phase 1 covers the mint and community launch. Phase 2 introduces the RBFX utility token with holder-preferential distribution. Phase 3 adds trading tools and market intelligence features exclusive to holders. Phase 4 includes physical merchandise and real-world community events.
-
-The project has committed to a full community governance vote before any collection expansion — and to sealed unminted supply if the vote rejects expansion.
+Phase 1 covers the mint, generation reveal, and community launch — including the permanent naming of the 22 Founding Warriors on the project website. Phase 2 introduces the RBFX utility token with Founding Warrior-enhanced and generation-ordered distribution. Phase 3 adds trading tools and market intelligence features exclusive to holders. Phase 4 includes physical merchandise — including a cast metal brasão replica for Founding Warriors — and real-world community events.
 
 **Quotes from the Founder**
 
 "Every trader in this space has a moment where the chart went the wrong way and they had to decide who they were. That moment — not the good trades, not the wins, but that moment — is what this community is built around. The warriors who have been there and came back."
 
-"The Viking warrior in Norse mythology isn't the hero who was never defeated. It's the one who went to battle knowing they might fall, went anyway, and when they fell, stood back up. That's the trader. That's the parent. That's the person this project was built for."
+"Imperial purple was forbidden to all but the Emperor. Now 22 warriors carry it. They earned it by arriving when arriving cost something and proved nothing."
+
+"The generation system is the most honest thing we built. Your number tells the story of when you decided. You can't buy a better generation after the fact. You can't negotiate your way into Generation 1 after the mint. When you decided is permanent. That's your legacy."
 
 "I've had enough of projects built by teams who've never actually lost something. REBORNFENIX was built by someone who has, for people who have. The difference is in every line of the manifesto. The difference is where the mint money goes."
 
@@ -74,7 +91,7 @@ The project has committed to a full community governance vote before any collect
 
 **About REBORNFENIX**
 
-REBORNFENIX is a 22,222-NFT collection on the Solana blockchain. Each NFT is unique, carrying one of the 24 Elder Futhark runes from the Norse symbolic tradition, rendered in a singular warrior visual design. The collection is minted at $10 USDC with a hard maximum of 1 per wallet, enforced at the smart contract level. A percentage of all mint proceeds is donated to autism support organizations. The project's roadmap includes a RBFX utility token (Phase 2) and holder-exclusive trading tools (Phase 3).
+REBORNFENIX is a dual-tier NFT collection on the Solana blockchain. Tier 1: 22 Founding Warrior heraldic crest NFTs in Imperial Purple at $100 USDC, each personalized with the holder's chosen name, a unique rune sword, and their zodiac shield — named permanently on the project website. Tier 2: 22,222 Legion of Honour circular medal NFTs at $10 USDC, each carrying one of the 24 Elder Futhark runes, assigned to one of 10 generations by purchase order. Maximum 1 per wallet. A percentage of all mint proceeds is donated to autism support organizations.
 
 The REBORNFENIX community is built for crypto traders who have experienced genuine market losses and continued trading — and for anyone who has fought alongside someone they love through systems not designed for them. The project was founded pseudonymously. The smart contract is public, the donations are verifiable on-chain, and the manifesto is the founder's actual story.
 
