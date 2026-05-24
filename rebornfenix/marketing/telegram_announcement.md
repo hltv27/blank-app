@@ -8,15 +8,25 @@
 
 ### SHORT VERSION *(3 paragraphs — for cold audiences / drop in general crypto groups)*
 
-⚔️ **REBORNFENIX** — Two tiers. One hall. 22 Founding Warriors at $100 USDC. 22,222 Legion of Honour at $10 USDC. Your generation is your legacy.
+⚔️ **REBORNFENIX** — Três tiers. Um juramento. 544.466 tokens. Hard cap para sempre.
 
-22 Founding Warriors carry Imperial Purple — a personalized heraldic crest with your chosen name inscribed, a unique rune sword, and your zodiac shield. Named on the website forever. 22 seats. When they're gone, they're gone. The Legion of Honour is 22,222 circular medal NFTs — each one carrying one of the 24 Elder Futhark runes, each one assigned to a generation (1–10) by purchase order. Gen 1: Red Phoenix. Gen 10: Iron Born. 1 per wallet. Maximum.
+**22 Founding Warriors** — $100 USDC — Brasão heráldico em Púrpura Imperial, nome e zodíaco pessoal, gravados no website para sempre. 22 lugares. Quando acabam, acabam.
 
-Part of every mint goes to autism support — this is the founder's life, not a marketing strategy. The hall fills once. When it's full, the doors close permanently.
+**22.222 Legion of Honour** — $10 USDC — Medalha circular com runa nórdica única. Cor determinada pela ordem de compra: Geração 1 (Vermelho Fénix) → Geração 10 (Ferro). 1 por carteira.
 
-🔥 Founding Warriors: $100 USDC | 22 seats only
-🔥 Legion of Honour: $10 USDC | Solana | 1 per wallet
-📎 [Official Link]
+**522.222 Phoenix Army** — $0.10 USDC — Exército de massa. Posto militar determinado pela quantidade de tokens na carteira: Recruta → Comandante Supremo. Hard cap. Nunca mais um token após 522.222.
+
+A assinatura numérica: **22 · 22.222 · 522.222** — o número 22 corre em todo o projecto.
+
+**20% de TODA a receita vai para investigação do autismo.** Comprovativo público todo o mês no website. O filho autista do fundador faz puzzles — fotografias dos seus trabalhos estão no site. Isto não é marketing. É a razão de existir.
+
+4 compromissos públicos irrevogáveis do fundador:
+🧩 Puzzle do Mês | 📋 Comprovativo Mensal | ⚔️ Guerreiro do Mês | 📅 Relatório Anual
+
+🔥 Founding Warriors: $100 | 22 lugares
+🔥 Legion of Honour: $10 | 22.222 lugares  
+🪖 Phoenix Army: $0.10 | 522.222 lugares
+📎 [rebornfenix.io]
 
 ---
 

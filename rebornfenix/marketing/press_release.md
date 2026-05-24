@@ -8,7 +8,7 @@
 
 ## HEADLINE
 
-**REBORNFENIX Launches Dual-Tier NFT Collection on Solana — 22 Founding Warriors Carry the Forbidden Imperial Purple That Once Reserved for Roman Emperors**
+**REBORNFENIX Lança Projecto de Três Camadas na Solana — Pai Português com Filho Autista Faz Juramento Público de 20% para Investigação do Autismo**
 
 ---
 

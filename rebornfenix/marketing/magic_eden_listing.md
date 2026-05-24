@@ -10,9 +10,9 @@ REBORNFENIX
 ## SHORT DESCRIPTION
 *(500 characters maximum — for collection card display)*
 
-Two tiers. One hall. 22 Founding Warriors in Imperial Purple at $100 USDC — heraldic crest NFT, personalized, named on the website forever. 22,222 Legion of Honour at $10 USDC — circular medal NFT, your generation determined by purchase order. One per wallet. Built for traders who know loss and keep fighting. The blockchain remembers who arrived first.
+Three tiers. One oath. 22 Founding Warriors (Imperial Purple, $100). 22,222 Legion of Honour ($10, 10 generations). 522,222 Phoenix Army ($0.10, 11 military ranks). 544,466 tokens. Hard cap forever. 20% to autism research monthly — with public proof. Founded by a father. Built for warriors.
 
-*(356 characters)*
+*(295 characters)*
 
 ---
 
