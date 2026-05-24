@@ -344,9 +344,50 @@ function updateSupplyDisplay() {
   const barEl       = document.getElementById('supply-bar');
   const remainingEl = document.getElementById('remaining-text');
 
-  if (mintedEl)    mintedEl.textContent = minted.toLocaleString();
-  if (barEl)       barEl.style.width    = `${Math.max(pct, 0.3)}%`;
+  if (mintedEl)    mintedEl.textContent    = minted.toLocaleString();
+  if (barEl)       barEl.style.width       = `${Math.max(pct, 0.3)}%`;
   if (remainingEl) remainingEl.textContent = `${remaining.toLocaleString()} remaining`;
+
+  // Update generation banner
+  updateGenerationBanner();
+
+  // Update founding warrior counter
+  updateFoundingWarriorCounter();
+}
+
+function updateGenerationBanner() {
+  const gen        = getCurrentGeneration();
+  const nextToken  = state.mintedCount + 1;
+  const nameEl     = document.getElementById('current-gen-name');
+  const tokensEl   = document.getElementById('current-gen-tokens');
+  const bannerEl   = document.getElementById('current-gen-banner');
+
+  if (!nameEl || !gen) return;
+
+  nameEl.textContent   = `Generation ${gen.gen} — ${gen.name}`;
+  nameEl.style.color   = gen.color;
+  if (tokensEl) {
+    tokensEl.textContent = `Token #${nextToken.toLocaleString()} of #${gen.start.toLocaleString()}–${gen.end.toLocaleString()}`;
+  }
+
+  // Pulse border color to match current generation
+  if (bannerEl) {
+    bannerEl.style.borderColor = `${gen.color}55`;
+    bannerEl.style.background  = `linear-gradient(135deg, ${gen.color}08, transparent)`;
+  }
+}
+
+function updateFoundingWarriorCounter() {
+  const fw          = CONFIG.FOUNDING_WARRIOR_SUPPLY;
+  const minted      = state.foundingMinted;
+  const remaining   = fw - minted;
+  const pct         = (minted / fw) * 100;
+
+  const remainingEl = document.getElementById('fw-remaining');
+  const barEl       = document.getElementById('fw-supply-bar');
+
+  if (remainingEl) remainingEl.textContent = remaining;
+  if (barEl)       barEl.style.width       = `${Math.max(pct, 0)}%`;
 }
 
 /* ══════════════════════════════════════════════════
