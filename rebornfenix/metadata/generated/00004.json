@@ -1,72 +1,56 @@
 {
-  "name": "REBORNFENIX #00004",
+  "name": "REBORNFENIX Legion #00004",
   "symbol": "RBFX",
-  "description": "REBORNFENIX is a collection of 22,222 Viking warriors forged in the fires of Ragnarök — fathers, fighters, and survivors who stared into the abyss and refused to break. Each warrior carries the ancient power of Elder Futhark runes, drawn from the cosmic loom of fate. Not all who trade are warriors. But every warrior who trades knows: you do not surrender. You adapt. You endure. You return.",
+  "description": "REBORNFENIX Legion of Honour — one of 22,222 warriors forged in the fires of Ragnarök. Each token carries a unique Elder Futhark rune and the colours of their generation, earned by the order in which they answered the call. Not all who trade are warriors. But every warrior who trades knows: you do not surrender. You adapt. You endure. You return.",
   "seller_fee_basis_points": 500,
-  "image": "https://arweave.net/REBORNFENIX_PLACEHOLDER/00004.png",
+  "image": "https://arweave.net/REBORNFENIX_LEGION_PLACEHOLDER/00004.png",
   "animation_url": null,
   "external_url": "https://rebornfenix.io",
   "attributes": [
     {
       "trait_type": "Rune",
-      "value": "ᛊ Sowilo"
-    },
-    {
-      "trait_type": "Rune Meaning",
-      "value": "Sun, Victory, Life Force"
-    },
-    {
-      "trait_type": "Background",
-      "value": "Matrix Rain"
-    },
-    {
-      "trait_type": "Warrior Class",
-      "value": "Skald"
-    },
-    {
-      "trait_type": "Aura",
-      "value": "Void Purple"
-    },
-    {
-      "trait_type": "Rarity Tier",
-      "value": "Epic"
+      "value": "Fehu"
     },
     {
       "trait_type": "Rune Symbol",
-      "value": "ᛊ"
+      "value": "ᚠ"
     },
     {
-      "trait_type": "Rune Power",
-      "value": "When the momentum is yours, ride the sun. Do not second-guess the light."
+      "trait_type": "Rune Meaning",
+      "value": "Cattle, Wealth, Prosperity"
     },
     {
-      "trait_type": "Class Archetype",
-      "value": "Systematic documentation and community"
+      "trait_type": "Generation",
+      "value": 1,
+      "display_type": "number"
     },
     {
-      "trait_type": "Aura Color Hex",
-      "value": "#4B0082"
+      "trait_type": "Generation Name",
+      "value": "Phoenix Guard"
     },
     {
-      "trait_type": "Token ID",
+      "trait_type": "Ring Color",
+      "value": "Red Phoenix"
+    },
+    {
+      "trait_type": "Ring Color Hex",
+      "value": "#CC0000"
+    },
+    {
+      "trait_type": "Token Number",
       "value": 4,
       "display_type": "number"
     },
     {
       "trait_type": "Rune Number",
-      "value": 16,
-      "display_type": "number"
-    },
-    {
-      "trait_type": "Fenrir Score",
-      "value": 649,
+      "value": 1,
       "display_type": "number"
     }
   ],
   "properties": {
     "files": [
       {
-        "uri": "https://arweave.net/REBORNFENIX_PLACEHOLDER/00004.png",
+        "uri": "https://arweave.net/REBORNFENIX_LEGION_PLACEHOLDER/00004.png",
         "type": "image/png"
       }
     ],
@@ -84,8 +68,9 @@
     "verified": false,
     "address": "RBFX_COLLECTION_PLACEHOLDER_SOLANA_ADDRESS"
   },
-  "lore": "Born from fire. Tempered by loss. The rune of the Sowilo burns in their chest — a warrior who chose to return when walking away was the easier path.",
-  "lore_pt": "Nascido do fogo. Temperado pela perda. A runa de Sowilo queima no seu peito — um guerreiro que escolheu regressar quando partir era o caminho mais fácil.",
-  "metadata_version": "1.0.0",
-  "standard": "Metaplex Token Metadata v3"
+  "lore": "Legion of Honour #00004. Generation 1 — Phoenix Guard. The rune of Fehu burns at the centre of their medal. They answered the call when Phoenix Guard rode out. The ring is Red Phoenix. The oath is the same as every warrior who came before.",
+  "lore_pt": "Legião de Honra #00004. Geração 1 — Phoenix Guard. A runa de Fehu arde no centro da sua medalha. Responderam ao chamado quando a Phoenix Guard partiu. O anel é Red Phoenix. O juramento é o mesmo de cada guerreiro que veio antes.",
+  "metadata_version": "2.0.0",
+  "standard": "Metaplex Token Metadata v3",
+  "tier": "Legion of Honour"
 }

@@ -1,13 +1,16 @@
 {
-  "_comment": "Metaplex Sugar v2 — Candy Machine v3 Config for REBORNFENIX (RBFX)",
+  "_comment": "Metaplex Sugar v2 — Candy Machine v3 Config for REBORNFENIX (RBFX) — v2.0",
   "_docs": "https://docs.metaplex.com/tools/sugar/configuration",
   "_deploy_note": "Replace all PLACEHOLDER values before deployment. Run 'sugar validate' before 'sugar deploy'.",
+  "_architecture": "Two guard groups: 'legion' (22,222 × 10 USDC) + 'founding_warrior' (22 × 100 USDC, max 1/wallet).",
 
-  "number": 22222,
+  "number": 22244,
+  "_number_note": "22,222 Legion of Honour + 22 Founding Warriors = 22,244 total tokens",
   "symbol": "RBFX",
   "sellerFeeBasisPoints": 500,
   "isMutable": true,
-  "isSequential": false,
+  "isSequential": true,
+  "_isSequential_note": "Sequential minting ensures generation colours are assigned in purchase order (Gen 1 → Gen 10).",
 
   "creators": [
     {
@@ -49,26 +52,26 @@
 
   "endSettings": {
     "endSettingType": "amount",
-    "value": 22222
-  },
-
-  "whitelistMintSettings": {
-    "mode": "burnEveryTime",
-    "mint": "RBFX_WL_TOKEN_MINT_PLACEHOLDER",
-    "presale": true,
-    "discountPrice": null,
-    "_note": "WL holders can mint during presale window. Set discountPrice (in SOL) for WL discount, or null for same price."
+    "value": 22244,
+    "_note": "22,222 Legion + 22 Founding Warriors"
   },
 
   "gatekeeper": null,
   "_gatekeeper_note": "Optional: set to Civic Gateway config for bot protection. null = no captcha.",
 
   "guards": {
-    "_note": "Metaplex Candy Machine v3 uses Guard Groups for phased minting. Configure below.",
+    "_note": [
+      "Two guard groups for the two tiers.",
+      "'legion' group: public mint, 10 USDC each, no per-wallet cap (default reasonable limit set).",
+      "'founding_warrior' group: 100 USDC each, max 1 per wallet, supply hard-capped at 22."
+    ],
 
-    "default": {
+    "legion": {
+      "label": "legion",
+      "_description": "Public mint — Legion of Honour. 22,222 tokens @ 10 USDC each.",
       "startDate": {
-        "date": "2025-01-01T00:00:00Z"
+        "date": "2025-01-01T00:00:00Z",
+        "_note": "Replace with actual public mint start date."
       },
       "tokenPayment": {
         "amount": 10000000,
@@ -78,7 +81,12 @@
       "mintLimit": {
         "id": 1,
         "limit": 10,
-        "_note": "Max 10 mints per wallet. Adjust for your launch strategy."
+        "_note": "Max 10 Legion mints per wallet per transaction batch. Adjust for your launch strategy."
+      },
+      "allocation": {
+        "id": 1,
+        "limit": 22222,
+        "_note": "Hard supply cap for this guard group: 22,222 Legion tokens only."
       },
       "botTax": {
         "lamports": 10000000,
@@ -87,30 +95,32 @@
       }
     },
 
-    "presale": {
-      "label": "WL Presale",
+    "founding_warrior": {
+      "label": "founding_warrior",
+      "_description": "Patron mint — Founding Warriors. 22 tokens @ 100 USDC each. Max 1 per wallet.",
       "startDate": {
-        "date": "2024-12-25T00:00:00Z",
-        "_note": "Replace with actual WL presale date."
-      },
-      "endDate": {
         "date": "2025-01-01T00:00:00Z",
-        "_note": "Replace with public mint start date."
-      },
-      "tokenGate": {
-        "mint": "RBFX_WL_TOKEN_MINT_PLACEHOLDER",
-        "amount": 1,
-        "_note": "Requires holding 1 WL token to mint during presale."
+        "_note": "Founding Warriors can mint at same time as Legion, or open earlier for patrons."
       },
       "tokenPayment": {
-        "amount": 8000000,
+        "amount": 100000000,
         "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        "_note": "WL discount: 8 USDC (20% off)."
+        "_note": "100 USDC (6 decimals = 100,000,000). Mint address is USDC on Solana mainnet."
       },
       "mintLimit": {
         "id": 2,
-        "limit": 3,
-        "_note": "WL wallets limited to 3 mints during presale."
+        "limit": 1,
+        "_note": "STRICT: max 1 Founding Warrior per wallet. Imperial Purple is for the few."
+      },
+      "allocation": {
+        "id": 2,
+        "limit": 22,
+        "_note": "Hard supply cap for this guard group: 22 Founding Warriors only. Ever."
+      },
+      "botTax": {
+        "lamports": 10000000,
+        "lastInstruction": true,
+        "_note": "0.01 SOL bot tax."
       }
     }
   },
@@ -130,11 +140,29 @@
 
   "pricing": {
     "currency": "USDC",
-    "publicMintPrice": 10.00,
-    "presaleMintPrice": 8.00,
-    "unit": "USDC",
     "usdcMintAddress": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    "_note": "USDC mint address is for Solana mainnet. Use different address for devnet testing."
+    "_note": "USDC mint address is for Solana mainnet. Use different address for devnet testing.",
+    "tiers": {
+      "legion": {
+        "name": "Legion of Honour",
+        "supply": 22222,
+        "price_usdc": 10.00,
+        "price_raw": 10000000,
+        "max_per_wallet": 10,
+        "guard_label": "legion"
+      },
+      "founding_warrior": {
+        "name": "Founding Warrior",
+        "supply": 22,
+        "price_usdc": 100.00,
+        "price_raw": 100000000,
+        "max_per_wallet": 1,
+        "guard_label": "founding_warrior",
+        "note": "Post-purchase personalisation required: patron provides name + zodiac sign. Art generated after payment confirmed."
+      }
+    },
+    "total_max_revenue_usdc": 224420,
+    "_revenue_note": "22,222 × 10 + 22 × 100 = 222,220 + 2,200 = 224,420 USDC maximum"
   },
 
   "royalties": {
@@ -146,7 +174,9 @@
 
   "metadata": {
     "standard": "Metaplex Token Metadata v3",
-    "baseUri": "https://arweave.net/REBORNFENIX_BASE_URI_PLACEHOLDER/",
+    "schema_version": "2.0.0",
+    "baseUri_legion": "https://arweave.net/REBORNFENIX_LEGION_URI_PLACEHOLDER/",
+    "baseUri_founding": "https://arweave.net/REBORNFENIX_FOUNDING_URI_PLACEHOLDER/",
     "imageFormat": "PNG",
     "resolution": "1000x1000",
     "animationEnabled": false,
@@ -156,15 +186,20 @@
 
   "deploymentChecklist": [
     "1. Replace ALL PLACEHOLDER values in this config",
-    "2. Upload art assets to Arweave/IPFS and get base URI",
-    "3. Upload metadata JSONs using 'sugar upload'",
-    "4. Run 'sugar validate' to verify config",
-    "5. Create collection NFT: 'sugar collection create'",
-    "6. Deploy candy machine: 'sugar deploy'",
-    "7. Verify deployment: 'sugar verify'",
-    "8. Set go-live date and announce",
-    "9. After sellout: run 'sugar reveal' for metadata reveal",
-    "10. Verify secondary marketplace royalties are enforced"
+    "2. Upload art assets to Arweave/IPFS and get base URIs (legion + founding warrior separate folders)",
+    "3. Upload Legion metadata JSONs using 'sugar upload' (22,222 files)",
+    "4. Upload Founding Warrior template JSONs separately (22 files, will be updated post-purchase)",
+    "5. Run 'sugar validate' to verify config",
+    "6. Create collection NFT: 'sugar collection create'",
+    "7. Deploy candy machine: 'sugar deploy'",
+    "8. Verify two guard groups are correctly configured: 'sugar show'",
+    "9. Test Legion mint (10 USDC) and Founding Warrior mint (100 USDC) on devnet",
+    "10. Verify mintLimit id:2 (Founding Warrior) enforces max 1 per wallet",
+    "11. Verify allocation id:2 hard-caps at 22 Founding Warriors",
+    "12. Set go-live date and announce",
+    "13. After Founding Warrior purchase: collect patron name + zodiac, generate personalised art, update metadata URI",
+    "14. After full sellout: run 'sugar reveal' for metadata reveal",
+    "15. Verify secondary marketplace royalties are enforced"
   ],
 
   "sugarCommands": {
@@ -187,9 +222,11 @@
   "lore": {
     "tagline": "22,222 warriors. One oath. No surrender.",
     "tagline_pt": "22.222 guerreiros. Um juramento. Sem rendição.",
+    "founding_warrior_tagline": "22 patrons. Imperial Purple. Built the fire that made it possible.",
+    "founding_warrior_tagline_pt": "22 patronos. Púrpura Imperial. Construíram o fogo que tornou tudo possível.",
     "mission": "Born from the fires of Ragnarök. Carrying the wisdom of the Elder Futhark. For every father who kept fighting when the world said stop.",
     "mission_pt": "Nascidos dos fogos de Ragnarök. Carregando a sabedoria das Elder Futhark. Por cada pai que continuou a lutar quando o mundo disse para parar.",
-    "reborn_lore": "Among the 22,222 stand 22 Reborn — the rarest flame. They have already survived their worst day. The Reborn trait cannot be bought. It can only be minted by fate.",
-    "reborn_lore_pt": "Entre os 22.222 encontram-se 22 Reborn — a chama mais rara. Já sobreviveram ao seu pior dia. O traço Reborn não pode ser comprado. Só pode ser cunhado pelo destino."
+    "imperial_purple_lore": "In ancient Rome, wearing purple without being Emperor was punishable by death. The 22 Founding Warriors carry this color — not because they claimed it, but because they built the fire that made it possible.",
+    "imperial_purple_lore_pt": "Na Roma antiga, usar púrpura sem ser Imperador era punível com a morte. Os 22 Founding Warriors carregam esta cor — não porque a reclamaram, mas porque construíram o fogo que a tornou possível."
   }
 }

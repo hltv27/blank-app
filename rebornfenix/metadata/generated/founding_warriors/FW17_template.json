@@ -1,0 +1,71 @@
+{
+  "name": "REBORNFENIX Founding Warrior #FW17",
+  "symbol": "RBFX",
+  "description": "REBORNFENIX Founding Warrior — one of only 22. Imperial Purple. Fully personalised. In ancient Rome, wearing purple without being Emperor was punishable by death. The 22 Founding Warriors carry this colour — not because they claimed it, but because they built the fire that made it possible. This NFT bears the patron's chosen name and zodiac sign, and a sword engraved with a unique combination of Norse runes.",
+  "seller_fee_basis_points": 500,
+  "image": "https://arweave.net/REBORNFENIX_FOUNDING_PLACEHOLDER/FW17_PLACEHOLDER.png",
+  "animation_url": null,
+  "external_url": "https://rebornfenix.io",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": "Founding Warrior"
+    },
+    {
+      "trait_type": "Color",
+      "value": "#4B0082 → #7B2FBE"
+    },
+    {
+      "trait_type": "Color Name",
+      "value": "Imperial Purple"
+    },
+    {
+      "trait_type": "Sword Runes",
+      "value": "ᚺ Hagalaz · ᛟ Othala · ᚱ Raidho"
+    },
+    {
+      "trait_type": "Sword Meaning",
+      "value": "Destruction of the old path reveals the journey home"
+    },
+    {
+      "trait_type": "Zodiac",
+      "value": "PLACEHOLDER — provided by patron after purchase"
+    },
+    {
+      "trait_type": "Patron Name",
+      "value": "PLACEHOLDER — provided by patron after purchase"
+    },
+    {
+      "trait_type": "Token ID",
+      "value": 17,
+      "display_type": "number"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://arweave.net/REBORNFENIX_FOUNDING_PLACEHOLDER/FW17_PLACEHOLDER.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image",
+    "creators": [
+      {
+        "address": "RBFX_CREATOR_WALLET_PLACEHOLDER",
+        "share": 100
+      }
+    ]
+  },
+  "collection": {
+    "name": "REBORNFENIX",
+    "family": "RBFX",
+    "verified": false,
+    "address": "RBFX_COLLECTION_PLACEHOLDER_SOLANA_ADDRESS"
+  },
+  "lore": "Founding Warrior slot 17 of 22. Imperial Purple. Sword engraved with Hagalaz + Othala + Raidho — Destruction of the old path reveals the journey home. This NFT awaits its patron's name and zodiac to be fully reborn.",
+  "lore_pt": "Founding Warrior posição 17 de 22. Púrpura Imperial. Espada gravada com Hagalaz + Othala + Raidho — Destruction of the old path reveals the journey home. Este NFT aguarda o nome e o signo do patrono para renascer completamente.",
+  "metadata_version": "2.0.0",
+  "standard": "Metaplex Token Metadata v3",
+  "tier": "Founding Warrior",
+  "_customisation_note": "After purchase, patron provides: (1) chosen name for arc-bottom text, (2) zodiac sign for shield. Art is then generated and this metadata updated. Max 1 per wallet. Supply: 22."
+}

@@ -10,22 +10,70 @@
 ══════════════════════════════════════════════════ */
 
 const CONFIG = {
-  MINT_DATE:       new Date('2025-07-01T18:00:00Z'), // Set your actual mint date
-  TOTAL_SUPPLY:    22222,
-  MINT_PRICE_USDC: 10,
-  CONTRACT_ADDRESS:'TBA', // Replace with actual Candy Machine ID pre-launch
-  NETWORK:         'mainnet-beta',
-  MAX_PER_WALLET:  1,
+  MINT_DATE:                new Date('2025-07-01T18:00:00Z'), // Set your actual mint date
+  TOTAL_SUPPLY:             22222,
+  MINT_PRICE_USDC:          10,
+  MINT_PRICE_LAMPORTS:      10_000_000, // 10 USDC, 6 decimals
+  FOUNDING_WARRIOR_PRICE:   10_000_000 * 10, // 100 USDC, 6 decimals
+  FOUNDING_WARRIOR_SUPPLY:  22,
+  GENERATION_SIZE:          2222,       // warriors per generation
+  GENERATION_COUNT:         10,
+  CONTRACT_ADDRESS:         'TBA', // Replace with actual Candy Machine ID pre-launch
+  NETWORK:                  'mainnet-beta',
+  MAX_PER_WALLET:           1,
 };
 
 // Simulated minted count — replace with on-chain fetch in production
 let state = {
-  mintedCount:     1847,   // Demo value — hook to Candy Machine API
-  walletConnected: false,
-  walletAddress:   null,
-  walletAdapter:   null,
-  minting:         false,
+  mintedCount:         1847,  // Demo value — hook to Candy Machine API
+  foundingMinted:      0,     // Demo value — Founding Warriors claimed
+  walletConnected:     false,
+  walletAddress:       null,
+  walletAdapter:       null,
+  minting:             false,
+  fwMinting:           false,
+  // fw wallet state (separate connect flow)
+  fwWalletConnected:   false,
+  fwWalletAddress:     null,
 };
+
+/* ══════════════════════════════════════════════════
+   GENERATION DEFINITIONS
+══════════════════════════════════════════════════ */
+
+const GENERATIONS = [
+  { gen: 1,  name: 'Phoenix Guard',  color: '#C0392B', start: 1,     end: 2222  },
+  { gen: 2,  name: 'Gold Battalion', color: '#D4AC0D', start: 2223,  end: 4444  },
+  { gen: 3,  name: 'Azure Vanguard', color: '#1E8BC3', start: 4445,  end: 6666  },
+  { gen: 4,  name: 'Emerald Order',  color: '#27AE60', start: 6667,  end: 8888  },
+  { gen: 5,  name: 'Violet Cohort',  color: '#8E44AD', start: 8889,  end: 11110 },
+  { gen: 6,  name: 'Amber Legion',   color: '#E67E22', start: 11111, end: 13332 },
+  { gen: 7,  name: 'Teal Warband',   color: '#17A589', start: 13333, end: 15554 },
+  { gen: 8,  name: 'Crimson Rose',   color: '#E91E8C', start: 15555, end: 17776 },
+  { gen: 9,  name: 'Silver Phalanx', color: '#ABADB3', start: 17777, end: 19998 },
+  { gen: 10, name: 'Iron Born',      color: '#6D6A6A', start: 19999, end: 22222 },
+];
+
+/**
+ * Returns the generation object for a given token number (1-indexed).
+ * @param {number} tokenNumber
+ * @returns {object}
+ */
+function getGenerationForToken(tokenNumber) {
+  for (const g of GENERATIONS) {
+    if (tokenNumber >= g.start && tokenNumber <= g.end) return g;
+  }
+  return GENERATIONS[GENERATIONS.length - 1]; // fallback: Iron Born
+}
+
+/**
+ * Returns the generation the NEXT mint would fall into,
+ * based on current minted count (next token = mintedCount + 1).
+ */
+function getCurrentGeneration() {
+  const nextToken = state.mintedCount + 1;
+  return getGenerationForToken(nextToken);
+}
 
 /* ══════════════════════════════════════════════════
    2. ELDER FUTHARK RUNE DATA

@@ -1,33 +1,96 @@
 {
   "collection": "REBORNFENIX",
   "symbol": "RBFX",
-  "supply": 22222,
-  "example_files_generated": 5,
-  "reborn_count": 22,
-  "reborn_token_ids": [
-    711,
-    2862,
-    2903,
-    2912,
-    4268,
-    6137,
-    6144,
-    6757,
-    7138,
-    7282,
-    7314,
-    7952,
-    8993,
-    9384,
-    9634,
-    10713,
-    11463,
-    11678,
-    12661,
-    15244,
-    17667,
-    21349
+  "schema_version": "2.0.0",
+  "legion_supply": 22222,
+  "legion_example_files_generated": 5,
+  "founding_warrior_count": 22,
+  "total_collection_size": 22244,
+  "generation_ranges": [
+    {
+      "id": 1,
+      "name": "Phoenix Guard",
+      "color": "Red Phoenix",
+      "hex": "#CC0000",
+      "token_start": 1,
+      "token_end": 2222
+    },
+    {
+      "id": 2,
+      "name": "Gold Battalion",
+      "color": "Gold",
+      "hex": "#FFD700",
+      "token_start": 2223,
+      "token_end": 4444
+    },
+    {
+      "id": 3,
+      "name": "Silver Vanguard",
+      "color": "Silver",
+      "hex": "#C0C0C0",
+      "token_start": 4445,
+      "token_end": 6666
+    },
+    {
+      "id": 4,
+      "name": "Bronze Legion",
+      "color": "Bronze",
+      "hex": "#CD7F32",
+      "token_start": 6667,
+      "token_end": 8888
+    },
+    {
+      "id": 5,
+      "name": "Frost Warriors",
+      "color": "Arctic Blue",
+      "hex": "#00CED1",
+      "token_start": 8889,
+      "token_end": 11110
+    },
+    {
+      "id": 6,
+      "name": "Void Seekers",
+      "color": "Void Purple",
+      "hex": "#6A0DAD",
+      "token_start": 11111,
+      "token_end": 13332
+    },
+    {
+      "id": 7,
+      "name": "Midgard Rangers",
+      "color": "Emerald",
+      "hex": "#50C878",
+      "token_start": 13333,
+      "token_end": 15554
+    },
+    {
+      "id": 8,
+      "name": "Copper Shields",
+      "color": "Copper",
+      "hex": "#B87333",
+      "token_start": 15555,
+      "token_end": 17776
+    },
+    {
+      "id": 9,
+      "name": "Shadow Guard",
+      "color": "Obsidian",
+      "hex": "#1C1C1C",
+      "token_start": 17777,
+      "token_end": 19998
+    },
+    {
+      "id": 10,
+      "name": "Iron Born",
+      "color": "Iron",
+      "hex": "#808080",
+      "token_start": 19999,
+      "token_end": 22222
+    }
   ],
-  "output_dir": "/home/user/blank-app/rebornfenix/metadata/generated",
-  "note": "This manifest lists the first 30 Reborn token IDs for verification. Run generate() to produce all 22,222 JSON files."
+  "output_dirs": {
+    "legion": "/home/user/blank-app/rebornfenix/metadata/generated",
+    "founding_warriors": "/home/user/blank-app/rebornfenix/metadata/generated/founding_warriors"
+  },
+  "note": "Legion examples only. Run generate(write_all=True) or pass --full flag to write all 22,222 JSON files. All 22 Founding Warrior templates always written."
 }

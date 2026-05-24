@@ -115,7 +115,7 @@ def build_rune_assignment(supply: int, runes: list[dict]) -> list[dict]:
     """
     n = len(runes)
     # Build a shuffled cycle of rune indices, repeated to cover supply
-    rng = random.Random(0xRBFX := 0xAB1234)  # deterministic seed
+    rng = random.Random(0xAB1234)  # deterministic seed (0xAB1234 = RBFX seed)
     assignment = []
     while len(assignment) < supply:
         cycle = list(range(n))
