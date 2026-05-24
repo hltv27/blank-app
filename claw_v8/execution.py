@@ -13,7 +13,8 @@ from config import (
     MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, BTC_CRASH_PCT, CORR_MAX,
     BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
     ROI_TP_IMEDIATO, TIME_TP_MIN_MIN,
-    LIQUIDATION_GUARD_PCT, LIQUIDATION_WARN1_PCT, LIQUIDATION_WARN2_PCT, LIQUIDATION_WARN3_PCT
+    LIQUIDATION_GUARD_PCT, LIQUIDATION_WARN1_PCT, LIQUIDATION_WARN2_PCT, LIQUIDATION_WARN3_PCT,
+    TRAILING_LOCK_USDC
 )
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_margin_ratio_global, get_price,
@@ -447,10 +448,39 @@ def gerir_posicoes(mem: dict):
             )
             continue
 
+        # ── Trailing stop ao atingir TRAILING_LOCK_USDC (default 10 USDC) ──
+        # Substitui o stop fixo por trailing stop — garante pelo menos 10 USDC
+        if (pos["pnl"] >= TRAILING_LOCK_USDC
+                and not trade.get("trailing_lock_done")
+                and entry > 0 and qty > 0):
+            if side == "LONG":
+                activation = round(entry + TRAILING_LOCK_USDC / qty, 8)
+            else:
+                activation = round(entry - TRAILING_LOCK_USDC / qty, 8)
+            trail_side = "SELL" if side == "LONG" else "BUY"
+            cb = TRAILING_CB_BTC if symbol in BTC_SYMBOLS else TRAILING_CB_ALT
+            old_stop = trade.get("stop_order_id")
+            if old_stop:
+                cancel_algo_order(symbol, old_stop)
+                mem["trades_abertos"][symbol]["stop_order_id"] = None
+            trail_id = place_trailing_stop(symbol, trail_side, cb, activation)
+            mem["trades_abertos"][symbol]["trailing_lock_done"] = True
+            mem["trades_abertos"][symbol]["sl"] = activation
+            if trail_id:
+                mem["trades_abertos"][symbol]["stop_order_id"] = trail_id
+            save_memory(mem)
+            stop_txt = f"#{trail_id}" if trail_id else "SOFTWARE ⚠️"
+            tg(
+                f"🎯 <b>TRAILING LOCK +{TRAILING_LOCK_USDC:.0f} USDC</b> — {symbol}\n"
+                f"Activação: {activation:.6g} | Callback: {cb}%\n"
+                f"PnL: +{pos['pnl']:.2f} USDC | {stop_txt}"
+            )
+
         # ── Lock de lucro progressivo: a cada PROFIT_LOCK_STEP USDC ─────
         lock_side = "SELL" if side == "LONG" else "BUY"
         if (not trade.get("partial_tp_done") and entry > 0 and qty > 0
-                and pos["pnl"] >= PROFIT_LOCK_USDC):
+                and pos["pnl"] >= PROFIT_LOCK_USDC
+                and not trade.get("trailing_lock_done")):
             current_lock = trade.get("profit_lock_level", 0.0)
             new_lock = math.floor(pos["pnl"] / PROFIT_LOCK_STEP) * PROFIT_LOCK_STEP
             if new_lock >= PROFIT_LOCK_USDC and new_lock > current_lock + 1e-9:

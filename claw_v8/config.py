@@ -118,6 +118,7 @@ MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
 MAX_MARGEM_TRADE    = 0.20   # máx 20% do capital por posição (60 USDC em 300)
 PROFIT_LOCK_USDC    = 1.0    # activa lock a partir deste PnL
 PROFIT_LOCK_STEP    = 0.5    # a cada +0.5 USDC move o stop para esse nível
+TRAILING_LOCK_USDC  = 10.0   # ao atingir 10 USDC, muda stop fixo → trailing stop
 
 ROI_TP_IMEDIATO     = 7.0    # % ROI → fecha imediatamente, sem esperar tempo
 TIME_TP_MIN_MIN     = 10     # minutos mínimos para TIME_TP (era 30)
