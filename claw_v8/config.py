@@ -58,7 +58,9 @@ MAX_SHORTS_ALT      = 3
 # ─────────────────────────────────────────────
 #  ESTRATÉGIA
 # ─────────────────────────────────────────────
-ADX_TREND_MIN   = 22.5   # ADX mínimo para modo TRENDING
+ADX_TREND_MIN       = 22.5   # ADX mínimo (fallback / detect_market_mode)
+ADX_TREND_MIN_MAJOR = 22.5   # BTC, ETH, BNB — tendências mais limpas
+ADX_TREND_MIN_ALT   = 30.0   # alts — mais ruído; exige tendência mais forte
 EMA_SLOPE_MIN   = 0.0008 # slope mínimo da EMA99 para confirmar tendência
 
 RSI_OVERSOLD    = 42.0
@@ -118,7 +120,7 @@ MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
 MAX_MARGEM_TRADE    = 0.20   # máx 20% do capital por posição (60 USDC em 300)
 PROFIT_LOCK_USDC    = 1.0    # activa lock a partir deste PnL
 PROFIT_LOCK_STEP    = 0.5    # a cada +0.5 USDC move o stop para esse nível
-TRAILING_LOCK_USDC  = 10.0   # ao atingir 10 USDC, muda stop fixo → trailing stop
+TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~0.8R), muda stop fixo → trailing stop
 
 ROI_TP_IMEDIATO     = 7.0    # % ROI → fecha imediatamente, sem esperar tempo
 TIME_TP_MIN_MIN     = 10     # minutos mínimos para TIME_TP (era 30)

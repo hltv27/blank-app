@@ -262,7 +262,7 @@ def run_symbol(symbol: str, klines_5m: list, klines_1h: list,
         if mode != "TRENDING":
             continue
 
-        direction, score, detalhe = signal_trending(closes, highs, lows, volumes)
+        direction, score, detalhe = signal_trending(closes, highs, lows, volumes, symbol)
         if not direction:
             continue
 

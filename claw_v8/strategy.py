@@ -8,8 +8,10 @@ from config import (
     SCORE_ALERTA, SCORE_FORTE, ATR_MIN_PCT, RATIO_ALVO,
     RISCO_USDC, SYMBOL_PRECISION, BB_PERIOD,
     ATR_SL_MULT_MIN, ATR_SL_MULT_MAX,
-    ADX_TREND_MIN, EMA_SLOPE_MIN
+    ADX_TREND_MIN, ADX_TREND_MIN_MAJOR, ADX_TREND_MIN_ALT, EMA_SLOPE_MIN
 )
+
+_MAJOR_SYMBOLS = {"BTCUSDC", "ETHUSDC", "BNBUSDC"}
 from indicators import (
     ema, rsi, atr, stoch_rsi, adx, supertrend,
     bollinger_bands, volume_ok, cmf_val, mfi_val, roc_val
@@ -30,10 +32,12 @@ def detect_market_mode(closes: list, atr_val: float) -> str:
     return "TRENDING"
 
 
-def signal_trending(closes: list, highs: list, lows: list, volumes: list):
+def signal_trending(closes: list, highs: list, lows: list, volumes: list,
+                    symbol: str = ""):
     """
     EMA 9/21/99 + RSI + ADX + Supertrend + CMF + MFI + ROC.
     Retorna (direction, score, detalhe).
+    ADX mínimo diferenciado: 22.5 para BTC/ETH/BNB, 30.0 para alts.
     """
     if len(closes) < EMA_TREND + 5:
         return None, 0, "DADOS_INSUF"
@@ -47,7 +51,8 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list):
     atr_val  = atr(highs, lows, closes)
     adx_val  = adx(highs, lows, closes)
 
-    if adx_val < ADX_TREND_MIN:
+    adx_min = ADX_TREND_MIN_MAJOR if symbol in _MAJOR_SYMBOLS else ADX_TREND_MIN_ALT
+    if adx_val < adx_min:
         return None, 0, f"VETO_ADX {adx_val:.1f}"
     if sr_val > STOCH_VETO_LONG:
         return None, 0, f"VETO_SR_LONG {sr_val:.1f}"
@@ -73,9 +78,11 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list):
     else:
         score_short += 1
 
-    if price > ema99[-1]:
+    # Confirmação dupla: vela anterior E vela actual acima/abaixo da EMA99
+    # Evita scores em wicks transitórios que cruzam a EMA99 na vela corrente
+    if closes[-2] > ema99[-2] and price > ema99[-1]:
         score_long  += 2
-    else:
+    elif closes[-2] < ema99[-2] and price < ema99[-1]:
         score_short += 2
 
     if atr_val / price > ATR_MIN_PCT * 1.5:

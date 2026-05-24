@@ -12,17 +12,21 @@ from config import (
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
     MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, BTC_CRASH_PCT, CORR_MAX,
     BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
-    ROI_TP_IMEDIATO, TIME_TP_MIN_MIN,
+    ROI_TP_IMEDIATO, TIME_TP_MIN_MIN, SCORE_FORTE,
     LIQUIDATION_GUARD_PCT, LIQUIDATION_WARN1_PCT, LIQUIDATION_WARN2_PCT, LIQUIDATION_WARN3_PCT,
     TRAILING_LOCK_USDC
 )
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_margin_ratio_global, get_price,
+    get_klines,
     set_leverage, place_order, place_stop_market, place_trailing_stop,
     place_take_profit, close_position, cancel_order, cancel_algo_order
 )
 from indicators import atr, adx
-from strategy import calc_sl_tp, calc_qty
+from strategy import calc_sl_tp, calc_qty, signal_trending
+
+# Timestamp do último check de reversão de sinal por símbolo (rate-limit 60s)
+_signal_inv_ts: dict = {}
 from filters import (
     macro_event_proximo, volatility_regime_ok, spread_ok,
     market_conditions_ok, htf_4h_ok, htf_1h_ok, fear_greed_ok,
@@ -448,7 +452,62 @@ def gerir_posicoes(mem: dict):
             )
             continue
 
-        # ── Trailing stop ao atingir TRAILING_LOCK_USDC (default 10 USDC) ──
+        # ── Saída por reversão de sinal ──────────────────────────────────
+        # Se o sinal original inverteu completamente (score forte na direcção oposta),
+        # fecha antes de o preço atingir o SL. Não actua se trailing já protege.
+        if (elapsed > 300
+                and not trade.get("trailing_lock_done")
+                and not trade.get("partial_tp2_done")
+                and time.time() - _signal_inv_ts.get(symbol, 0) > 60):
+            _signal_inv_ts[symbol] = time.time()
+            try:
+                kl_inv = get_klines(symbol)
+                if kl_inv and len(kl_inv) >= 104:
+                    c_inv = [float(k[4]) for k in kl_inv]
+                    h_inv = [float(k[2]) for k in kl_inv]
+                    l_inv = [float(k[3]) for k in kl_inv]
+                    v_inv = [float(k[5]) for k in kl_inv]
+                    inv_dir, inv_score, inv_det = signal_trending(
+                        c_inv, h_inv, l_inv, v_inv, symbol)
+                    if inv_dir is not None and inv_dir != side and inv_score >= SCORE_FORTE:
+                        close_position(symbol, pos["qty"], side)
+                        _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                        pos["pnl"], "SIGNAL_INV", pos["pnl"] > 0, mem)
+                        tg(
+                            f"🔄 <b>SINAL INVERTIDO</b> — {symbol}\n"
+                            f"Era {side} | Agora: {inv_dir} (score {inv_score})\n"
+                            f"PnL: {pos['pnl']:+.2f} USDC | ROI: {roi:.1f}%\n"
+                            f"{inv_det}"
+                        )
+                        continue
+            except Exception as _e:
+                print(f"[AVISO] signal_inv {symbol}: {_e}")
+
+        # ── Saída por estagnação ──────────────────────────────────────────
+        # Trade aberto > 45min com ganho marginal: liberta capital
+        tempo_min = elapsed / 60
+        if tempo_min >= 45 and pos["pnl"] < 0.5 and not trade.get("trailing_lock_done"):
+            close_position(symbol, pos["qty"], side)
+            _registar_fecho(symbol, side, entry, sl, tp, qty,
+                            pos["pnl"], "STAGNADO", pos["pnl"] > 0, mem)
+            tg(
+                f"⏳ <b>STAGNADO</b> — {symbol}\n"
+                f"{tempo_min:.0f}min sem progressão | PnL: {pos['pnl']:+.2f} USDC"
+            )
+            continue
+        # Alerta quando marginal e no-man's-land (não fecha automaticamente)
+        if (25 <= tempo_min < 45 and 0.5 <= pos["pnl"] <= 2.0
+                and not trade.get("partial_tp_done")
+                and time.time() - trade.get("stag_alerta_ts", 0) > 1800):
+            mem["trades_abertos"][symbol]["stag_alerta_ts"] = time.time()
+            save_memory(mem)
+            tg(
+                f"⚠️ <b>TRADE ESTAGNADO</b> — {symbol}\n"
+                f"{tempo_min:.0f}min | PnL: +{pos['pnl']:.2f} USDC\n"
+                f"Sem progressão — avalia fecho manual."
+            )
+
+        # ── Trailing stop ao atingir TRAILING_LOCK_USDC (default 4 USDC) ──
         # Substitui o stop fixo por trailing stop — garante pelo menos 10 USDC
         if (pos["pnl"] >= TRAILING_LOCK_USDC
                 and not trade.get("trailing_lock_done")

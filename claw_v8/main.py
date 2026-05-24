@@ -353,7 +353,7 @@ def run():
                     print(f"[{hora}] {symbol} {mode}")
                     continue
 
-                direction, score, detalhe = signal_trending(closes, highs, lows, volumes)
+                direction, score, detalhe = signal_trending(closes, highs, lows, volumes, symbol)
                 print(f"[{hora}] {symbol} {mode} {detalhe}")
 
                 if not direction:
