@@ -2,47 +2,156 @@
   "collection": {
     "name": "REBORNFENIX",
     "symbol": "RBFX",
-    "supply": 22222,
+    "total_supply": 22244,
+    "_supply_note": "22,222 Legion of Honour + 22 Founding Warriors = 22,244 total tokens",
     "description": "22,222 Viking warriors forged in the fires of Ragnarök — fathers, fighters, and survivors who stared into the abyss and refused to break. Where Norse cosmology meets the unbreakable spirit of those who trade darkness for dawn.",
     "lore": "In the age before the final battle, Odin sacrificed his eye for wisdom. A father sacrificed his certainty for love. Both learned the same truth: that true power is not the absence of loss — it is the refusal to be defined by it. The REBORNFENIX are those souls. Warriors who carried their fallen sons through Niflheim, who held the line at Valhalla's gates when lesser men ran. They are not perfect. They are reborn.",
     "lore_pt": "Na era antes da batalha final, Odin sacrificou o seu olho pela sabedoria. Um pai sacrificou a sua certeza pelo amor. Ambos aprenderam a mesma verdade: que o verdadeiro poder não é a ausência da perda — é a recusa em ser definido por ela. Os REBORNFENIX são essas almas. Guerreiros que carregaram os seus filhos caídos através de Niflheim, que seguraram a linha às portas de Valhalla quando homens mais fracos fugiram. Não são perfeitos. São renascidos."
   },
 
-  "rarity_tiers": [
+  "tiers": {
+    "founding_warrior": {
+      "name": "Founding Warrior",
+      "supply": 22,
+      "price_usdc": 100,
+      "color": "Imperial Purple",
+      "color_hex_start": "#4B0082",
+      "color_hex_end": "#7B2FBE",
+      "gradient": "#4B0082 → #7B2FBE",
+      "max_per_wallet": 1,
+      "minting": "post-purchase-custom",
+      "_minting_note": "Not pre-generated. Created after purchase when patron provides name + zodiac sign.",
+      "design": {
+        "text_arc_top": "FOUNDING WARRIOR",
+        "text_arc_bottom": "PATRON NAME (personalised)",
+        "right_side": "Unique sword covered in Norse runes — each sword different",
+        "left_side": "Shield bearing patron's chosen zodiac sign"
+      },
+      "lore": "In ancient Rome, wearing purple without being Emperor was punishable by death. The 22 Founding Warriors carry this color — not because they claimed it, but because they built the fire that made it possible.",
+      "lore_pt": "Na Roma antiga, usar púrpura sem ser Imperador era punível com a morte. Os 22 Founding Warriors carregam esta cor — não porque a reclamaram, mas porque construíram o fogo que a tornou possível."
+    },
+    "legion_of_honour": {
+      "name": "Legion of Honour",
+      "supply": 22222,
+      "price_usdc": 10,
+      "design": "Circular medal: phoenix center + unique Elder Futhark rune + Norse knotwork border",
+      "color_logic": "Determined by order of purchase (token_id range), NOT random",
+      "lore": "22,222 warriors. One oath. No surrender.",
+      "lore_pt": "22.222 guerreiros. Um juramento. Sem rendição."
+    }
+  },
+
+  "generations": [
     {
-      "name": "Legendary",
-      "percentage": 1.0,
-      "count": 222,
-      "description": "The chosen of the Allfather. Warriors whose names echo across the Nine Realms.",
-      "description_pt": "Os escolhidos do Pai de Todos. Guerreiros cujos nomes ecoam pelos Nove Reinos."
+      "id": 1,
+      "name": "Phoenix Guard",
+      "token_range_start": 1,
+      "token_range_end": 2222,
+      "supply": 2222,
+      "color": "Red Phoenix",
+      "hex": "#CC0000",
+      "lore": "The first to answer the call. Phoenix Guard stood at the gates before the walls were built, before the banner was raised, before victory was certain. They are the fire that started the fire.",
+      "lore_pt": "Os primeiros a responder ao chamado. A Phoenix Guard estava às portas antes de os muros serem construídos, antes de o estandarte ser erguido, antes de a vitória ser certa. São o fogo que iniciou o fogo."
     },
     {
-      "name": "Epic",
-      "percentage": 5.0,
-      "count": 1111,
-      "description": "Einherjar of the highest order. Odin's ravens carry their deeds to Asgard.",
-      "description_pt": "Einherjar da mais alta ordem. Os corvos de Odin carregam os seus feitos para Asgard."
+      "id": 2,
+      "name": "Gold Battalion",
+      "token_range_start": 2223,
+      "token_range_end": 4444,
+      "supply": 2222,
+      "color": "Gold",
+      "hex": "#FFD700",
+      "lore": "They came when the foundation was laid and the oath was worth taking. The Gold Battalion fights not for glory but for something quieter and harder: consistency. They are the light of Valhalla's mead halls made flesh.",
+      "lore_pt": "Vieram quando o alicerce estava assente e o juramento valia a pena fazer. O Gold Battalion não luta pela glória mas por algo mais silencioso e mais difícil: a consistência. São a luz das salas de hidromel de Valhalla feita carne."
     },
     {
-      "name": "Rare",
-      "percentage": 15.0,
-      "count": 3333,
-      "description": "Shield-brothers proven in battle. The skalds write sagas in their honor.",
-      "description_pt": "Irmãos de escudo provados em batalha. Os skalds escrevem sagas em sua honra."
+      "id": 3,
+      "name": "Silver Vanguard",
+      "token_range_start": 4445,
+      "token_range_end": 6666,
+      "supply": 2222,
+      "color": "Silver",
+      "hex": "#C0C0C0",
+      "lore": "Silver is the metal of the moon — patient, reflective, never seeking the sun's glory. The Silver Vanguard arrives after the first victories and studies them. They refine what others built and carry it further.",
+      "lore_pt": "A prata é o metal da lua — paciente, reflexivo, nunca buscando a glória do sol. A Silver Vanguard chega após as primeiras vitórias e estuda-as. Refinam o que outros construíram e levam-no mais longe."
     },
     {
-      "name": "Uncommon",
-      "percentage": 30.0,
-      "count": 6667,
-      "description": "Seasoned warriors who carry scars like trophies. Each wound a lesson learned.",
-      "description_pt": "Guerreiros experientes que carregam cicatrizes como troféus. Cada ferida uma lição aprendida."
+      "id": 4,
+      "name": "Bronze Legion",
+      "token_range_start": 6667,
+      "token_range_end": 8888,
+      "supply": 2222,
+      "color": "Bronze",
+      "hex": "#CD7F32",
+      "lore": "Bronze is older than iron, harder-won than gold. The Bronze Legion carries the wisdom of forge and field. They have lost enough to understand what victory truly costs, and they pay it willingly.",
+      "lore_pt": "O bronze é mais antigo que o ferro, mais difícil de obter que o ouro. A Bronze Legion carrega a sabedoria da forja e do campo. Perderam o suficiente para compreender o que a vitória realmente custa, e pagam-no de bom grado."
     },
     {
-      "name": "Common",
-      "percentage": 49.0,
-      "count": 10889,
-      "description": "The backbone of the warband. Without them, no shield wall holds.",
-      "description_pt": "A espinha dorsal da banda de guerra. Sem eles, nenhuma parede de escudos aguenta."
+      "id": 5,
+      "name": "Frost Warriors",
+      "token_range_start": 8889,
+      "token_range_end": 11110,
+      "supply": 2222,
+      "color": "Arctic Blue",
+      "hex": "#00CED1",
+      "lore": "From Niflheim's deepest cold they emerge — emotionless, crystalline, unmanipulable. The Frost Warriors train where the ice never breaks and the market noise cannot follow. Their decisions are made in silence.",
+      "lore_pt": "Do frio mais profundo de Niflheim emergem — sem emoções, cristalinos, inmanipuláveis. Os Frost Warriors treinam onde o gelo nunca quebra e o ruído do mercado não consegue seguir. As suas decisões são tomadas em silêncio."
+    },
+    {
+      "id": 6,
+      "name": "Void Seekers",
+      "token_range_start": 11111,
+      "token_range_end": 13332,
+      "supply": 2222,
+      "color": "Void Purple",
+      "hex": "#6A0DAD",
+      "lore": "They walked into the space between the Nine Realms and returned with knowledge no living warrior should possess. The Void Seekers see the manipulation before it manifests. They feel the reversal before the wick appears.",
+      "lore_pt": "Entraram no espaço entre os Nove Reinos e regressaram com conhecimento que nenhum guerreiro vivo deveria possuir. Os Void Seekers vêem a manipulação antes de se manifestar. Sentem a reversão antes de a mecha aparecer."
+    },
+    {
+      "id": 7,
+      "name": "Midgard Rangers",
+      "token_range_start": 13333,
+      "token_range_end": 15554,
+      "supply": 2222,
+      "color": "Emerald",
+      "hex": "#50C878",
+      "lore": "Midgard is the realm of growth, of slow and deliberate cultivation. The Rangers walk its forests and read the earth. They do not trade the moment — they trade the season. Their edge is the long game.",
+      "lore_pt": "Midgard é o reino do crescimento, da cultivo lento e deliberado. Os Rangers percorrem as suas florestas e leem a terra. Não negociam o momento — negociam a estação. A sua vantagem é o jogo longo."
+    },
+    {
+      "id": 8,
+      "name": "Copper Shields",
+      "token_range_start": 15555,
+      "token_range_end": 17776,
+      "supply": 2222,
+      "color": "Copper",
+      "hex": "#B87333",
+      "lore": "Copper conducts — it carries the signal faithfully, without distortion. The Copper Shields are the backbone of the warband. Not the most glamorous. Not the rarest. But where would the front line be without the shield wall?",
+      "lore_pt": "O cobre conduz — carrega o sinal fielmente, sem distorção. Os Copper Shields são a espinha dorsal da banda de guerra. Não os mais glamorosos. Não os mais raros. Mas onde estaria a linha da frente sem a parede de escudos?"
+    },
+    {
+      "id": 9,
+      "name": "Shadow Guard",
+      "token_range_start": 17777,
+      "token_range_end": 19998,
+      "supply": 2222,
+      "color": "Obsidian",
+      "hex": "#1C1C1C",
+      "lore": "They came late, when the battles were already being written into legend. The Shadow Guard operates in silence, in the dark, without recognition. They do not need the world to know their name. They know their own name.",
+      "lore_pt": "Chegaram tarde, quando as batalhas já estavam a ser escritas em lenda. A Shadow Guard opera em silêncio, na escuridão, sem reconhecimento. Não precisam que o mundo conheça o seu nome. Conhecem o seu próprio nome."
+    },
+    {
+      "id": 10,
+      "name": "Iron Born",
+      "token_range_start": 19999,
+      "token_range_end": 22222,
+      "supply": 2224,
+      "_supply_note": "2,224 to reach exactly 22,222 total (accommodates final range)",
+      "color": "Iron",
+      "hex": "#808080",
+      "lore": "Iron is not gold. It does not shine. But it is what swords are made of. The Iron Born are the last to join and perhaps the most important — every warrior who almost didn't. Who hesitated and came anyway. The oath is the same.",
+      "lore_pt": "O ferro não é ouro. Não brilha. Mas é com ele que as espadas são feitas. Os Iron Born são os últimos a chegar e talvez os mais importantes — cada guerreiro que quase não veio. Que hesitou e veio na mesma. O juramento é o mesmo."
     }
   ],
 
@@ -337,157 +446,137 @@
     }
   ],
 
-  "background_types": [
+  "zodiac_signs": [
     {
-      "name": "Cosmic Void",
-      "rarity_percentage": 5.0,
-      "description": "The infinite darkness between the stars of Asgard — where the Allfather watches from Hlidskjalf and sees all nine realms simultaneously. A warrior who walks the Void has gazed into nothingness and found purpose.",
-      "description_pt": "A escuridão infinita entre as estrelas de Asgard — onde o Pai de Todos vigia de Hlidskjalf e vê os nove reinos simultaneamente. Um guerreiro que percorre o Vazio olhou para o nada e encontrou um propósito.",
-      "visual_palette": ["#000000", "#0a0a1a", "#1a0033", "#000814"]
+      "id": 1,
+      "name": "Aries",
+      "symbol": "♈",
+      "dates": "March 21 – April 19",
+      "element": "Fire",
+      "norse_affinity": "The Ram of Ragnarök — charges first, questions never."
     },
     {
-      "name": "Burning Asgard",
-      "rarity_percentage": 10.0,
-      "description": "Ragnarök is not a myth — it is a market condition. The burning walls of Asgard represent the moment everything the warrior built is tested by fire. What survives the flame is real. What burns was always hollow.",
-      "description_pt": "Ragnarök não é um mito — é uma condição de mercado. As paredes ardentes de Asgard representam o momento em que tudo o que o guerreiro construiu é testado pelo fogo. O que sobrevive à chama é real. O que arde sempre foi oco.",
-      "visual_palette": ["#FF4500", "#FF6B00", "#FFD700", "#8B0000"]
+      "id": 2,
+      "name": "Taurus",
+      "symbol": "♉",
+      "dates": "April 20 – May 20",
+      "element": "Earth",
+      "norse_affinity": "The Bull of Midgard — immovable until the mountain itself moves."
     },
     {
-      "name": "Frozen Niflheim",
-      "rarity_percentage": 20.0,
-      "description": "The primordial realm of ice and mist where the rivers of Élivágar freeze all ambition. To train in Niflheim is to learn discipline beyond all comfort. The warrior who survives the cold is ready for any storm.",
-      "description_pt": "O reino primordial do gelo e da névoa onde os rios de Élivágar congelam toda a ambição. Treinar em Niflheim é aprender disciplina além de qualquer conforto. O guerreiro que sobrevive ao frio está pronto para qualquer tempestade.",
-      "visual_palette": ["#E0FFFF", "#B0C4DE", "#4169E1", "#191970"]
+      "id": 3,
+      "name": "Gemini",
+      "symbol": "♊",
+      "dates": "May 21 – June 20",
+      "element": "Air",
+      "norse_affinity": "Twin ravens of Odin — Huginn and Muninn made flesh, thought and memory in one."
     },
     {
-      "name": "Valhalla Gates",
-      "rarity_percentage": 25.0,
-      "description": "The golden halls where the worthy feast with the Allfather — not as a final reward, but as training ground for the ultimate battle. Every warrior here has died once and chosen to return. Valhalla is not paradise; it is preparation.",
-      "description_pt": "Os salões dourados onde os dignos festejam com o Pai de Todos — não como recompensa final, mas como campo de treino para a batalha suprema. Cada guerreiro aqui morreu uma vez e escolheu regressar. Valhalla não é o paraíso; é preparação.",
-      "visual_palette": ["#FFD700", "#FFF8DC", "#B8860B", "#DAA520"]
+      "id": 4,
+      "name": "Cancer",
+      "symbol": "♋",
+      "dates": "June 21 – July 22",
+      "element": "Water",
+      "norse_affinity": "The tide of Njord's sea — retreating only to return with greater force."
     },
     {
-      "name": "Matrix Rain",
-      "rarity_percentage": 40.0,
-      "description": "The Norse digital realm where ancient rune-wisdom meets modern market data. In this realm, candlestick charts ARE runes, order books ARE völva prophecies, and the algo-warrior reads both the ancient and the new with equal mastery.",
-      "description_pt": "O reino digital nórdico onde a antiga sabedoria rúnica encontra dados modernos do mercado. Neste reino, os gráficos de velas SÃO runas, os livros de ordens SÃO profecias de völva, e o guerreiro-algoritmo lê tanto o antigo como o novo com mestria igual.",
-      "visual_palette": ["#00FF00", "#003300", "#001100", "#00AA00"]
+      "id": 5,
+      "name": "Leo",
+      "symbol": "♌",
+      "dates": "July 23 – August 22",
+      "element": "Fire",
+      "norse_affinity": "The Lion-Hearted of Asgard — born to lead the shield wall, born to be seen."
+    },
+    {
+      "id": 6,
+      "name": "Virgo",
+      "symbol": "♍",
+      "dates": "August 23 – September 22",
+      "element": "Earth",
+      "norse_affinity": "The völva's precision — every rune placed with intention, every word measured."
+    },
+    {
+      "id": 7,
+      "name": "Libra",
+      "symbol": "♎",
+      "dates": "September 23 – October 22",
+      "element": "Air",
+      "norse_affinity": "The scales of Tyr's justice — balance held even when the world tips sideways."
+    },
+    {
+      "id": 8,
+      "name": "Scorpio",
+      "symbol": "♏",
+      "dates": "October 23 – November 21",
+      "element": "Water",
+      "norse_affinity": "Loki's shadow — deep, transformative, impossible to deceive."
+    },
+    {
+      "id": 9,
+      "name": "Sagittarius",
+      "symbol": "♐",
+      "dates": "November 22 – December 21",
+      "element": "Fire",
+      "norse_affinity": "The arrow of Ullr — loosed with certainty, trusting the wind to carry it true."
+    },
+    {
+      "id": 10,
+      "name": "Capricorn",
+      "symbol": "♑",
+      "dates": "December 22 – January 19",
+      "element": "Earth",
+      "norse_affinity": "Ymir's bones — the bedrock from which all mountains are made, patient as stone."
+    },
+    {
+      "id": 11,
+      "name": "Aquarius",
+      "symbol": "♒",
+      "dates": "January 20 – February 18",
+      "element": "Air",
+      "norse_affinity": "The well of Mimir — infinite wisdom poured without depletion, vision beyond the veil."
+    },
+    {
+      "id": 12,
+      "name": "Pisces",
+      "symbol": "♓",
+      "dates": "February 19 – March 20",
+      "element": "Water",
+      "norse_affinity": "The serpent Jormungandr — encircling all worlds, dreaming beneath the deep."
     }
   ],
 
-  "warrior_classes": [
-    {
-      "name": "Berserker",
-      "rarity_percentage": 8.0,
-      "description": "The bear-shirt warriors who channel Odin's battle madness into pure, focused fury. In markets, the Berserker is the high-conviction trader — all in on strong signals, position-sized to their maximum tolerance. Terrifying in momentum, they must learn when to sheathe the fury.",
-      "description_pt": "Os guerreiros da pele de urso que canalizam a loucura de batalha de Odin em fúria pura e focada. Nos mercados, o Berserker é o trader de alta convicção — totalmente comprometido em sinais fortes, dimensionado para a sua tolerância máxima. Aterrorizantes no momentum, têm de aprender quando guardar a fúria.",
-      "primary_stat": "Conviction",
-      "trading_style": "High-conviction momentum"
-    },
-    {
-      "name": "Skald",
-      "rarity_percentage": 12.0,
-      "description": "The poet-warriors who carry the stories of battles won and lost. Skalds are the journalers, the bloggers, the community builders of the trading world. They transform personal loss into collective wisdom, and in doing so, build the strongest possible edge: the community.",
-      "description_pt": "Os guerreiros-poetas que carregam as histórias de batalhas ganhas e perdidas. Os Skalds são os jornalistas, os bloggers, os construtores de comunidades do mundo do trading. Transformam a perda pessoal em sabedoria coletiva, e ao fazê-lo, constroem a vantagem mais forte possível: a comunidade.",
-      "primary_stat": "Wisdom",
-      "trading_style": "Systematic documentation and community"
-    },
-    {
-      "name": "Völva",
-      "rarity_percentage": 10.0,
-      "description": "The seeresses who travel between worlds, reading futures in the threads of fate. Völva traders are the quants — they see market patterns others cannot, run Monte Carlo simulations like shamanic rituals, and treat their backtesting as sacred divination.",
-      "description_pt": "As videntes que viajam entre mundos, lendo futuros nos fios do destino. Os traders Völva são os quants — veem padrões de mercado que outros não conseguem, executam simulações Monte Carlo como rituais xamânicos, e tratam o seu backtesting como divinhação sagrada.",
-      "primary_stat": "Foresight",
-      "trading_style": "Quantitative and systematic"
-    },
-    {
-      "name": "Jarl",
-      "rarity_percentage": 15.0,
-      "description": "The chieftains who lead not by shouting loudest, but by building the strongest systems and the most loyal teams. Jarl traders are fund managers, community leaders, signal providers — those whose discipline inspires and whose record speaks for itself.",
-      "description_pt": "Os chefes que lideram não gritando mais alto, mas construindo os sistemas mais fortes e as equipas mais leais. Os traders Jarl são gestores de fundos, líderes de comunidade, fornecedores de sinais — aqueles cuja disciplina inspira e cujo registo fala por si.",
-      "primary_stat": "Leadership",
-      "trading_style": "Portfolio management and leadership"
-    },
-    {
-      "name": "Einherjar",
-      "rarity_percentage": 25.0,
-      "description": "Odin's chosen warriors — the ones who died in battle and were deemed worthy to train in Valhalla for Ragnarök. Einherjar traders have had their accounts wiped, faced the abyss, and clawed back. They trade with the calm certainty of someone who has nothing left to fear.",
-      "description_pt": "Os guerreiros escolhidos de Odin — os que morreram em batalha e foram considerados dignos de treinar em Valhalla para Ragnarök. Os traders Einherjar tiveram as suas contas dizimadas, enfrentaram o abismo e regressaram. Negociam com a calma certeza de alguém que não tem nada mais a temer.",
-      "primary_stat": "Resilience",
-      "trading_style": "Recovery and systematic rebuilding"
-    },
-    {
-      "name": "Fenrir Guard",
-      "rarity_percentage": 30.0,
-      "description": "The wardens who stand watch over Fenrir's chains — knowing that one day the wolf will break free, and their discipline is all that stands between order and chaos. These traders are the risk managers, the position sizers, the ones who keep the warband alive when Ragnarök comes.",
-      "description_pt": "Os guardiões que vigiam as correntes de Fenrir — sabendo que um dia o lobo se libertará, e a sua disciplina é tudo o que está entre a ordem e o caos. Estes traders são os gestores de risco, os dimensionadores de posição, os que mantêm a banda de guerra viva quando Ragnarök chega.",
-      "primary_stat": "Discipline",
-      "trading_style": "Risk management and defense"
-    }
-  ],
-
-  "aura_colors": [
-    {
-      "name": "Obsidian",
-      "hex": "#1a1a2e",
-      "meaning": "The void before the beginning. Obsidian warriors carry the darkness of Niflheim, transformed into impenetrable calm. They cannot be rattled because they have already been shattered.",
-      "meaning_pt": "O vazio antes do início. Os guerreiros Obsidian carregam a escuridão de Niflheim, transformada em calma impenetrável. Não podem ser abalados porque já foram despedaçados.",
-      "rarity_percentage": 20.0
-    },
-    {
-      "name": "Gold",
-      "hex": "#FFD700",
-      "meaning": "The light of Valhalla's mead halls. Gold warriors bear Odin's favor — not given, but earned through unwavering consistency. Their patience is measured in seasons, not sessions.",
-      "meaning_pt": "A luz das salas de hidromel de Valhalla. Os guerreiros Gold carregam o favor de Odin — não dado, mas conquistado através de consistência inabalável. A sua paciência é medida em estações, não em sessões.",
-      "rarity_percentage": 15.0
-    },
-    {
-      "name": "Crimson",
-      "hex": "#DC143C",
-      "meaning": "The blood price paid in a thousand losing trades, transformed into the war paint of the survivor. Crimson warriors have been blooded. They know the cost. They trade accordingly.",
-      "meaning_pt": "O preço de sangue pago em mil trades perdedores, transformado na tinta de guerra do sobrevivente. Os guerreiros Crimson foram batizados no sangue. Conhecem o custo. Negociam em conformidade.",
-      "rarity_percentage": 20.0
-    },
-    {
-      "name": "Arctic Blue",
-      "hex": "#00CED1",
-      "meaning": "The cold clarity of Niflheim's oldest ice — formed before time had a name, perfectly clear, seeing straight through the illusions of FOMO and panic. Arctic Blue warriors make decisions no emotion can reach.",
-      "meaning_pt": "A fria clareza do gelo mais antigo de Niflheim — formado antes de o tempo ter um nome, perfeitamente claro, vendo diretamente através das ilusões do FOMO e do pânico. Os guerreiros Arctic Blue tomam decisões que nenhuma emoção consegue alcançar.",
-      "rarity_percentage": 20.0
-    },
-    {
-      "name": "Void Purple",
-      "hex": "#4B0082",
-      "meaning": "The color of seiðr magic and the völva's cloak — the mystic hue of those who perceive market forces invisible to ordinary sight. Void Purple warriors see the manipulation before it manifests, feel the reversal before the wick appears.",
-      "meaning_pt": "A cor da magia seiðr e do manto da völva — a tonalidade mística dos que percebem forças de mercado invisíveis à visão comum. Os guerreiros Void Purple veem a manipulação antes de se manifestar, sentem a reversão antes de a mecha aparecer.",
-      "rarity_percentage": 15.0
-    },
-    {
-      "name": "Phoenix Fire",
-      "hex": "#FF4500",
-      "meaning": "The sacred fire of the REBORNFENIX — not the fire that burns, but the fire that transforms. This aura belongs only to those who rose from total financial ruin. It cannot be acquired. It can only be earned through surviving what would destroy most.",
-      "meaning_pt": "O fogo sagrado do REBORNFENIX — não o fogo que queima, mas o fogo que transforma. Esta aura pertence apenas àqueles que se ergueram da ruína financeira total. Não pode ser adquirida. Só pode ser conquistada sobrevivendo ao que destruiria a maioria.",
-      "rarity_percentage": 10.0
-    }
-  ],
-
-  "special_traits": [
-    {
-      "name": "Reborn",
-      "rarity_percentage": 0.1,
-      "estimated_count": 22,
-      "description": "The rarest and most sacred designation in the REBORNFENIX collection. 'Reborn' marks a warrior who has experienced catastrophic, civilization-ending financial loss — the kind that breaks most people permanently — and returned. Not merely recovered. Returned. Different. Harder. Wiser. These are the fathers who watched their life savings vanish. The traders who rebuilt from zero while simultaneously fighting personal battles that would make Ragnarök look manageable. They did not emerge unscathed. They emerged forged. The Reborn do not seek vengeance on the market. They seek mastery over themselves.",
-      "description_pt": "A designação mais rara e sagrada da coleção REBORNFENIX. 'Reborn' marca um guerreiro que experienciou perda financeira catastrófica, do tipo que destrói civilizações — o tipo que quebra a maioria das pessoas permanentemente — e regressou. Não apenas recuperou. Regressou. Diferente. Mais duro. Mais sábio. Estes são os pais que viram as suas poupanças de vida desaparecer. Os traders que reconstruíram do zero enquanto simultaneamente lutavam batalhas pessoais que fariam Ragnarök parecer gerível. Não emergiram ilesos. Emergiram forjados. Os Reborn não buscam vingança no mercado. Buscam mestria sobre si mesmos.",
-      "visual_marker": "Fractured gold crown above the warrior's head, with flame escaping the cracks",
-      "visual_marker_pt": "Coroa de ouro fraturada acima da cabeça do guerreiro, com chama a escapar pelas fissuras",
-      "lore": "In the age before the final winter, when Fenrir's howl shook the branches of Yggdrasil, there were those who chose to stand. Not because they had nothing to lose — they had already lost everything. They stood because they had discovered something stronger than having: the warrior's refusal to be defined by what was taken from them. These are the Reborn. Twenty-two among twenty-two thousand. One in a thousand. The rarest fire.",
-      "lore_pt": "Na era antes do inverno final, quando o uivo de Fenrir sacudiu os ramos de Yggdrasil, havia aqueles que escolheram manter-se de pé. Não porque não tinham nada a perder — já tinham perdido tudo. Mantiveram-se porque tinham descoberto algo mais forte do que ter: a recusa do guerreiro em ser definido pelo que lhes foi tirado. Estes são os Reborn. Vinte e dois entre vinte e dois mil. Um em mil. O fogo mais raro."
-    }
-  ],
+  "founding_warrior_sword_rune_combos": {
+    "_description": "Each Founding Warrior receives a unique sword engraved with a combination of Norse runes. 22 unique combos pre-assigned to warrior slots #1–#22.",
+    "_assignment": "Assigned in order of purchase. First patron gets combo 1, second gets combo 2, etc.",
+    "combos": [
+      {"warrior_slot": 1,  "runes": ["ᚠ", "ᛟ", "ᛏ"], "rune_names": ["Fehu", "Othala", "Tiwaz"],   "meaning": "Wealth built for legacy through sacrifice"},
+      {"warrior_slot": 2,  "runes": ["ᚢ", "ᛊ", "ᚱ"], "rune_names": ["Uruz", "Sowilo", "Raidho"], "meaning": "Primal strength riding the sun's momentum"},
+      {"warrior_slot": 3,  "runes": ["ᚨ", "ᛁ", "ᛒ"], "rune_names": ["Ansuz", "Isa", "Berkano"],  "meaning": "Wisdom in stillness, growth in silence"},
+      {"warrior_slot": 4,  "runes": ["ᛃ", "ᛖ", "ᚷ"], "rune_names": ["Jera", "Ehwaz", "Gebo"],    "meaning": "Seasonal mastery through partnership and exchange"},
+      {"warrior_slot": 5,  "runes": ["ᚦ", "ᛉ", "ᛗ"], "rune_names": ["Thurisaz", "Algiz", "Mannaz"], "meaning": "Chaos defended by self-knowledge"},
+      {"warrior_slot": 6,  "runes": ["ᛇ", "ᚾ", "ᛞ"], "rune_names": ["Eihwaz", "Nauthiz", "Dagaz"], "meaning": "Death reborn through necessity into dawn"},
+      {"warrior_slot": 7,  "runes": ["ᛈ", "ᚲ", "ᛜ"], "rune_names": ["Perthro", "Kenaz", "Ingwaz"], "meaning": "Fate illuminated by fire, completed in fullness"},
+      {"warrior_slot": 8,  "runes": ["ᚹ", "ᚺ", "ᛚ"], "rune_names": ["Wunjo", "Hagalaz", "Laguz"],  "meaning": "Joy forged through destruction, carried by water"},
+      {"warrior_slot": 9,  "runes": ["ᛟ", "ᛊ", "ᚨ"], "rune_names": ["Othala", "Sowilo", "Ansuz"],  "meaning": "Legacy lit by solar wisdom"},
+      {"warrior_slot": 10, "runes": ["ᚠ", "ᛒ", "ᛇ"], "rune_names": ["Fehu", "Berkano", "Eihwaz"],  "meaning": "Wealth from growth through death and return"},
+      {"warrior_slot": 11, "runes": ["ᚱ", "ᛏ", "ᚢ"], "rune_names": ["Raidho", "Tiwaz", "Uruz"],    "meaning": "The righteous journey of primal sacrifice"},
+      {"warrior_slot": 12, "runes": ["ᛁ", "ᛃ", "ᛗ"], "rune_names": ["Isa", "Jera", "Mannaz"],      "meaning": "Ice-cold patience through cycles of self"},
+      {"warrior_slot": 13, "runes": ["ᚲ", "ᛉ", "ᚷ"], "rune_names": ["Kenaz", "Algiz", "Gebo"],     "meaning": "Knowledge that protects through sacred exchange"},
+      {"warrior_slot": 14, "runes": ["ᛞ", "ᚹ", "ᚦ"], "rune_names": ["Dagaz", "Wunjo", "Thurisaz"], "meaning": "Dawn's joy born from chaos survived"},
+      {"warrior_slot": 15, "runes": ["ᛜ", "ᛖ", "ᛚ"], "rune_names": ["Ingwaz", "Ehwaz", "Laguz"],   "meaning": "Completion through partnership, carried on water"},
+      {"warrior_slot": 16, "runes": ["ᚾ", "ᛊ", "ᛃ"], "rune_names": ["Nauthiz", "Sowilo", "Jera"],  "meaning": "Need transformed by sun into harvest"},
+      {"warrior_slot": 17, "runes": ["ᚺ", "ᛟ", "ᚱ"], "rune_names": ["Hagalaz", "Othala", "Raidho"],"meaning": "Destruction of the old path reveals the journey home"},
+      {"warrior_slot": 18, "runes": ["ᛈ", "ᚢ", "ᛒ"], "rune_names": ["Perthro", "Uruz", "Berkano"], "meaning": "Fate's strength finding root in new growth"},
+      {"warrior_slot": 19, "runes": ["ᚨ", "ᛏ", "ᛇ"], "rune_names": ["Ansuz", "Tiwaz", "Eihwaz"],   "meaning": "Divine wisdom sacrificed at the axis of rebirth"},
+      {"warrior_slot": 20, "runes": ["ᛉ", "ᚷ", "ᛁ"], "rune_names": ["Algiz", "Gebo", "Isa"],       "meaning": "Protection through exchange held in cold clarity"},
+      {"warrior_slot": 21, "runes": ["ᛗ", "ᚲ", "ᛜ"], "rune_names": ["Mannaz", "Kenaz", "Ingwaz"],  "meaning": "Self illuminated, cycle completed in full knowledge"},
+      {"warrior_slot": 22, "runes": ["ᛚ", "ᛞ", "ᚹ"], "rune_names": ["Laguz", "Dagaz", "Wunjo"],    "meaning": "Water into dawn into joy — the full arc of the warrior"}
+    ]
+  },
 
   "metadata_standards": {
     "standard": "Metaplex v3 / Token Metadata Program",
-    "schema_version": "1.0",
+    "schema_version": "2.0",
     "image_format": "PNG",
     "image_resolution": "1000x1000",
     "animation_url_format": "MP4 (optional, for animated variants)"

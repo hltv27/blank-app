@@ -1,7 +1,27 @@
 #!/usr/bin/env python3
 """
-REBORNFENIX (RBFX) — Metaplex v3 Metadata Generator
-Generates 22,222 unique NFT metadata JSON files for the Solana collection.
+REBORNFENIX (RBFX) — Metaplex v3 Metadata Generator  v2.0
+=============================================================
+Two-tier collection on Solana:
+
+  Tier 1 — 22 Founding Warriors  @ 100 USDC each
+    · Imperial Purple (#4B0082 → #7B2FBE gradient)
+    · Fully personalised after purchase (name + zodiac from patron)
+    · Template metadata only — placeholders for name, zodiac, sword combo
+
+  Tier 2 — 22,222 Legion of Honour  @ 10 USDC each
+    · Circular medal: phoenix + unique Elder Futhark rune + knotwork border
+    · Generation colour determined by ORDER OF PURCHASE (token_id range):
+        Gen 1  #1–2222     Red Phoenix   #CC0000
+        Gen 2  #2223–4444  Gold          #FFD700
+        Gen 3  #4445–6666  Silver        #C0C0C0
+        Gen 4  #6667–8888  Bronze        #CD7F32
+        Gen 5  #8889–11110 Arctic Blue   #00CED1
+        Gen 6  #11111–13332 Void Purple  #6A0DAD
+        Gen 7  #13333–15554 Emerald      #50C878
+        Gen 8  #15555–17776 Copper       #B87333
+        Gen 9  #17777–19998 Obsidian     #1C1C1C
+        Gen 10 #19999–22222 Iron         #808080
 
 Norse warrior collection honouring resilience, fatherhood, and rebirth through loss.
 """
@@ -9,7 +29,6 @@ Norse warrior collection honouring resilience, fatherhood, and rebirth through l
 import json
 import os
 import random
-import hashlib
 from pathlib import Path
 from collections import defaultdict
 from typing import Optional
@@ -17,409 +36,422 @@ from typing import Optional
 # ────────────────────────────────────────────────
 # PATHS
 # ────────────────────────────────────────────────
-BASE_DIR    = Path("/home/user/blank-app/rebornfenix/metadata")
-OUTPUT_DIR  = BASE_DIR / "generated"
-ATTRS_FILE  = BASE_DIR / "runes_attributes.json"
+BASE_DIR   = Path("/home/user/blank-app/rebornfenix/metadata")
+OUTPUT_DIR = BASE_DIR / "generated"
+ATTRS_FILE = BASE_DIR / "runes_attributes.json"
 
 # ────────────────────────────────────────────────
 # COLLECTION CONSTANTS
 # ────────────────────────────────────────────────
-TOTAL_SUPPLY        = 22_222
-EXAMPLE_COUNT       = 5          # Only write first N to disk for demo
-BASE_IMAGE_URL      = "https://arweave.net/REBORNFENIX_PLACEHOLDER"
-COLLECTION_ADDRESS  = "RBFX_COLLECTION_PLACEHOLDER_SOLANA_ADDRESS"
+LEGION_SUPPLY          = 22_222
+FOUNDING_WARRIOR_COUNT = 22
+EXAMPLE_COUNT          = 5      # Legion examples written to disk by default
 
-DESCRIPTION_EN = (
-    "REBORNFENIX is a collection of 22,222 Viking warriors forged in the fires of "
-    "Ragnarök — fathers, fighters, and survivors who stared into the abyss and refused "
-    "to break. Each warrior carries the ancient power of Elder Futhark runes, drawn from "
-    "the cosmic loom of fate. Not all who trade are warriors. But every warrior who "
-    "trades knows: you do not surrender. You adapt. You endure. You return."
+BASE_IMAGE_URL_LEGION   = "https://arweave.net/REBORNFENIX_LEGION_PLACEHOLDER"
+BASE_IMAGE_URL_FOUNDING = "https://arweave.net/REBORNFENIX_FOUNDING_PLACEHOLDER"
+COLLECTION_ADDRESS      = "RBFX_COLLECTION_PLACEHOLDER_SOLANA_ADDRESS"
+
+DESCRIPTION_LEGION_EN = (
+    "REBORNFENIX Legion of Honour — one of 22,222 warriors forged in the fires of "
+    "Ragnarök. Each token carries a unique Elder Futhark rune and the colours of their "
+    "generation, earned by the order in which they answered the call. Not all who trade "
+    "are warriors. But every warrior who trades knows: you do not surrender. You adapt. "
+    "You endure. You return."
 )
 
-DESCRIPTION_PT = (
-    "REBORNFENIX é uma coleção de 22.222 guerreiros Vikings forjados nos fogos de "
-    "Ragnarök — pais, lutadores e sobreviventes que olharam para o abismo e recusaram "
-    "quebrar. Cada guerreiro carrega o poder ancestral das runas Elder Futhark, "
-    "retiradas do tear cósmico do destino."
+DESCRIPTION_FOUNDING_EN = (
+    "REBORNFENIX Founding Warrior — one of only 22. Imperial Purple. Fully personalised. "
+    "In ancient Rome, wearing purple without being Emperor was punishable by death. "
+    "The 22 Founding Warriors carry this colour — not because they claimed it, but because "
+    "they built the fire that made it possible. This NFT bears the patron's chosen name "
+    "and zodiac sign, and a sword engraved with a unique combination of Norse runes."
 )
 
 # ────────────────────────────────────────────────
-# WEIGHTED RANDOM SELECTION UTILITY
+# GENERATION RESOLVER
+# Colour / generation determined by token_id range — NOT random
 # ────────────────────────────────────────────────
 
-def weighted_choice(options: list[dict], weight_key: str = "rarity_percentage") -> dict:
-    """Pick one item according to its rarity_percentage weight."""
-    total = sum(o[weight_key] for o in options)
-    r = random.uniform(0, total)
-    cumulative = 0.0
-    for option in options:
-        cumulative += option[weight_key]
-        if r <= cumulative:
-            return option
-    return options[-1]
+# Each entry: (range_end_inclusive, generation_dict)
+# Built at runtime from runes_attributes.json; kept here as fallback reference.
+_GENERATION_RANGES = [
+    (2222,  {"id": 1,  "name": "Phoenix Guard",    "color": "Red Phoenix",  "hex": "#CC0000"}),
+    (4444,  {"id": 2,  "name": "Gold Battalion",   "color": "Gold",         "hex": "#FFD700"}),
+    (6666,  {"id": 3,  "name": "Silver Vanguard",  "color": "Silver",       "hex": "#C0C0C0"}),
+    (8888,  {"id": 4,  "name": "Bronze Legion",    "color": "Bronze",       "hex": "#CD7F32"}),
+    (11110, {"id": 5,  "name": "Frost Warriors",   "color": "Arctic Blue",  "hex": "#00CED1"}),
+    (13332, {"id": 6,  "name": "Void Seekers",     "color": "Void Purple",  "hex": "#6A0DAD"}),
+    (15554, {"id": 7,  "name": "Midgard Rangers",  "color": "Emerald",      "hex": "#50C878"}),
+    (17776, {"id": 8,  "name": "Copper Shields",   "color": "Copper",       "hex": "#B87333"}),
+    (19998, {"id": 9,  "name": "Shadow Guard",     "color": "Obsidian",     "hex": "#1C1C1C"}),
+    (22222, {"id": 10, "name": "Iron Born",        "color": "Iron",         "hex": "#808080"}),
+]
 
 
-def weighted_choice_by_weight(options: list[dict], weight_key: str = "rarity_weight") -> dict:
-    total = sum(o[weight_key] for o in options)
-    r = random.uniform(0, total)
-    cumulative = 0.0
-    for option in options:
-        cumulative += option[weight_key]
-        if r <= cumulative:
-            return option
-    return options[-1]
+def resolve_generation(token_id: int) -> dict:
+    """Return generation info dict for a given Legion token_id (1–22222)."""
+    for range_end, gen in _GENERATION_RANGES:
+        if token_id <= range_end:
+            return gen
+    return _GENERATION_RANGES[-1][1]  # fallback: Iron Born
+
+
+def load_generation_table(attrs_data: dict) -> list[dict]:
+    """Load generation definitions from runes_attributes.json."""
+    return attrs_data.get("generations", [])
+
 
 # ────────────────────────────────────────────────
-# RARITY TIER RESOLVER
+# RUNE SELECTION — sequential, not weighted random
+# 22,222 tokens / 24 runes → each rune appears ~926 times
+# Assignment: round-robin by token_id ensures every rune appears evenly,
+# with a deterministic per-rune shuffle inside each cycle for ordering variety.
 # ────────────────────────────────────────────────
 
-RARITY_TIER_WEIGHTS = {
-    "Legendary": 1.0,
-    "Epic":      5.0,
-    "Rare":      15.0,
-    "Uncommon":  30.0,
-    "Common":    49.0,
-}
+def build_rune_assignment(supply: int, runes: list[dict]) -> list[dict]:
+    """
+    Pre-assign runes to all token_ids so each rune appears as evenly as possible.
+    Returns a list of length `supply`, indexed by (token_id - 1).
+    """
+    n = len(runes)
+    # Build a shuffled cycle of rune indices, repeated to cover supply
+    rng = random.Random(0xRBFX := 0xAB1234)  # deterministic seed
+    assignment = []
+    while len(assignment) < supply:
+        cycle = list(range(n))
+        rng.shuffle(cycle)
+        assignment.extend(cycle)
+    return [runes[i] for i in assignment[:supply]]
 
-def draw_rarity_tier() -> str:
-    r = random.uniform(0, 100)
-    cumulative = 0.0
-    for tier, weight in RARITY_TIER_WEIGHTS.items():
-        cumulative += weight
-        if r <= cumulative:
-            return tier
-    return "Common"
-
-# ────────────────────────────────────────────────
-# SPECIAL TRAIT RESOLVER
-# Reborn: 0.1% → exactly 22 in 22,222
-# ────────────────────────────────────────────────
-
-def build_reborn_token_ids(supply: int) -> set[int]:
-    """Pre-assign the 22 Reborn token IDs deterministically using hash seeding."""
-    reborn_count = round(supply * 0.001)  # 0.1% = ~22
-    random.seed(0xFE0000)  # deterministic seed so same IDs every run (FENRIR)
-    reborn_ids = set(random.sample(range(1, supply + 1), reborn_count))
-    random.seed()  # restore true randomness
-    return reborn_ids
 
 # ────────────────────────────────────────────────
-# ATTRIBUTE BUILDERS
+# LEGION ATTRIBUTE BUILDER
 # ────────────────────────────────────────────────
 
-def build_attributes(
-    token_id: int,
-    rune: dict,
-    background: dict,
-    warrior_class: dict,
-    aura: dict,
-    rarity_tier: str,
-    is_reborn: bool,
-    attrs_data: dict,
-) -> list[dict]:
-    """Return a Metaplex-compatible attributes array."""
-    attributes = [
-        {"trait_type": "Rune",           "value": f"{rune['symbol']} {rune['name']}"},
-        {"trait_type": "Rune Meaning",   "value": rune["meaning"]},
-        {"trait_type": "Background",     "value": background["name"]},
-        {"trait_type": "Warrior Class",  "value": warrior_class["name"]},
-        {"trait_type": "Aura",           "value": aura["name"]},
-        {"trait_type": "Rarity Tier",    "value": rarity_tier},
-        {"trait_type": "Rune Symbol",    "value": rune["symbol"]},
-        {"trait_type": "Rune Power",     "value": rune["trading_wisdom"]},
-        {"trait_type": "Class Archetype","value": warrior_class["trading_style"]},
-        {"trait_type": "Aura Color Hex", "value": aura["hex"]},
+def build_legion_attributes(token_id: int, rune: dict, generation: dict) -> list[dict]:
+    """Return Metaplex-compatible attributes for a Legion of Honour NFT."""
+    return [
+        {"trait_type": "Rune",             "value": rune["name"]},
+        {"trait_type": "Rune Symbol",      "value": rune["symbol"]},
+        {"trait_type": "Rune Meaning",     "value": rune["meaning"]},
+        {"trait_type": "Generation",       "value": generation["id"],   "display_type": "number"},
+        {"trait_type": "Generation Name",  "value": generation["name"]},
+        {"trait_type": "Ring Color",       "value": generation["color"]},
+        {"trait_type": "Ring Color Hex",   "value": generation["hex"]},
+        {"trait_type": "Token Number",     "value": token_id,            "display_type": "number"},
+        {"trait_type": "Rune Number",      "value": rune["id"],          "display_type": "number"},
     ]
 
-    if is_reborn:
-        attributes.append({"trait_type": "Special", "value": "Reborn"})
-
-    # Numeric traits for rarity scoring
-    attributes.append({"trait_type": "Token ID",     "value": token_id,                       "display_type": "number"})
-    attributes.append({"trait_type": "Rune Number",  "value": rune["id"],                      "display_type": "number"})
-    attributes.append({"trait_type": "Fenrir Score", "value": _compute_fenrir_score(rarity_tier, is_reborn), "display_type": "number"})
-
-    return attributes
-
-
-def _compute_fenrir_score(rarity_tier: str, is_reborn: bool) -> int:
-    """A composite rarity score from 1–1000. Higher = rarer."""
-    base = {
-        "Legendary": 850,
-        "Epic":      650,
-        "Rare":      400,
-        "Uncommon":  200,
-        "Common":    100,
-    }.get(rarity_tier, 100)
-    bonus = 150 if is_reborn else 0
-    jitter = random.randint(-20, 20)
-    return max(1, min(1000, base + bonus + jitter))
 
 # ────────────────────────────────────────────────
-# METAPLEX v3 JSON BUILDER
+# LEGION METADATA BUILDER
 # ────────────────────────────────────────────────
 
-def build_metadata(
-    token_id: int,
-    rune: dict,
-    background: dict,
-    warrior_class: dict,
-    aura: dict,
-    rarity_tier: str,
-    is_reborn: bool,
-    attrs_data: dict,
-) -> dict:
+def build_legion_metadata(token_id: int, rune: dict, generation: dict) -> dict:
     """
-    Constructs a Metaplex Token Metadata Program v3 compatible JSON object.
+    Construct a Metaplex Token Metadata Program v3 compatible JSON object
+    for a Legion of Honour NFT.
     Reference: https://docs.metaplex.com/programs/token-metadata/token-standard
     """
-    name_suffix = " [REBORN]" if is_reborn else ""
-    token_name = f"REBORNFENIX #{token_id:05d}{name_suffix}"
-
-    # Deterministic image URL — swap placeholder for Arweave/IPFS after upload
-    image_url = f"{BASE_IMAGE_URL}/{token_id:05d}.png"
+    image_url = f"{BASE_IMAGE_URL_LEGION}/{token_id:05d}.png"
 
     lore_line = (
-        "Born from fire. Tempered by loss. The rune of the {rune_name} burns in their chest "
-        "— a warrior who chose to return when walking away was the easier path."
-    ).format(rune_name=rune["name"])
+        "Legion of Honour #{token_id:05d}. Generation {gen_id} — {gen_name}. "
+        "The rune of {rune_name} burns at the centre of their medal. "
+        "They answered the call when {gen_name} rode out. The ring is {color}. "
+        "The oath is the same as every warrior who came before."
+    ).format(
+        token_id=token_id,
+        gen_id=generation["id"],
+        gen_name=generation["name"],
+        rune_name=rune["name"],
+        color=generation["color"],
+    )
 
-    if is_reborn:
-        lore_line = (
-            "REBORN — one of the twenty-two. They died in the fire and came back changed. "
-            "The rune of {rune_name} did not save them; it witnessed their return and "
-            "burned itself deeper into their skin so all the Nine Realms would know."
-        ).format(rune_name=rune["name"])
+    lore_pt = (
+        "Legião de Honra #{token_id:05d}. Geração {gen_id} — {gen_name}. "
+        "A runa de {rune_name} arde no centro da sua medalha. "
+        "Responderam ao chamado quando a {gen_name} partiu. O anel é {color}. "
+        "O juramento é o mesmo de cada guerreiro que veio antes."
+    ).format(
+        token_id=token_id,
+        gen_id=generation["id"],
+        gen_name=generation["name"],
+        rune_name=rune["name"],
+        color=generation["color"],
+    )
 
     return {
-        "name": token_name,
-        "symbol": "RBFX",
-        "description": DESCRIPTION_EN,
+        "name":                    f"REBORNFENIX Legion #{token_id:05d}",
+        "symbol":                  "RBFX",
+        "description":             DESCRIPTION_LEGION_EN,
         "seller_fee_basis_points": 500,
-        "image": image_url,
-        "animation_url": None,
-        "external_url": "https://rebornfenix.io",
-        "attributes": build_attributes(
-            token_id, rune, background, warrior_class,
-            aura, rarity_tier, is_reborn, attrs_data
-        ),
+        "image":                   image_url,
+        "animation_url":           None,
+        "external_url":            "https://rebornfenix.io",
+        "attributes":              build_legion_attributes(token_id, rune, generation),
         "properties": {
-            "files": [
-                {
-                    "uri": image_url,
-                    "type": "image/png"
-                }
-            ],
+            "files": [{"uri": image_url, "type": "image/png"}],
             "category": "image",
-            "creators": [
-                {
-                    "address": "RBFX_CREATOR_WALLET_PLACEHOLDER",
-                    "share": 100
-                }
-            ]
+            "creators": [{"address": "RBFX_CREATOR_WALLET_PLACEHOLDER", "share": 100}],
         },
         "collection": {
-            "name": "REBORNFENIX",
-            "family": "RBFX",
+            "name":     "REBORNFENIX",
+            "family":   "RBFX",
             "verified": False,
-            "address": COLLECTION_ADDRESS
+            "address":  COLLECTION_ADDRESS,
         },
-        "lore": lore_line,
-        "lore_pt": (
-            f"Nascido do fogo. Temperado pela perda. A runa de {rune['name']} queima no "
-            f"seu peito — um guerreiro que escolheu regressar quando partir era o caminho mais fácil."
-        ),
-        "metadata_version": "1.0.0",
-        "standard": "Metaplex Token Metadata v3"
+        "lore":             lore_line,
+        "lore_pt":          lore_pt,
+        "metadata_version": "2.0.0",
+        "standard":         "Metaplex Token Metadata v3",
+        "tier":             "Legion of Honour",
     }
 
-# ────────────────────────────────────────────────
-# UNIQUENESS GUARANTEE
-# ────────────────────────────────────────────────
-
-def combo_fingerprint(token_id: int, rune_id: int, bg_name: str, class_name: str, aura_name: str, tier: str) -> str:
-    """
-    Each NFT is unique by token_id — this function tracks attribute-combo collisions
-    separately so we can report overlap, but all 22,222 are individually unique.
-    The collection exceeds the pure combinatoric space (21,600), so ~622 NFTs will
-    share an attribute combination with another but remain unique by token ID and art.
-    This is standard for large collections — uniqueness lives in the token, not only
-    in the attribute hash.
-    """
-    # Include token_id to guarantee uniqueness even when attribute combo repeats
-    key = f"{token_id}|{rune_id}|{bg_name}|{class_name}|{aura_name}|{tier}"
-    return hashlib.md5(key.encode()).hexdigest()
 
 # ────────────────────────────────────────────────
-# RARITY DISTRIBUTION TRACKER
+# FOUNDING WARRIOR ATTRIBUTE BUILDER
+# ────────────────────────────────────────────────
+
+def build_founding_attributes(warrior_slot: int, sword_combo: dict) -> list[dict]:
+    """
+    Return Metaplex-compatible attributes for a Founding Warrior template.
+    Zodiac and patron name are PLACEHOLDERS — filled after purchase.
+    """
+    sword_runes_str = " · ".join(
+        f"{sym} {name}"
+        for sym, name in zip(sword_combo["runes"], sword_combo["rune_names"])
+    )
+    return [
+        {"trait_type": "Tier",         "value": "Founding Warrior"},
+        {"trait_type": "Color",        "value": "#4B0082 → #7B2FBE"},
+        {"trait_type": "Color Name",   "value": "Imperial Purple"},
+        {"trait_type": "Sword Runes",  "value": sword_runes_str},
+        {"trait_type": "Sword Meaning","value": sword_combo["meaning"]},
+        {"trait_type": "Zodiac",       "value": "PLACEHOLDER — provided by patron after purchase"},
+        {"trait_type": "Patron Name",  "value": "PLACEHOLDER — provided by patron after purchase"},
+        {"trait_type": "Token ID",     "value": warrior_slot, "display_type": "number"},
+    ]
+
+
+# ────────────────────────────────────────────────
+# FOUNDING WARRIOR METADATA BUILDER
+# ────────────────────────────────────────────────
+
+def build_founding_metadata(warrior_slot: int, sword_combo: dict) -> dict:
+    """
+    Construct a Metaplex Token Metadata Program v3 compatible JSON object
+    for a Founding Warrior TEMPLATE.
+    Patron name and zodiac are left as placeholders pending patron input.
+    """
+    image_url = f"{BASE_IMAGE_URL_FOUNDING}/FW{warrior_slot:02d}_PLACEHOLDER.png"
+
+    return {
+        "name":                    f"REBORNFENIX Founding Warrior #FW{warrior_slot:02d}",
+        "symbol":                  "RBFX",
+        "description":             DESCRIPTION_FOUNDING_EN,
+        "seller_fee_basis_points": 500,
+        "image":                   image_url,
+        "animation_url":           None,
+        "external_url":            "https://rebornfenix.io",
+        "attributes":              build_founding_attributes(warrior_slot, sword_combo),
+        "properties": {
+            "files": [{"uri": image_url, "type": "image/png"}],
+            "category": "image",
+            "creators": [{"address": "RBFX_CREATOR_WALLET_PLACEHOLDER", "share": 100}],
+        },
+        "collection": {
+            "name":     "REBORNFENIX",
+            "family":   "RBFX",
+            "verified": False,
+            "address":  COLLECTION_ADDRESS,
+        },
+        "lore": (
+            f"Founding Warrior slot {warrior_slot} of 22. Imperial Purple. "
+            f"Sword engraved with {' + '.join(sword_combo['rune_names'])} — "
+            f"{sword_combo['meaning']}. "
+            "This NFT awaits its patron's name and zodiac to be fully reborn."
+        ),
+        "lore_pt": (
+            f"Founding Warrior posição {warrior_slot} de 22. Púrpura Imperial. "
+            f"Espada gravada com {' + '.join(sword_combo['rune_names'])} — "
+            f"{sword_combo['meaning']}. "
+            "Este NFT aguarda o nome e o signo do patrono para renascer completamente."
+        ),
+        "metadata_version":  "2.0.0",
+        "standard":          "Metaplex Token Metadata v3",
+        "tier":              "Founding Warrior",
+        "_customisation_note": (
+            "After purchase, patron provides: (1) chosen name for arc-bottom text, "
+            "(2) zodiac sign for shield. Art is then generated and this metadata updated. "
+            "Max 1 per wallet. Supply: 22."
+        ),
+    }
+
+
+# ────────────────────────────────────────────────
+# DISTRIBUTION TRACKER
 # ────────────────────────────────────────────────
 
 class DistributionTracker:
     def __init__(self):
-        self.rarity_tiers   = defaultdict(int)
-        self.backgrounds    = defaultdict(int)
-        self.classes        = defaultdict(int)
-        self.auras          = defaultdict(int)
-        self.runes          = defaultdict(int)
-        self.reborn_count   = 0
-        self.total          = 0
+        self.generations = defaultdict(int)
+        self.runes       = defaultdict(int)
+        self.total       = 0
 
-    def record(self, rune, background, warrior_class, aura, rarity_tier, is_reborn):
-        self.rarity_tiers[rarity_tier] += 1
-        self.backgrounds[background["name"]] += 1
-        self.classes[warrior_class["name"]] += 1
-        self.auras[aura["name"]] += 1
+    def record(self, rune: dict, generation: dict):
+        self.generations[f"Gen {generation['id']} — {generation['name']}"] += 1
         self.runes[rune["name"]] += 1
-        if is_reborn:
-            self.reborn_count += 1
         self.total += 1
 
     def print_report(self):
-        print("\n" + "="*60)
-        print("REBORNFENIX — RARITY DISTRIBUTION REPORT")
-        print("="*60)
+        print("\n" + "=" * 65)
+        print("REBORNFENIX — LEGION OF HONOUR GENERATION DISTRIBUTION REPORT")
+        print("=" * 65)
+        print(f"\nTotal Legion NFTs simulated: {self.total:,}")
 
-        print(f"\nTotal NFTs simulated: {self.total:,}")
-        print(f"Reborn (special trait): {self.reborn_count} ({self.reborn_count/self.total*100:.2f}%)")
+        print("\n── GENERATIONS (colour by purchase order) ──")
+        for gen_label, count in sorted(self.generations.items()):
+            pct = count / self.total * 100
+            print(f"  {gen_label:<35}: {count:>5,}  ({pct:>5.2f}%)")
 
-        print("\n── RARITY TIERS ──")
-        for name, count in sorted(self.rarity_tiers.items(), key=lambda x: -x[1]):
-            print(f"  {name:<12}: {count:>6,}  ({count/self.total*100:>5.2f}%)")
-
-        print("\n── BACKGROUNDS ──")
-        for name, count in sorted(self.backgrounds.items(), key=lambda x: -x[1]):
-            print(f"  {name:<20}: {count:>6,}  ({count/self.total*100:>5.2f}%)")
-
-        print("\n── WARRIOR CLASSES ──")
-        for name, count in sorted(self.classes.items(), key=lambda x: -x[1]):
-            print(f"  {name:<15}: {count:>6,}  ({count/self.total*100:>5.2f}%)")
-
-        print("\n── AURA COLORS ──")
-        for name, count in sorted(self.auras.items(), key=lambda x: -x[1]):
-            print(f"  {name:<15}: {count:>6,}  ({count/self.total*100:>5.2f}%)")
-
-        print("\n── RUNE DISTRIBUTION (top 5 / bottom 5) ──")
+        print("\n── RUNE DISTRIBUTION ──")
         sorted_runes = sorted(self.runes.items(), key=lambda x: -x[1])
-        for name, count in sorted_runes[:5]:
-            print(f"  {name:<10}: {count:>5,}  ({count/self.total*100:>5.2f}%)")
-        print("  ...")
-        for name, count in sorted_runes[-5:]:
-            print(f"  {name:<10}: {count:>5,}  ({count/self.total*100:>5.2f}%)")
+        for name, count in sorted_runes:
+            pct = count / self.total * 100
+            bar = "█" * int(pct / 0.5)
+            print(f"  {name:<12}: {count:>5,}  ({pct:>5.2f}%)  {bar}")
 
-        print("\n── UNIQUENESS ──")
-        # Theoretical max combos
-        combos = 24 * 5 * 6 * 6 * 5
-        print(f"  Attribute dimensions: 24 runes × 5 backgrounds × 6 classes × 6 auras × 5 tiers")
-        print(f"  Theoretical unique combos: {combos:,}")
-        print(f"  Collection size:           {self.total:,}")
-        print(f"  Coverage ratio:            {self.total/combos*100:.1f}% of possible space")
-        if self.total > combos:
-            overlap = self.total - combos
-            print(f"  Attribute overlaps:        ~{overlap:,} NFTs share a combo with another")
-            print(f"  Note: All {self.total:,} NFTs are individually unique by token ID + art.")
-        print("="*60 + "\n")
+        print("\n── UNIQUENESS ANALYSIS ──")
+        print(f"  24 runes × 10 generations = 240 unique attribute combos possible")
+        print(f"  Collection size: {self.total:,}")
+        print(f"  Each rune appears ~{self.total // 24:,} times across all generations")
+        print(f"  Every token is individually unique by Token Number + art.")
+        print("=" * 65 + "\n")
+
 
 # ────────────────────────────────────────────────
 # MAIN GENERATOR
 # ────────────────────────────────────────────────
 
-def generate(supply: int = TOTAL_SUPPLY, example_count: int = EXAMPLE_COUNT, seed: Optional[int] = None):
+def generate(
+    supply: int = LEGION_SUPPLY,
+    example_count: int = EXAMPLE_COUNT,
+    seed: Optional[int] = None,
+    write_all: bool = False,
+):
     """
-    Generate `supply` unique REBORNFENIX metadata entries.
-    Writes the first `example_count` as JSON files to OUTPUT_DIR.
+    Generate Legion of Honour metadata (all `supply` tokens) and
+    all 22 Founding Warrior templates.
+
+    By default, writes only `example_count` Legion JSONs + all 22 Founding
+    Warrior templates to disk. Pass write_all=True to write every Legion token.
     """
     if seed is not None:
         random.seed(seed)
 
-    # Load attribute definitions
+    # ── Load attributes ──────────────────────────────────────────────────────
     with open(ATTRS_FILE, "r", encoding="utf-8") as f:
         attrs_data = json.load(f)
 
-    runes           = attrs_data["elder_futhark_runes"]         # 24 runes
-    backgrounds     = attrs_data["background_types"]             # 5 backgrounds
-    warrior_classes = attrs_data["warrior_classes"]              # 6 classes
-    auras           = attrs_data["aura_colors"]                  # 6 auras
-    reborn_ids      = build_reborn_token_ids(supply)
+    runes          = attrs_data["elder_futhark_runes"]                # 24 runes
+    sword_combos   = attrs_data["founding_warrior_sword_rune_combos"]["combos"]  # 22 combos
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    founding_dir = OUTPUT_DIR / "founding_warriors"
+    founding_dir.mkdir(parents=True, exist_ok=True)
 
+    # ── Pre-assign runes deterministically ───────────────────────────────────
+    rune_assignment = build_rune_assignment(supply, runes)
+
+    # ── Legion of Honour ─────────────────────────────────────────────────────
     tracker      = DistributionTracker()
-    seen_combos  = set()
-    saved_count  = 0
-    collision_retries = 0
+    saved_legion = 0
 
-    print(f"\nGenerating {supply:,} REBORNFENIX metadata entries...")
-    print(f"Writing first {example_count} to: {OUTPUT_DIR}\n")
+    files_to_write = example_count if not write_all else supply
+
+    print(f"\nGenerating {supply:,} Legion of Honour metadata entries...")
+    print(f"Writing first {files_to_write} Legion JSONs to: {OUTPUT_DIR}\n")
 
     for token_id in range(1, supply + 1):
-        is_reborn = token_id in reborn_ids
+        rune       = rune_assignment[token_id - 1]
+        generation = resolve_generation(token_id)
 
-        # Draw attributes, retrying on collision
-        for attempt in range(50):
-            rune          = weighted_choice_by_weight(runes, "rarity_weight")
-            background    = weighted_choice(backgrounds)
-            warrior_class = weighted_choice(warrior_classes)
-            aura          = weighted_choice(auras)
-            rarity_tier   = draw_rarity_tier()
+        tracker.record(rune, generation)
 
-            fingerprint = combo_fingerprint(
-                token_id, rune["id"], background["name"],
-                warrior_class["name"], aura["name"], rarity_tier
-            )
-
-            if fingerprint not in seen_combos:
-                seen_combos.add(fingerprint)
-                break
-            collision_retries += 1
-        # Note: after 50 attempts we accept collision — at 22k vs 21,600 combos
-        # the rarity tier variation means this almost never happens
-
-        tracker.record(rune, background, warrior_class, aura, rarity_tier, is_reborn)
-
-        # Only write files for first example_count tokens
-        if token_id <= example_count:
-            metadata = build_metadata(
-                token_id, rune, background, warrior_class,
-                aura, rarity_tier, is_reborn, attrs_data
-            )
+        if token_id <= files_to_write:
+            metadata = build_legion_metadata(token_id, rune, generation)
             out_path = OUTPUT_DIR / f"{token_id:05d}.json"
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(metadata, f, indent=2, ensure_ascii=False)
-            saved_count += 1
+            saved_legion += 1
             print(f"  [{token_id:05d}] {metadata['name']}")
-            print(f"         Rune: {rune['symbol']} {rune['name']} | BG: {background['name']}")
-            print(f"         Class: {warrior_class['name']} | Aura: {aura['name']} | Tier: {rarity_tier}")
-            if is_reborn:
-                print(f"         *** REBORN ***")
+            print(f"         Rune: {rune['symbol']} {rune['name']}  |  {generation['name']} ({generation['color']} {generation['hex']})")
             print()
 
-        # Progress indicator for full run
         if token_id % 5000 == 0:
-            print(f"  ... processed {token_id:,} / {supply:,} ({token_id/supply*100:.0f}%) | collisions: {collision_retries}")
+            print(f"  ... processed {token_id:,} / {supply:,} ({token_id / supply * 100:.0f}%)")
 
-    print(f"\nCompleted: {saved_count} example files written to disk.")
-    print(f"Total combination collisions retried: {collision_retries}")
+    print(f"\nLegion examples written to disk: {saved_legion}")
+
+    # ── Founding Warriors ─────────────────────────────────────────────────────
+    print("\n" + "─" * 65)
+    print("Generating 22 Founding Warrior template metadata entries...\n")
+
+    fw_metas = []
+    for sword_combo in sword_combos:
+        slot     = sword_combo["warrior_slot"]
+        metadata = build_founding_metadata(slot, sword_combo)
+        out_path = founding_dir / f"FW{slot:02d}_template.json"
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
+        fw_metas.append(metadata)
+        print(f"  [FW{slot:02d}] {metadata['name']}")
+        print(f"         Sword: {' · '.join(sword_combo['rune_names'])}")
+        print(f"         Meaning: {sword_combo['meaning']}")
+        print()
+
+    print(f"Founding Warrior templates written: {len(fw_metas)}")
+
+    # ── Distribution report ───────────────────────────────────────────────────
     tracker.print_report()
 
-    # Write a summary manifest for the first example_count tokens
-    manifest_path = OUTPUT_DIR / "_manifest.json"
+    # ── Manifest ─────────────────────────────────────────────────────────────
     manifest = {
-        "collection": "REBORNFENIX",
-        "symbol": "RBFX",
-        "supply": supply,
-        "example_files_generated": example_count,
-        "reborn_count": len(reborn_ids),
-        "reborn_token_ids": sorted(list(reborn_ids))[:30],  # first 30 listed
-        "output_dir": str(OUTPUT_DIR),
+        "collection":                     "REBORNFENIX",
+        "symbol":                         "RBFX",
+        "schema_version":                 "2.0.0",
+        "legion_supply":                  supply,
+        "legion_example_files_generated": saved_legion,
+        "founding_warrior_count":         len(fw_metas),
+        "total_collection_size":          supply + len(fw_metas),
+        "generation_ranges": [
+            {
+                "id":          gen["id"],
+                "name":        gen["name"],
+                "color":       gen["color"],
+                "hex":         gen["hex"],
+                "token_start": start,
+                "token_end":   end,
+            }
+            for (end, gen), start in zip(
+                _GENERATION_RANGES,
+                [1] + [e + 1 for e, _ in _GENERATION_RANGES[:-1]],
+            )
+        ],
+        "output_dirs": {
+            "legion":            str(OUTPUT_DIR),
+            "founding_warriors": str(founding_dir),
+        },
         "note": (
-            "This manifest lists the first 30 Reborn token IDs for verification. "
-            "Run generate() to produce all 22,222 JSON files."
-        )
+            "Legion examples only. Run generate(write_all=True) or pass --full flag "
+            "to write all 22,222 JSON files. All 22 Founding Warrior templates always written."
+        ),
     }
+    manifest_path = OUTPUT_DIR / "_manifest.json"
     with open(manifest_path, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2)
-    print(f"Manifest written: {manifest_path}")
+        json.dump(manifest, f, indent=2, ensure_ascii=False)
+    print(f"Manifest written: {manifest_path}\n")
 
 
 # ────────────────────────────────────────────────
@@ -430,26 +462,29 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="REBORNFENIX NFT Metadata Generator — Metaplex v3"
+        description="REBORNFENIX NFT Metadata Generator v2 — Metaplex v3"
     )
     parser.add_argument(
-        "--supply", type=int, default=TOTAL_SUPPLY,
-        help="Total NFTs to generate (default: 22222)"
+        "--supply", type=int, default=LEGION_SUPPLY,
+        help=f"Total Legion NFTs to generate (default: {LEGION_SUPPLY})"
     )
     parser.add_argument(
         "--examples", type=int, default=EXAMPLE_COUNT,
-        help="Number of JSON files to write to disk (default: 5)"
+        help=f"Number of Legion JSON files to write to disk (default: {EXAMPLE_COUNT})"
     )
     parser.add_argument(
         "--seed", type=int, default=None,
-        help="Optional random seed for reproducible generation"
+        help="Optional random seed for reproducible rune assignment"
     )
     parser.add_argument(
         "--full", action="store_true",
-        help="Write ALL metadata files (22,222) to disk — slow!"
+        help="Write ALL Legion metadata files to disk (22,222 files — slow!)"
     )
 
     args = parser.parse_args()
-
-    example_count = args.supply if args.full else args.examples
-    generate(supply=args.supply, example_count=example_count, seed=args.seed)
+    generate(
+        supply=args.supply,
+        example_count=args.examples,
+        seed=args.seed,
+        write_all=args.full,
+    )

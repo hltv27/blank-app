@@ -26,6 +26,29 @@
   --nordic-blue: #1a2a4a;
   --mystic-purple: #2a1a3e;
 
+  /* ── Imperial Purple — Founding Warriors ── */
+  --imperial-purple:       #4B0082;
+  --imperial-purple-mid:   #5c0099;
+  --imperial-purple-light: #7B2FBE;
+  --imperial-purple-bright:#9D4EDD;
+  --imperial-purple-glow:  rgba(75, 0, 130, 0.6);
+  --imperial-purple-dim:   rgba(75, 0, 130, 0.15);
+  --imperial-gold:         #DAA520;
+  --imperial-gold-bright:  #FFD700;
+  --border-imperial:       1px solid rgba(155, 78, 221, 0.45);
+
+  /* ── Generation colours ── */
+  --gen1-color: #C0392B;
+  --gen2-color: #D4AC0D;
+  --gen3-color: #1E8BC3;
+  --gen4-color: #27AE60;
+  --gen5-color: #8E44AD;
+  --gen6-color: #E67E22;
+  --gen7-color: #17A589;
+  --gen8-color: #E91E8C;
+  --gen9-color: #ABADB3;
+  --gen10-color:#6D6A6A;
+
   --font-runic:  'Cinzel Decorative', 'MedievalSharp', serif;
   --font-title:  'Cinzel', serif;
   --font-body:   'Rajdhani', sans-serif;
@@ -204,19 +227,46 @@ section:nth-child(odd)  { background: var(--black); }
   box-shadow: 0 0 30px rgba(192,57,43,0.6), 0 0 60px rgba(192,57,43,0.25);
 }
 
+/* ── Imperial Purple Button ── */
+.btn-imperial {
+  background: linear-gradient(135deg, var(--imperial-purple), var(--imperial-purple-light), var(--imperial-purple-bright), var(--imperial-purple-light));
+  color: var(--white);
+  box-shadow: 0 0 20px var(--imperial-purple-glow), 0 0 40px rgba(75,0,130,0.2), inset 0 1px 0 rgba(255,255,255,0.15);
+  clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+  border: 1px solid rgba(155,78,221,0.4);
+}
+
+.btn-imperial:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 35px rgba(155,78,221,0.8), 0 0 70px rgba(75,0,130,0.35), 0 0 100px rgba(75,0,130,0.15);
+  border-color: var(--imperial-purple-bright);
+}
+
 .btn-large {
   padding: 1.1rem 3rem;
   font-size: 1.05rem;
   letter-spacing: 0.2em;
 }
 
-/* ── Glow Pulse Animation ── */
+/* ── Glow Pulse Animations ── */
 @keyframes glowPulse {
   0%, 100% { box-shadow: 0 0 20px rgba(201,168,76,0.4), 0 0 40px rgba(201,168,76,0.15); }
   50%       { box-shadow: 0 0 35px rgba(201,168,76,0.7), 0 0 70px rgba(201,168,76,0.3), 0 0 100px rgba(201,168,76,0.1); }
 }
 
-.glow-pulse { animation: glowPulse 2.5s ease-in-out infinite; }
+@keyframes glowPulseCrimson {
+  0%, 100% { box-shadow: 0 0 20px rgba(192,57,43,0.5), 0 0 40px rgba(192,57,43,0.2); }
+  50%       { box-shadow: 0 0 35px rgba(192,57,43,0.8), 0 0 70px rgba(192,57,43,0.35), 0 0 100px rgba(192,57,43,0.15); }
+}
+
+@keyframes glowPulseImperial {
+  0%, 100% { box-shadow: 0 0 20px rgba(155,78,221,0.5), 0 0 40px rgba(75,0,130,0.25), inset 0 1px 0 rgba(255,255,255,0.15); }
+  50%       { box-shadow: 0 0 40px rgba(155,78,221,0.85), 0 0 80px rgba(75,0,130,0.4), 0 0 120px rgba(75,0,130,0.15), inset 0 1px 0 rgba(255,255,255,0.2); }
+}
+
+.glow-pulse          { animation: glowPulse 2.5s ease-in-out infinite; }
+.glow-pulse-crimson  { animation: glowPulseCrimson 2.5s ease-in-out infinite; }
+.glow-pulse-imperial { animation: glowPulseImperial 2.5s ease-in-out infinite; }
 
 /* ── Floating Particles / Runes ── */
 @keyframes floatUp {

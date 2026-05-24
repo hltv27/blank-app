@@ -50,33 +50,111 @@ Now these runes live on the blockchain.
 
 Not carved in stone that can be ground to dust. Not inscribed on wood that can burn. Encoded in the Solana ledger, which is permanent in the way that only mathematics can be permanent. Your rune is yours. Not licensed to you. Not "granted" by a platform. Yours — the way a warrior owns the mark on their shield.
 
-Every REBORNFENIX NFT carries one of the 24 Elder Futhark runes, rendered in a unique visual form that will not be repeated. 22,222 NFTs. 24 runes. Each combination of rune, warrior design, and trait expression is singular. When you find your rune — and you will *know* it when you see it — you will understand why we built this.
+Every Legion of Honour NFT carries one of the 24 Elder Futhark runes, rendered in a unique visual form that will not be repeated. 22,222 NFTs. 24 runes. Each combination of rune, warrior design, and trait expression is singular. When you find your rune — and you will *know* it when you see it — you will understand why we built this.
 
 Ancient wisdom. Blockchain permanence. The warrior who knows both does not lose forever.
 
 ---
 
-## 22,222 WARRIORS
+## THE 22
+
+In ancient Rome, there was a color no ordinary man was permitted to wear.
+
+Tyrian purple. Made from the crushed shells of thousands of murex sea snails. A single pound of dye required the death of more mollusks than most men would see in a lifetime. The Romans knew the cost. That was precisely the point. The color of dried blood. The color of absolute power. To wear it without the Emperor's sanction was treason. Not rudeness. Not poor taste. *Treason.* A capital offense.
+
+In China, the Forbidden City existed not merely to house the Emperor but to separate him from the known world by walls of imperial yellow and crimson — colors that civilian hands were not permitted to touch. The color was not decoration. The color was *law*.
+
+Tyrian purple was never about aesthetics. It was about belonging to a category so rare that its existence had to be protected by the threat of death. You could not buy your way into it. You could not accumulate your way into it. It was granted, earned, or you simply were not in it. There was no third option.
+
+REBORNFENIX has 22 Founding Warriors.
+
+Twenty-two. Not because the number was convenient. Because 22 is the master builder number — the number of those who construct something that endures beyond themselves. The 22 Founding Warriors carry Imperial Purple. Not because purple is a color we liked. Because Imperial Purple has always meant: *this person was here before it was obvious. This person believed before there was proof. This person helped build what everyone else will later claim they always knew would exist.*
+
+The Founding Warrior NFT is not a circular medal. It is a heraldic crest — a *brasão*, in the old tradition of nobility and martial honour. Each one is personalized. The warrior's chosen name arcs across the bottom. "FOUNDING WARRIOR" arcs across the top. On the right, a unique rune sword. On the left, a zodiac shield. These are not mass-produced. These are *made* for the person who holds them.
+
+At $100 USDC, the Founding Warrior seat costs ten times the Legion price. That is the point. The 22 knew the risk. The 22 paid accordingly. The 22 will be named on the website. Not their wallet address. Their *name* — chosen, permanent, and recorded in the project's history for as long as the project exists.
+
+The 22 Founding Warriors will be on the permanent record of this project. Not as statistics. As *names*. As the people who were here when here was uncertain. When there was no floor price. No community proof. No secondary volume. Just a manifesto, a mission, and a decision to believe.
+
+Imperial purple was forbidden to all but the Emperor.
+
+Now it belongs to 22 warriors who chose to be founding.
+
+If you are reading this and there are still seats among the 22 — consider carefully what that means. These seats fill once. They do not refill. The next version of you, reading this in six months when the collection has a floor and a history and a community of 22,222 — that version of you cannot become a Founding Warrior. That window is open now. It closes at 22.
+
+The blockchain will remember.
+
+---
+
+## THE TEN GENERATIONS
+
+Your generation number is not a number. It is a story.
+
+The Legion of Honour contains 22,222 warriors. But they are not equal in the sense of being identical — they are equal in the sense of each having claimed their seat and sealed it on-chain. Within the Legion, there is a structure as old as the legions of Rome: generations.
+
+Ten generations. Defined entirely by the order of purchase.
+
+Not by wealth. Not by whitelist status. Not by who you know or what you post. By *when* you arrived.
+
+The first warriors to mint — the earliest believers, the ones who moved before there was certainty — are Generation 1. Red Phoenix. The rarest color in the collection. Not because red is visually superior to the others, but because Gen 1 warriors arrived when arriving cost something. When there was no floor price history to reassure them. When social proof was zero and belief had to be self-generated.
+
+Generation 2. Generation 3. Each cohort carries its own color, its own identity, its own place in the story. By the time the middle generations arrive, the community is forming, the floor is established, the narrative is being written. By the later generations — the eighth, the ninth — they are joining something that has already proven itself. Different kind of courage. Different story.
+
+And then there is Generation 10. Iron Born.
+
+Iron is not a consolation prize. Do not mistake it for one.
+
+Iron is what every tool is made from. Iron is what the sword is before it becomes a sword. The Iron Born arrived when the hall was almost full — when only a fraction of the seats remained, when the urgency was real and the price of waiting was becoming visible. Every Iron Born was once someone who almost didn't buy. Almost waited one more day. Almost talked themselves out of it.
+
+They didn't. That matters.
+
+The Iron Born did not have the first-mover advantage of Generation 1. They had something different: the knowledge that the hall was closing, the decision to act anyway, and the permanence of that decision sealed on-chain for all time. There is honour in that. Not the same honour as the Red Phoenix — a different honour, specific to the moment and the choice.
+
+Your generation tells the story of when you decided.
+
+It tells the story of what kind of warrior you are.
+
+The one who moves at the beginning, before proof? Red Phoenix.
+The one who moved when the community was building, before the hype? Middle generations, names written in the growing chapter.
+The one who moved at the end, when the doors were about to close? Iron Born. The ones who almost weren't here — but are.
+
+Every generation has its color. Every color has its story. Every story is permanently recorded on the Solana blockchain.
+
+What will yours say?
+
+---
+
+## THE LEGION OF HONOUR
+
+22,222.
 
 The number is not arbitrary.
 
-22 is the master builder number in numerology — the number of those who construct something that lasts beyond themselves. But we're not here for mysticism alone. We chose 22,222 with precision and intention.
+22 is the master builder number — the number of those who construct something that lasts beyond themselves. 22,222 carries that energy across five digits, a number that resonates with the warriors who understand that building something real takes more than a bull market and a Discord server.
 
-Small enough to be real. Large enough to be movement.
+The Legion of Honour is the body of the army. It is where the strength lives. 22,222 circular medal NFTs — each one unique, each one carrying one of the 24 Elder Futhark runes, each one belonging to one person and one person only.
 
-Most NFT projects mint 10,000 and call it a community. Ten thousand is a crowd. Ten thousand is a music festival where you don't know anyone's name. Twenty-two thousand, two hundred and twenty-two is something different — it's big enough to hold warriors from every timezone, every background, every trading style, every story of loss and survival. But it's small enough that every holder is someone. Not a number. Not a wallet address. A *warrior* with a rune and a story.
-
-One per wallet. Maximum. Non-negotiable.
+Maximum 1 per wallet. Maximum 1 per life.
 
 This is the most important design decision we made, and we'll say it plainly: we could have made more money by allowing multiple mints per wallet. We chose not to. Because this is not about maximising mint revenue. It is about creating a community where everyone has exactly one seat at the table. Where the whale and the newcomer hold the same single NFT. Where entry into this brotherhood and sisterhood is a *commitment*, not a portfolio allocation.
 
-You cannot buy your way to more presence here. You cannot accumulate your way to more identity. You choose your rune. You claim your place. That is it.
+You cannot buy your way to more presence here. You cannot accumulate your way to more identity.
 
-22,222 seats. First come, first committed. When the hall is full, the doors close. The runes that found their warriors are found. The ones that didn't remain unminted — not released into a secondary market floor, not auctioned to the highest bidder. Sealed. Finished. A record of who answered the call when it came.
+You choose your rune. Your generation is determined by when you arrive. That is it.
 
-The scarcity here is not artificial. It is philosophical. We are 22,222 or we are nothing. Every wallet represents a person who made a decision. Who said: *I am this*. Who sealed it on-chain.
+At $10 USDC, the Legion of Honour is accessible to any warrior who wants in. Not free — free means nothing. $10 means you made a decision. $10 means you thought about it and chose. The barrier to the Legion is not capital. It is commitment. It is the moment when you look at the 24 runes and recognize one of them as yours, and you act on that recognition.
 
-That matters.
+22,222 warriors in the hall. Each one a deliberate choice. Each one a warrior who said: *I am this*. Each one sealed on-chain.
+
+Small enough to be real. Large enough to be a movement.
+
+When the hall is full, the doors close. The runes that found their warriors are found. The ones that didn't remain unminted — not released into secondary, not auctioned, not gifted to team wallets. Sealed. Finished. A permanent record of who answered the call.
+
+The Legion protects. The Legion fights. The Legion rises together.
+
+Every warrior in the Legion carries a rune that was carved for them — even if they didn't know it existed before they saw it.
+
+Find yours.
 
 ---
 
@@ -112,15 +190,17 @@ The son of the phoenix does not know he helped build this. But he will know one 
 
 Let's be precise, because precision matters in this space.
 
-**Your NFT**: A unique digital asset on the Solana blockchain. One of 22,222. One rune, one warrior design, one visual expression that belongs to no one else's wallet. The metadata is permanent. The art is yours. You can hold it, sell it on secondary, or keep it until the end of time.
+**If you are a Founding Warrior**: A unique heraldic crest NFT. Imperial Purple. Your chosen name inscribed. A unique rune sword and zodiac shield. One of 22. Named on the website permanently. The rarest NFT in the collection, with access to all holder benefits plus a tier of recognition that can never be replicated.
+
+**If you are in the Legion of Honour**: A unique circular medal NFT carrying one of the 24 Elder Futhark runes. One of 22,222. Your generation color encoded at mint — determined by when you arrived, not by what you paid. The rune belongs to no other wallet. You can hold it, sell it on secondary, or keep it until the end of time.
 
 **Token access**: REBORNFENIX NFT holders receive early and preferential access to the RBFX token when it launches. Not an airdrop that you'll sell immediately — a structured distribution that rewards holders who stay. The details are in the roadmap. The principle is simple: those who were here first, who committed when it was uncertain, will not be forgotten.
 
 **The community**: This is not a Discord server with 10,000 bots and fake activity. This is a curated, verified, one-per-wallet community of traders and warriors who have chosen this identity. Every person in the REBORNFENIX community made a deliberate decision to be here. That changes the quality of every conversation, every alert, every piece of market analysis shared. When you have skin in the game — one NFT, one seat, one choice — you are not a lurker. You are a participant.
 
-**The identity**: Your rune is a statement about who you are. Carry it in your profile. Use it as your banner. This is what Web3 identity is supposed to mean — not a JPEG you flip for profit, but a symbol you chose because it said something true about you. The warriors who find their rune will know immediately. The ones who don't — who buy for speculation and feel nothing — will sell to those who do. The community will self-select for the right people.
+**The identity**: Your rune is a statement about who you are. Your generation is the story of when you decided. Your Imperial Purple — if you are one of the 22 — is the mark of a builder. Carry it in your profile. Use it as your banner. This is what Web3 identity is supposed to mean — not a JPEG you flip for profit, but a symbol you chose because it said something true about you.
 
-**The permanence**: Everything about this project is designed to last. The rune. The blockchain. The community principles. We are not building for a bull market cycle. We are building for the time when your son asks you what you built during the years of chaos, and you can point to something real.
+**The permanence**: Everything about this project is designed to last. The rune. The generation. The Imperial Purple of the 22. The blockchain. The community principles. We are not building for a bull market cycle. We are building for the time when your son asks you what you built during the years of chaos, and you can point to something real.
 
 ---
 
@@ -151,10 +231,11 @@ Not because it's easy. Not because you feel ready. Not because the market is coo
 
 ---
 
-*REBORNFENIX. 22,222 Warriors. One rune. One seat. No retreating.*
+*REBORNFENIX. 22 Founding Warriors in Imperial Purple. 22,222 Legion of Honour. One rune. One generation. No retreating.*
 
 *The blockchain remembers. The rune is permanent. The warrior endures.*
 
-*Mint: $10 USDC. Maximum 1 per wallet.*
+*Founding Warriors: $100 USDC — 22 seats only.*
+*Legion of Honour: $10 USDC — 22,222 seats — maximum 1 per wallet.*
 
 *Rise.*
