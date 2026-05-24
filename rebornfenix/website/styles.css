@@ -2381,6 +2381,8 @@ footer {
   .fw-rewards-grid { grid-template-columns: repeat(2, 1fr); }
   .generation-grid { grid-template-columns: repeat(2, 1fr); }
   .footer-founders-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  .juramento-grid { grid-template-columns: 1fr; }
+  .donation-block { flex-direction: column; gap: 1rem; text-align: center; }
 }
 
 @media (max-width: 768px) {
@@ -2413,6 +2415,17 @@ footer {
   .current-gen-banner { flex-direction: column; gap: 0.5rem; text-align: center; }
   .fw-counter-number { font-size: 3.5rem; }
   .fw-mint-box { padding: 2rem 1.5rem; }
+
+  /* Army responsive */
+  .army-rank-table th, .army-rank-table td { padding: 0.6rem 0.8rem; font-size: 0.85rem; }
+  .rank-name-cell { min-width: 130px; }
+  .rank-prog-cell { display: none; }
+  .army-mint-box { padding: 2rem 1.5rem; }
+  .army-counter-number { font-size: 3rem; }
+
+  /* Juramento responsive */
+  .juramento-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+  .juramento-card { padding: 2rem 1.5rem; }
 }
 
 @media (max-width: 480px) {
@@ -2730,6 +2743,618 @@ footer {
   .founder-title {
     font-size: 1.5rem;
   }
+}
+
+/* ════════════════════════════════════════
+   PHOENIX ARMY SECTION
+════════════════════════════════════════ */
+
+:root {
+  --army-green:        #1a3a1a;
+  --army-green-mid:    #2a4a2a;
+  --army-green-bright: #4a8a4a;
+  --army-green-glow:   rgba(74,138,74,0.35);
+  --army-iron:         #3a3a3a;
+  --army-iron-light:   #5a5a6a;
+  --army-gold:         #8a7a3a;
+  --btn-army-bg:       linear-gradient(135deg, #1a3a1a, #2a5a2a, #4a8a4a);
+}
+
+/* Army section layout */
+.phoenix-army-section {
+  position: relative;
+  background: #080f08 !important;
+  padding: var(--section-pad);
+  overflow: hidden;
+}
+
+.army-bg-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(74,138,74,0.8) 0px, rgba(74,138,74,0.8) 1px, transparent 1px, transparent 60px),
+    repeating-linear-gradient(90deg, rgba(74,138,74,0.8) 0px, rgba(74,138,74,0.8) 1px, transparent 1px, transparent 60px);
+  pointer-events: none;
+}
+
+.army-radial {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 50%, rgba(26,58,26,0.3) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(74,138,74,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.army-container {
+  position: relative;
+  z-index: 1;
+}
+
+.army-label {
+  color: var(--army-green-bright) !important;
+}
+
+.army-title {
+  color: var(--army-green-bright) !important;
+  text-shadow: 0 0 40px rgba(74,138,74,0.6), 0 0 80px rgba(26,58,26,0.3) !important;
+  font-size: clamp(2rem, 5vw, 3.8rem) !important;
+}
+
+.army-subtitle {
+  font-family: var(--font-title);
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: rgba(120,180,120,0.9);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0.5rem auto 2rem;
+  max-width: 700px;
+}
+
+/* Pattern note */
+.army-pattern-note {
+  max-width: 700px;
+  margin: 0 auto 2rem;
+  padding: 1.5rem 2rem;
+  border: 1px solid rgba(74,138,74,0.25);
+  background: linear-gradient(135deg, rgba(26,58,26,0.2), rgba(10,20,10,0.1));
+  text-align: center;
+}
+
+.pattern-badge {
+  display: inline-block;
+  font-family: var(--font-runic);
+  font-size: 1.4rem;
+  color: var(--army-green-bright);
+  letter-spacing: 0.3em;
+  text-shadow: 0 0 20px rgba(74,138,74,0.5);
+  margin-bottom: 0.8rem;
+}
+
+.army-pattern-note p {
+  font-size: 0.95rem;
+  color: var(--silver);
+  line-height: 1.7;
+}
+
+.army-pattern-note strong {
+  color: var(--army-green-bright);
+  font-family: var(--font-title);
+}
+
+/* Hard cap notice */
+.army-hardcap {
+  max-width: 700px;
+  margin: 0 auto 2.5rem;
+  padding: 1rem 2rem;
+  background: rgba(26,58,26,0.4);
+  border: 1px solid rgba(74,138,74,0.4);
+  border-left: 4px solid var(--army-green-bright);
+  font-family: var(--font-title);
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  color: var(--army-green-bright);
+  text-shadow: 0 0 15px rgba(74,138,74,0.4);
+  text-align: center;
+}
+
+/* Rank section */
+.army-rank-section {
+  max-width: 900px;
+  margin: 0 auto 3rem;
+}
+
+.army-rank-title {
+  font-family: var(--font-runic);
+  font-size: 1.6rem;
+  color: var(--army-green-bright);
+  text-align: center;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 20px rgba(74,138,74,0.4);
+}
+
+.army-rank-subtitle {
+  font-size: 0.95rem;
+  color: var(--silver);
+  text-align: center;
+  margin-bottom: 2rem;
+  font-style: italic;
+}
+
+.army-rank-table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(74,138,74,0.2);
+  border-radius: 4px;
+}
+
+.army-rank-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(8,15,8,0.8);
+}
+
+.army-rank-table thead tr {
+  background: rgba(26,58,26,0.6);
+  border-bottom: 2px solid rgba(74,138,74,0.4);
+}
+
+.army-rank-table th {
+  padding: 0.9rem 1.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--army-green-bright);
+  text-align: left;
+}
+
+.army-rank-table tbody tr {
+  border-bottom: 1px solid rgba(74,138,74,0.1);
+  transition: background 0.25s;
+}
+
+.army-rank-table tbody tr:hover {
+  background: rgba(26,58,26,0.3);
+}
+
+.army-rank-table td {
+  padding: 0.75rem 1.2rem;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--silver);
+  vertical-align: middle;
+}
+
+.rank-name-cell { min-width: 180px; }
+
+.rank-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  font-family: var(--font-title);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+/* Rank colour progression — iron to gold to bright */
+.rank-badge.r1  { background: rgba(40,40,40,0.6); color: #8a8a9a; border: 1px solid rgba(100,100,120,0.3); }
+.rank-badge.r2  { background: rgba(50,50,40,0.6); color: #9a9a7a; border: 1px solid rgba(120,120,80,0.3); }
+.rank-badge.r3  { background: rgba(30,50,30,0.6); color: #7aaa7a; border: 1px solid rgba(80,130,80,0.35); }
+.rank-badge.r4  { background: rgba(26,58,26,0.7); color: #8aca8a; border: 1px solid rgba(74,138,74,0.4); }
+.rank-badge.r5  { background: rgba(20,60,20,0.7); color: #7dc97d; border: 1px solid rgba(74,138,74,0.5); }
+.rank-badge.r6  { background: rgba(18,62,18,0.8); color: #6ed86e; border: 1px solid rgba(74,160,74,0.55); }
+.rank-badge.r7  { background: rgba(15,65,15,0.8); color: #5de85d; border: 1px solid rgba(70,175,70,0.6); }
+.rank-badge.r8  { background: rgba(100,90,10,0.4); color: #c8b840; border: 1px solid rgba(180,160,40,0.5); }
+.rank-badge.r9  { background: rgba(120,100,10,0.45); color: #d8c840; border: 1px solid rgba(200,180,40,0.55); }
+.rank-badge.r10 { background: rgba(140,110,5,0.5); color: #f0d040; border: 1px solid rgba(220,190,30,0.6); }
+.rank-badge.r11 {
+  background: linear-gradient(135deg, rgba(140,110,5,0.5), rgba(200,60,0,0.3));
+  color: #ffd700;
+  border: 1px solid rgba(255,200,0,0.6);
+  text-shadow: 0 0 8px rgba(255,215,0,0.4);
+}
+
+.rank-tokens {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--silver-light);
+}
+
+.rank-cost {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--army-green-bright);
+}
+
+.rank-prog-cell { min-width: 140px; }
+
+.rank-prog-bar {
+  width: 100%;
+  height: 5px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(74,138,74,0.1);
+}
+
+.rank-prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1a4a1a, var(--army-green-bright), #c8a830);
+  border-radius: 3px;
+  transition: width 1.2s ease;
+}
+
+/* Army Mint Box */
+.army-mint-box {
+  max-width: 620px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, rgba(10,20,10,0.95), rgba(5,12,5,0.98));
+  border: 1px solid rgba(74,138,74,0.35) !important;
+  padding: 3rem 2.5rem;
+  position: relative;
+  box-shadow:
+    0 0 80px rgba(26,58,26,0.4),
+    0 0 40px rgba(74,138,74,0.1),
+    inset 0 0 60px rgba(0,0,0,0.4);
+}
+
+.army-mint-box::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(74,138,74,0.1);
+  pointer-events: none;
+}
+
+.army-counter-display {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.army-counter-number {
+  font-family: var(--font-runic);
+  font-size: 4rem;
+  color: var(--army-green-bright);
+  text-shadow: 0 0 40px rgba(74,138,74,0.7), 0 0 80px rgba(26,58,26,0.4);
+  line-height: 1;
+  display: block;
+  font-weight: 900;
+}
+
+.army-counter-label {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  color: rgba(74,138,74,0.7);
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+}
+
+.army-supply-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: rgba(74,138,74,0.08);
+  border-radius: 3px;
+  margin: 1rem 0 2rem;
+  overflow: hidden;
+  border: 1px solid rgba(74,138,74,0.15);
+}
+
+.army-supply-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #1a3a1a, var(--army-green-bright), #c8a830);
+  border-radius: 3px;
+  transition: width 1s ease;
+  box-shadow: 0 0 10px rgba(74,138,74,0.5);
+}
+
+.army-price-display {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.army-price-value {
+  font-family: var(--font-runic);
+  font-size: 3rem;
+  color: var(--army-green-bright);
+  text-shadow: 0 0 25px rgba(74,138,74,0.6);
+  line-height: 1;
+  display: block;
+}
+
+.army-price-unit {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: rgba(74,138,74,0.7);
+  letter-spacing: 0.25em;
+  margin-top: 0.3rem;
+  text-transform: uppercase;
+}
+
+.army-wallet-state { margin: 1.5rem 0; }
+
+.army-mint-note {
+  margin-top: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: rgba(74,138,74,0.6);
+  line-height: 1.7;
+}
+
+.army-mint-note span { color: var(--army-green-bright); }
+
+/* Army Button */
+.btn-army {
+  background: linear-gradient(135deg, #1a3a1a, #2a5a2a, #4a8a4a);
+  color: #d0f0d0;
+  box-shadow: 0 0 20px rgba(26,58,26,0.5), 0 0 40px rgba(74,138,74,0.1);
+  clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+  border: 1px solid rgba(74,138,74,0.4);
+}
+
+.btn-army:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(74,138,74,0.6), 0 0 60px rgba(26,58,26,0.3);
+  background: linear-gradient(135deg, #204a20, #306030, #5a9a5a);
+}
+
+.btn-army.btn-outline {
+  background: transparent;
+  color: var(--army-green-bright);
+  border: 1px solid rgba(74,138,74,0.4);
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+}
+
+.btn-army.btn-outline:hover {
+  background: rgba(74,138,74,0.08);
+  border-color: var(--army-green-bright);
+  box-shadow: 0 0 20px rgba(74,138,74,0.25);
+}
+
+@keyframes glowPulseArmy {
+  0%, 100% { box-shadow: 0 0 20px rgba(74,138,74,0.4), 0 0 40px rgba(26,58,26,0.2), inset 0 1px 0 rgba(255,255,255,0.1); }
+  50%       { box-shadow: 0 0 35px rgba(74,138,74,0.75), 0 0 70px rgba(26,58,26,0.35), 0 0 100px rgba(26,58,26,0.1), inset 0 1px 0 rgba(255,255,255,0.15); }
+}
+
+.glow-pulse-army { animation: glowPulseArmy 2.5s ease-in-out infinite; }
+
+/* ════════════════════════════════════════
+   SUPPLY — Donation Block
+════════════════════════════════════════ */
+
+.donation-block {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 1.5rem 2rem;
+  border: 1px solid rgba(201,168,76,0.3);
+  background: linear-gradient(135deg, rgba(201,168,76,0.06), transparent);
+  border-left: 4px solid var(--gold);
+  text-align: left;
+}
+
+.donation-pct {
+  font-family: var(--font-runic);
+  font-size: 3rem;
+  color: var(--gold-bright);
+  text-shadow: 0 0 30px rgba(201,168,76,0.5);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.donation-text {
+  font-size: 0.97rem;
+  color: var(--silver-light);
+  line-height: 1.75;
+}
+
+.donation-text strong { color: var(--gold); font-family: var(--font-title); }
+
+.supply-22-pattern {
+  margin: 1.5rem auto 0;
+  max-width: 650px;
+  text-align: center;
+}
+
+.pattern-note {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
+  color: var(--gold-dim);
+  text-transform: uppercase;
+  display: block;
+  padding: 0.6rem 1.2rem;
+  border: 1px dashed rgba(201,168,76,0.2);
+}
+
+.pattern-note strong {
+  color: var(--gold);
+}
+
+/* ════════════════════════════════════════
+   O JURAMENTO DO FUNDADOR
+════════════════════════════════════════ */
+
+.juramento-section {
+  background: #04040a !important;
+  padding: var(--section-pad);
+  position: relative;
+  border-top: 1px solid rgba(201,168,76,0.15);
+}
+
+.juramento-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 0%, rgba(201,168,76,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.juramento-label {
+  color: var(--gold) !important;
+}
+
+.juramento-title {
+  color: var(--gold-bright) !important;
+  text-shadow: 0 0 40px rgba(201,168,76,0.5), 0 0 80px rgba(201,168,76,0.2) !important;
+  font-size: clamp(1.8rem, 4.5vw, 3.2rem) !important;
+}
+
+.juramento-subtitle {
+  font-family: var(--font-title);
+  font-size: clamp(0.95rem, 1.8vw, 1.15rem);
+  color: var(--silver);
+  font-style: italic;
+  max-width: 700px;
+  margin: 0 auto 3rem;
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+}
+
+/* Cards grid */
+.juramento-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  max-width: 960px;
+  margin: 0 auto 3rem;
+}
+
+.juramento-card {
+  background: rgba(10,10,18,0.9);
+  border: 1px solid rgba(201,168,76,0.25);
+  padding: 2.5rem 2rem;
+  text-align: left;
+  position: relative;
+  transition: all 0.4s ease;
+}
+
+/* Gold top border accent */
+.juramento-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), var(--gold), var(--gold-dim), transparent);
+  opacity: 0.7;
+}
+
+/* Left vertical gold line */
+.juramento-card::after {
+  content: '';
+  position: absolute;
+  top: 10%; bottom: 10%;
+  left: 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, var(--gold-dim), transparent);
+  opacity: 0.5;
+}
+
+.juramento-card:hover {
+  border-color: rgba(201,168,76,0.5);
+  box-shadow: 0 0 40px rgba(201,168,76,0.08), inset 0 0 30px rgba(201,168,76,0.03);
+  transform: translateY(-3px);
+}
+
+.juramento-card:hover::before { opacity: 1; }
+
+.juramento-icon {
+  font-size: 2.2rem;
+  margin-bottom: 1.2rem;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(201,168,76,0.3));
+}
+
+.juramento-card-title {
+  font-family: var(--font-title);
+  font-size: 1.2rem;
+  color: var(--gold-bright);
+  margin-bottom: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.juramento-card-text {
+  font-size: 0.97rem;
+  color: var(--silver-light);
+  line-height: 1.8;
+  font-style: italic;
+  margin-bottom: 1.2rem;
+}
+
+.juramento-card-footer {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  color: var(--gold-dim);
+  text-transform: uppercase;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(201,168,76,0.15);
+}
+
+/* Founder signature */
+.juramento-signature {
+  max-width: 500px;
+  margin: 1rem auto 0;
+  text-align: center;
+  padding: 2rem;
+  position: relative;
+}
+
+.juramento-sig-line {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  margin: 1rem 0;
+}
+
+.juramento-sig-name {
+  font-family: var(--font-runic);
+  font-size: 1.6rem;
+  color: var(--gold-bright);
+  text-shadow: 0 0 20px rgba(201,168,76,0.4);
+  margin-bottom: 0.3rem;
+}
+
+.juramento-sig-title {
+  font-family: var(--font-title);
+  font-size: 0.9rem;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.juramento-sig-date {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  color: var(--silver);
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+/* ════════════════════════════════════════
+   FOOTER — Donation Bar
+════════════════════════════════════════ */
+
+.footer-donation-bar {
+  max-width: var(--max-width);
+  margin: 2.5rem auto;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, rgba(201,168,76,0.06), rgba(74,138,74,0.04), rgba(201,168,76,0.06));
+  border: 1px solid rgba(201,168,76,0.3);
+  border-left: 4px solid var(--gold);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.07em;
+  color: var(--gold-dim);
+  text-align: center;
+  line-height: 1.6;
 }
 
 /* ── Utility / misc ── */

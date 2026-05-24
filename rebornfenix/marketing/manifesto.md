@@ -158,6 +158,44 @@ Find yours.
 
 ---
 
+## O EXÉRCITO DA FÉNIX
+
+522,222 soldiers.
+
+Every army needs foot soldiers. Every general was once a Recruta.
+
+The Phoenix Army exists because some of you cannot spend $10 right now. Not because you lack belief. Not because you don't belong. Because life doesn't always wait for the right moment, and $10 is still $10 when your month is hard. The Phoenix Army is for you. The door is open. The entry price is $0.10.
+
+522,222 tokens. The third number in the REBORNFENIX sequence. Look at it: 22. 22,222. 522,222. The signature of this project runs through everything like a pulse. The number 22 is not decoration — it is the architecture. The master builder number, repeated and scaled, until it becomes an army.
+
+The Phoenix Army is not a lesser tier. It is the foundation that every army is built upon. The Founding Warriors are the generals. The Legion of Honour are the officers. The Phoenix Army is the 522,222 soldiers who make a movement a movement.
+
+Your rank in the Phoenix Army is determined by how many tokens you hold. Not by when you arrived. Not by who you know. By commitment — measured in numbers.
+
+Eleven ranks. From the first soldier to the supreme commander:
+
+**Recruta** — 1 token. You are here. That already matters.
+**Soldado** — 100 tokens. You chose to be more than present.
+**Cabo** — 500 tokens. The first stripe. The beginning of command.
+**Sargento** — 1,000 tokens. You lead from the front.
+**Tenente** — 2,500 tokens. Tactical command. Field authority.
+**Capitão** — 5,000 tokens. The company is yours.
+**Major** — 10,000 tokens. You think at the level of the battalion.
+**Coronel** — 25,000 tokens. The strategic layer.
+**General** — 50,000 tokens. Few reach here.
+**Marechal** — 100,000 tokens. Rarer than Imperial Purple.
+**Comandante Supremo** — 522,222 tokens. One. If ever.
+
+Hard cap. 522,222 Phoenix Army tokens. Never more. Not tomorrow. Not next year. Not ever. It is in the contract. The supply is sealed the day the contract deploys. This is not a promise — it is mathematics, and mathematics does not negotiate.
+
+Even at $0.10, every Phoenix Army token contributes 20% to autism research. You are not buying a consolation prize. You are buying into something real, at the entry point that was designed to have no excuse.
+
+The Founding Warriors carry purple. The Legion carries their generation colour. The Phoenix Army carries numbers. And numbers, at scale, have a power that colours cannot touch.
+
+Rise from wherever you are. Recruta or Comandante Supremo — the phoenix does not ask what rank you held before it rose.
+
+---
+
 ## THE SON OF THE PHOENIX
 
 There is a story behind this project that no marketing document should be able to contain. But it must be told, because it is the *why* behind everything.
@@ -180,9 +218,76 @@ It is the project that only someone who has genuinely lost and genuinely loved a
 
 And from a father who looked at his son and decided that the world his son would inherit would have at least one community built on the right principles. On strength that includes vulnerability. On resilience that isn't about pretending the fall didn't happen. On a brotherhood and sisterhood that makes space for the people who experience things differently — because difference is not deficiency. It never was.
 
-A portion of every mint goes to autism support organisations. This is not cause-washing. This is the founder putting the project's resources where his life already lives.
+---
 
-The son of the phoenix does not know he helped build this. But he will know one day. And on that day, this manifesto will mean more than it does right now.
+## THE 20%
+
+20% of all revenue goes to autism research.
+
+Not "a portion." Not "a percentage." Twenty percent. Of everything. Every Founding Warrior seat. Every Legion of Honour mint. Every Phoenix Army token.
+
+The total potential donation: $55,328 if everything sells.
+
+22 Founding Warriors × $100 = $2,200 → $440 to research
+22,222 Legion × $10 = $222,220 → $44,444 to research
+522,222 Army × $0.10 = $52,222 → $10,444 to research
+
+Every month, the donation receipt goes on the website. Not a claim. Not an announcement. The actual document. The actual number. The actual organisation. You do not need to trust the founder's word. You have the paper.
+
+This is not cause-washing. The founder's son is autistic. This is where the project's money goes because it is where the founder's life already lives.
+
+Public. Monthly. Forever.
+
+---
+
+## O JURAMENTO
+
+This is not a roadmap.
+
+This is a sworn oath. Written by Hugo Vaz, founder of REBORNFENIX. I will keep it as long as REBORNFENIX exists.
+
+**🧩 O Puzzle do Mês**
+
+Every month, my son finishes a puzzle. I photograph it. I publish it. Dedicated to every holder of REBORNFENIX — every Founding Warrior, every Legion member, every soldier in the Phoenix Army.
+
+He doesn't know he's building something. He's just finishing puzzles. But the photograph goes on the website. Every month. As long as he makes puzzles and I draw breath.
+
+This is not a marketing strategy. This is my son's work, published for the people who believed in this project. It runs as long as REBORNFENIX exists.
+
+**📋 O Comprovativo Mensal**
+
+Every month, the donation receipt goes on the website.
+
+The actual document. The actual number. The name of the autism research organisation that received it. 20% of everything — verified, published, permanent.
+
+You will never need to ask where the money went. It will already be on the website before you think to ask.
+
+**⚔️ O Guerreiro do Mês**
+
+Every month, one holder shares their story of resilience. Their real story. Their name — the one they choose — goes on the website permanently.
+
+Not for a month. Not until the next update. Permanently.
+
+These are the warriors this project was built for. The ones who fell and got up. The ones who fought for someone they love. The ones who kept going when stopping was the easier choice. Their stories stay. The website keeps them. The project honours them.
+
+**📅 O Relatório Anual**
+
+Every year, a full impact report.
+
+How much was donated. To which organisations. What research they funded. What it is trying to find.
+
+Not a press release. Not a vague claim about impact. The actual numbers. The actual research. The actual year's work, in one document, published on the website for any holder — or anyone — to read.
+
+---
+
+These four commitments are the minimum. The floor. What you can hold me to.
+
+I put my face on this project. My son's puzzles are on this website. The donation receipts will be on this website. I have nowhere to hide.
+
+That is the point.
+
+Hugo Vaz
+Founder, REBORNFENIX
 
 ---
 
@@ -194,13 +299,15 @@ Let's be precise, because precision matters in this space.
 
 **If you are in the Legion of Honour**: A unique circular medal NFT carrying one of the 24 Elder Futhark runes. One of 22,222. Your generation color encoded at mint — determined by when you arrived, not by what you paid. The rune belongs to no other wallet. You can hold it, sell it on secondary, or keep it until the end of time.
 
+**If you are in the Phoenix Army**: One or more of 522,222 hard-capped tokens at $0.10 each. Your military rank determined by how many you hold. Eleven ranks, from Recruta to Comandante Supremo. Your tokens also contribute 20% to autism research. Hard cap. Never more.
+
 **Token access**: REBORNFENIX NFT holders receive early and preferential access to the RBFX token when it launches. Not an airdrop that you'll sell immediately — a structured distribution that rewards holders who stay. The details are in the roadmap. The principle is simple: those who were here first, who committed when it was uncertain, will not be forgotten.
 
 **The community**: This is not a Discord server with 10,000 bots and fake activity. This is a curated, verified, one-per-wallet community of traders and warriors who have chosen this identity. Every person in the REBORNFENIX community made a deliberate decision to be here. That changes the quality of every conversation, every alert, every piece of market analysis shared. When you have skin in the game — one NFT, one seat, one choice — you are not a lurker. You are a participant.
 
-**The identity**: Your rune is a statement about who you are. Your generation is the story of when you decided. Your Imperial Purple — if you are one of the 22 — is the mark of a builder. Carry it in your profile. Use it as your banner. This is what Web3 identity is supposed to mean — not a JPEG you flip for profit, but a symbol you chose because it said something true about you.
+**The identity**: Your rune is a statement about who you are. Your generation is the story of when you decided. Your Phoenix Army rank is the measure of your commitment. Your Imperial Purple — if you are one of the 22 — is the mark of a builder. Carry it in your profile. Use it as your banner. This is what Web3 identity is supposed to mean — not a JPEG you flip for profit, but a symbol you chose because it said something true about you.
 
-**The permanence**: Everything about this project is designed to last. The rune. The generation. The Imperial Purple of the 22. The blockchain. The community principles. We are not building for a bull market cycle. We are building for the time when your son asks you what you built during the years of chaos, and you can point to something real.
+**The permanence**: Everything about this project is designed to last. The rune. The generation. The Imperial Purple of the 22. The blockchain. The community principles. The monthly puzzle photograph. The monthly donation receipt. The annual report. We are not building for a bull market cycle. We are building for the time when your son asks you what you built during the years of chaos, and you can point to something real.
 
 ---
 
@@ -231,11 +338,15 @@ Not because it's easy. Not because you feel ready. Not because the market is coo
 
 ---
 
-*REBORNFENIX. 22 Founding Warriors in Imperial Purple. 22,222 Legion of Honour. One rune. One generation. No retreating.*
+*REBORNFENIX. 22 Founding Warriors in Imperial Purple. 22,222 Legion of Honour. 522,222 Phoenix Army. One rune. One generation. One rank. No retreating.*
 
 *The blockchain remembers. The rune is permanent. The warrior endures.*
 
 *Founding Warriors: $100 USDC — 22 seats only.*
 *Legion of Honour: $10 USDC — 22,222 seats — maximum 1 per wallet.*
+*Phoenix Army: $0.10 — 522,222 tokens — hard cap, never more.*
+*Total supply: 544,466 tokens. Hard cap. Permanent.*
+
+*20% of all revenue to autism research. Monthly proof. Public forever.*
 
 *Rise.*

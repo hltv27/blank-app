@@ -2,8 +2,9 @@
   "collection": {
     "name": "REBORNFENIX",
     "symbol": "RBFX",
-    "total_supply": 22244,
-    "_supply_note": "22,222 Legion of Honour + 22 Founding Warriors = 22,244 total tokens",
+    "total_supply": 544466,
+    "_supply_note": "22 Founding Warriors + 22,222 Legion of Honour + 522,222 Phoenix Army = 544,466 total tokens. HARD CAP FOREVER.",
+    "_numerical_signature": "22 · 22.222 · 522.222 — the number 22 runs through the entire project.",
     "description": "22,222 Viking warriors forged in the fires of Ragnarök — fathers, fighters, and survivors who stared into the abyss and refused to break. Where Norse cosmology meets the unbreakable spirit of those who trade darkness for dawn.",
     "lore": "In the age before the final battle, Odin sacrificed his eye for wisdom. A father sacrificed his certainty for love. Both learned the same truth: that true power is not the absence of loss — it is the refusal to be defined by it. The REBORNFENIX are those souls. Warriors who carried their fallen sons through Niflheim, who held the line at Valhalla's gates when lesser men ran. They are not perfect. They are reborn.",
     "lore_pt": "Na era antes da batalha final, Odin sacrificou o seu olho pela sabedoria. Um pai sacrificou a sua certeza pelo amor. Ambos aprenderam a mesma verdade: que o verdadeiro poder não é a ausência da perda — é a recusa em ser definido por ela. Os REBORNFENIX são essas almas. Guerreiros que carregaram os seus filhos caídos através de Niflheim, que seguraram a linha às portas de Valhalla quando homens mais fracos fugiram. Não são perfeitos. São renascidos."
@@ -36,9 +37,43 @@
       "price_usdc": 10,
       "design": "Circular medal: phoenix center + unique Elder Futhark rune + Norse knotwork border",
       "color_logic": "Determined by order of purchase (token_id range), NOT random",
+      "generations": 10,
       "lore": "22,222 warriors. One oath. No surrender.",
       "lore_pt": "22.222 guerreiros. Um juramento. Sem rendição."
+    },
+    "phoenix_army": {
+      "name": "Phoenix Army",
+      "name_pt": "Exército da Fénix",
+      "supply": 522222,
+      "price_usdc": 0.10,
+      "token_type": "fungible_spl",
+      "hard_cap": true,
+      "note": "522.222 tokens. Emissão fechada para sempre. O número 22 corre em todo o projecto.",
+      "note_en": "522,222 tokens. Hard cap forever. The number 22 runs through the entire project.",
+      "ranks": 11,
+      "autism_donation_pct": 20,
+      "design": "Fungible SPL token — all tokens identical. Rank displayed on website/dashboard based on wallet balance.",
+      "symbol": "RBFXA",
+      "decimals": 0,
+      "mint_authority_revoked": true,
+      "_mint_authority_note": "Mint authority is revoked immediately after the 522,222 tokens are minted. This is the cryptographic proof of the hard cap — no one, including the founder, can ever mint more.",
+      "lore": "522,222 soldiers. The heartbeat of the warband. Rise through the ranks.",
+      "lore_pt": "522.222 soldados. O batimento cardíaco da banda de guerra. Sobe pelos postos."
     }
+  },
+
+  "project_totals": {
+    "founding_warriors": 22,
+    "legion_of_honour": 22222,
+    "phoenix_army": 522222,
+    "total_supply": 544466,
+    "total_max_revenue_usdc": 276642.20,
+    "autism_donation_pct": 20,
+    "autism_donation_max_usdc": 55328.40,
+    "numerical_signature": "22 · 22.222 · 522.222",
+    "hard_cap": true,
+    "note": "Total supply is fixed forever. No future emissions under any circumstances.",
+    "_revenue_breakdown": "22 × $100 + 22,222 × $10 + 522,222 × $0.10 = $2,200 + $222,220 + $52,222.20 = $276,642.20"
   },
 
   "generations": [

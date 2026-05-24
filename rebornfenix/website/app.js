@@ -18,6 +18,10 @@ const CONFIG = {
   FOUNDING_WARRIOR_SUPPLY:  22,
   GENERATION_SIZE:          2222,       // warriors per generation
   GENERATION_COUNT:         10,
+  // Phoenix Army
+  ARMY_SUPPLY:              522222,
+  ARMY_PRICE_USDC:          0.10,
+  ARMY_PRICE_LAMPORTS:      100_000,    // 0.10 USDC, 6 decimals
   CONTRACT_ADDRESS:         'TBA', // Replace with actual Candy Machine ID pre-launch
   NETWORK:                  'mainnet-beta',
   MAX_PER_WALLET:           1,

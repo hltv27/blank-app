@@ -82,14 +82,16 @@ REBORNFENIX is the collision of everything I've learned:
 
 22,222 Legion of Honour. $10 USDC. Your generation sealed on-chain by order of arrival.
 
-A portion of every mint goes to autism support. Not because it's good PR. Because I live there.
+522,222 Phoenix Army. $0.10. Your rank by tokens held.
+
+20% of everything goes to autism research. Not because it's good PR. Because I live there.
 
 ---
 
 **Tweet 9/10**
-There are 22,222 seats in the hall.
+There are 22,222 seats in the hall. 522,222 places in the army.
 
-Your seat has a rune on it. Your generation is written in the color of your medal.
+Your seat has a rune on it. Your generation is written in the color of your medal. Your rank is counted in tokens held.
 
 You might not know which rune yet. But when you see it — and you will *see* it — you'll know it was always yours.
 
@@ -120,7 +122,7 @@ REBORNFENIX 🔥⚔️
 **Tweet 1/8**
 Everyone's asking what REBORNFENIX actually is.
 
-Two tiers. Two prices. One hall. Let me break it down clearly.
+Three tiers. Three prices. One movement. Let me break it down clearly.
 
 Not hype. Not buzzwords. Actual structure.
 
@@ -159,40 +161,39 @@ Each one carries one of the 24 Elder Futhark runes — the ancient Norse symboli
 
 1 per wallet. Hard-coded. Non-negotiable.
 
+10 generations by purchase order. Your arrival is your legacy.
+
 ---
 
 **Tweet 5/8**
-**The Generation System**
+**TIER 3 — THE PHOENIX ARMY**
+522,222 tokens. $0.10 each.
 
-The 22,222 Legion is divided into 10 generations — determined entirely by purchase order.
+Your rank is determined by how many you hold. 11 ranks: Recruta → Soldado → Cabo → Sargento → Tenente → Capitão → Major → Coronel → General → Marechal → Comandante Supremo.
 
-Gen 1: Red Phoenix — the first believers, before social proof existed
-Gen 2–9: Each with their own color, their own chapter of the story
-Gen 10: Iron Born — the ones who arrived when the hall was almost full, who acted when the window was closing
+Hard cap. 522,222. Never more.
 
 ---
 
 **Tweet 6/8**
-Every Iron Born was once someone who almost didn't buy.
+**The numbers tell the story.**
 
-Almost waited one more day. Almost convinced themselves to think about it later.
+22. 22,222. 522,222.
 
-They didn't.
+The signature of REBORNFENIX runs through everything. The master builder number, repeated and scaled, until it becomes an army.
 
-That's not lesser. That's its own kind of warrior instinct.
-
-Every generation tells a story. Yours is written by when you decide.
+Total supply: 544,466. Hard cap. Sealed in the contract. Permanent.
 
 ---
 
 **Tweet 7/8**
-**The community**
+**The 20%.**
 
-Discord with verified holder channels. Real market analysis. Real trading talk. Real support when positions go wrong.
+20% of all revenue goes to autism research. With monthly public proof — the actual receipt, on the website, every month.
 
-The Founding Warriors get a private inner council channel. The Legion fights together in the main hall.
+Total potential donation: $55,328 if everything sells.
 
-Warriors talk to warriors. No tourists.
+The founder's son is autistic. This is not cause-washing. This is where the money goes because it's where the life already lives.
 
 ---
 
@@ -200,11 +201,10 @@ Warriors talk to warriors. No tourists.
 **The bottom line:**
 
 22 Founding Warriors — $100 USDC — Imperial Purple — named forever
-22,222 Legion of Honour — $10 USDC — your generation in your color
+22,222 Legion of Honour — $10 USDC — your generation in your color — 1 per wallet
+522,222 Phoenix Army — $0.10 — your rank by tokens held
 
-One NFT per wallet. One rune per warrior. One hall.
-
-Your generation is your legacy. 🔥
+One hall. One army. One oath. 🔥
 
 [link]
 
@@ -483,6 +483,7 @@ Which rune called to you?
 
 22,222 Legion of Honour — $10 USDC — 1 per wallet.
 22 Founding Warriors — $100 USDC — Imperial Purple — 22 seats only.
+522,222 Phoenix Army — $0.10 — your rank by tokens held.
 
 Your rune is waiting. 🔥
 
@@ -598,7 +599,7 @@ REBORNFENIX 🔥
 ---
 
 ## THREAD 5: "LAUNCH COUNTDOWN"
-*Hype build, 7 tweets. High energy, warrior tone. Both tiers present.*
+*Hype build, 7 tweets. High energy, warrior tone. All three tiers present.*
 
 ---
 
@@ -607,6 +608,7 @@ The hall opens soon.
 
 22 Founding Warriors. Imperial Purple. $100 USDC. Named forever.
 22,222 Legion of Honour. Your generation sealed in color. $10 USDC.
+522,222 Phoenix Army. Your rank by tokens held. $0.10.
 
 The warriors who answer the first call are the ones the saga remembers.
 
@@ -621,6 +623,7 @@ The smart contract is audited.
 The art is done.
 All 22,222 Legion medals are ready.
 All 22 Founding Warrior brasões are ready.
+All 522,222 Phoenix Army tokens are ready.
 
 No whitelist drama. No influencer early access.
 
@@ -648,6 +651,7 @@ Tomorrow the doors open.
 
 Founding Warrior: $100 USDC — Imperial Purple — 22 seats only.
 Legion of Honour: $10 USDC — your generation in your color — 22,222 seats.
+Phoenix Army: $0.10 — your rank by tokens held — 522,222 hard cap.
 
 If you know which you are, you already know what to do.
 
@@ -673,7 +677,7 @@ The mint is live in 60 minutes.
 
 Here's what to have ready:
 → Solana wallet (Phantom/Backpack)
-→ $100 USDC for Founding Warrior (22 seats) or $10 USDC for Legion of Honour
+→ $100 USDC for Founding Warrior (22 seats) or $10 USDC for Legion of Honour or $0.10 per Phoenix Army token
 → ~$0.01 SOL for gas
 
 Link goes live at [TIME UTC].
@@ -687,6 +691,7 @@ Your generation is being written right now. 🔥
 
 22 Founding Warriors — $100 — Imperial Purple — named forever.
 22,222 Legion of Honour — $10 — your generation in color — 1 per wallet.
+522,222 Phoenix Army — $0.10 — your rank by tokens held.
 
 For every trader who got liquidated and came back.
 For every warrior who fell and rose.
@@ -934,7 +939,7 @@ The Founding Warrior NFT is $100 USDC.
 
 Ten times the Legion price. Exactly.
 
-Because the Founding Warriors took ten times the risk. They arrived when there was nothing to look at except a manifesto and a mission. They chose in before any floor price, any community size, any social proof.
+Because the Founding Warriors took ten times the risk. They arrived when there was nothing to look at except a manifesto and a mission. When there was no floor price, no community size, no social proof.
 
 They paid accordingly.
 
@@ -947,7 +952,7 @@ There will be a floor price. There will be thousands of warriors in the Discord.
 
 None of them can be Founding Warriors.
 
-The 22 locked in something the other 22,222 cannot have.
+The 22 locked in something the other 544,444 cannot have.
 
 ---
 
@@ -967,3 +972,170 @@ It won't be open forever.
 REBORNFENIX 🔥⚔️
 
 [FOUNDING WARRIOR MINT LINK]
+
+---
+
+---
+
+## THREAD 8: "O JURAMENTO" (THE PLEDGE)
+*The 4 public commitments. Personal, permanent, irrevocable.*
+
+---
+
+**Tweet 1/8**
+Most crypto projects make promises.
+
+We make oaths.
+
+Here is mine. Public. Permanent. Irrevocable.
+
+🧵
+
+---
+
+**Tweet 2/8**
+Every month — my autistic son finishes a puzzle.
+
+I photograph it. I post it. Dedicated to every REBORNFENIX holder.
+
+His name stays off. His work goes on the website. Every month. As long as he makes puzzles.
+
+This runs as long as REBORNFENIX exists.
+
+---
+
+**Tweet 3/8**
+Every month — the donation receipt goes on the website.
+
+20% of everything. The actual document. The actual number. The actual organisation.
+
+You don't need to trust my word. You have the paper.
+
+---
+
+**Tweet 4/8**
+Every month — one holder shares their resilience story.
+
+Their name stays on the website. Forever.
+
+Not for a month. Not until the next update. Permanently. Because the warriors who belong here deserve to be remembered.
+
+---
+
+**Tweet 5/8**
+Every year — a full impact report.
+
+What was donated. Where it went. What research it funded. What they're trying to find.
+
+Not a press release. The actual numbers. Published on the website. Every year.
+
+---
+
+**Tweet 6/8**
+These are not promises.
+
+They are the minimum. The floor. What you can hold me to.
+
+The oath doesn't grow old. It doesn't expire. It runs as long as REBORNFENIX exists and I exist to run it.
+
+---
+
+**Tweet 7/8**
+I put my face on this project.
+
+My son's work is on this website.
+
+The donation receipts will be on this website.
+
+I have nowhere to hide. That's the point.
+
+---
+
+**Tweet 8/8**
+REBORNFENIX.
+
+22 warriors. 22,222 legion. 522,222 army.
+
+One oath. No surrender.
+
+🔥⚔️
+
+[link]
+
+---
+
+---
+
+## THREAD 9: "O EXÉRCITO DA FÉNIX" (THE ARMY)
+*The Phoenix Army. Entry point. 522,222 tokens. The pattern of 22.*
+
+---
+
+**Tweet 1/7**
+Some of you can't spend $10 on an NFT right now.
+
+I understand.
+
+The Phoenix Army is for you.
+
+🧵
+
+---
+
+**Tweet 2/7**
+522,222 tokens. $0.10 each.
+
+That's €0.09. The price of nothing. The entry point of everything.
+
+Every token contributes 20% to autism research. Even at $0.10, you're part of something real.
+
+---
+
+**Tweet 3/7**
+Your rank is determined by how many you hold.
+
+Recruta → Soldado → Cabo → Sargento → Tenente → Capitão → Major → Coronel → General → Marechal → Comandante Supremo.
+
+11 ranks. From 1 token to 522,222.
+
+---
+
+**Tweet 4/7**
+The number: 22. 22,222. 522,222.
+
+The signature of REBORNFENIX runs through everything.
+
+The master builder number, repeated and scaled, until it becomes an army. The pattern is not decoration. It is architecture.
+
+---
+
+**Tweet 5/7**
+Hard cap.
+
+522,222. Never more. Not tomorrow. Not next year. Not ever.
+
+It's in the contract. The supply is sealed the day the contract deploys. Mathematics doesn't negotiate.
+
+---
+
+**Tweet 6/7**
+Every Founding Warrior carries purple.
+
+Every Legion member carries their generation colour.
+
+The Phoenix Army carries something else: numbers. And numbers, at scale, have a power that colours cannot touch.
+
+---
+
+**Tweet 7/7**
+Every army needs foot soldiers.
+
+Every general was once a Recruta.
+
+522,222 Phoenix Army tokens. $0.10 each. Hard cap. Your rank by tokens held.
+
+Where do you stand?
+
+REBORNFENIX 🔥
+
+[link]

@@ -1,11 +1,12 @@
 {
-  "_comment": "Metaplex Sugar v2 — Candy Machine v3 Config for REBORNFENIX (RBFX) — v2.0",
+  "_comment": "Metaplex Sugar v2 — Candy Machine v3 Config for REBORNFENIX (RBFX) — v3.0",
   "_docs": "https://docs.metaplex.com/tools/sugar/configuration",
   "_deploy_note": "Replace all PLACEHOLDER values before deployment. Run 'sugar validate' before 'sugar deploy'.",
-  "_architecture": "Two guard groups: 'legion' (22,222 × 10 USDC) + 'founding_warrior' (22 × 100 USDC, max 1/wallet).",
+  "_architecture": "Three guard groups: 'legion' (22,222 × 10 USDC) + 'founding_warrior' (22 × 100 USDC, max 1/wallet) + 'phoenix_army' (522,222 × 0.10 USDC, separate SPL token — see phoenix_army_token.js).",
+  "_numerical_signature": "22 · 22.222 · 522.222 — the number 22 runs through the entire project. Total supply: 544,466. Hard cap forever.",
 
-  "number": 22244,
-  "_number_note": "22,222 Legion of Honour + 22 Founding Warriors = 22,244 total tokens",
+  "number": 544466,
+  "_number_note": "22 Founding Warriors + 22,222 Legion of Honour + 522,222 Phoenix Army = 544,466 total tokens. HARD CAP FOREVER.",
   "symbol": "RBFX",
   "sellerFeeBasisPoints": 500,
   "isMutable": true,
@@ -53,7 +54,7 @@
   "endSettings": {
     "endSettingType": "amount",
     "value": 22244,
-    "_note": "22,222 Legion + 22 Founding Warriors"
+    "_note": "22,222 Legion + 22 Founding Warriors (Candy Machine covers NFT tiers only). Phoenix Army (522,222) is a separate SPL token — see phoenix_army_token.js."
   },
 
   "gatekeeper": null,
@@ -61,9 +62,11 @@
 
   "guards": {
     "_note": [
-      "Two guard groups for the two tiers.",
+      "Three guard groups for the three tiers.",
       "'legion' group: public mint, 10 USDC each, no per-wallet cap (default reasonable limit set).",
-      "'founding_warrior' group: 100 USDC each, max 1 per wallet, supply hard-capped at 22."
+      "'founding_warrior' group: 100 USDC each, max 1 per wallet, supply hard-capped at 22.",
+      "'phoenix_army' group: entry-level, 0.10 USDC each, no per-wallet limit (accumulate tokens to rank up). Supply hard-capped at 522,222.",
+      "NOTE: Phoenix Army is also deployable as a standalone SPL fungible token via phoenix_army_token.js."
     ],
 
     "legion": {
@@ -122,6 +125,33 @@
         "lastInstruction": true,
         "_note": "0.01 SOL bot tax."
       }
+    },
+
+    "phoenix_army": {
+      "label": "phoenix_army",
+      "_description": "Entry-level mint — Phoenix Army. 522,222 tokens @ 0.10 USDC each. No per-wallet limit — accumulate tokens to advance military rank.",
+      "_deployment_note": "Phoenix Army can be sold via Candy Machine (this guard) OR via a standalone SPL token deployment (see phoenix_army_token.js). Both approaches enforce the same 522,222 hard cap.",
+      "startDate": {
+        "date": "2025-01-01T00:00:00Z",
+        "_note": "Replace with actual Phoenix Army launch date. Can open simultaneously with or after Legion launch."
+      },
+      "tokenPayment": {
+        "amount": 100000,
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "_note": "0.10 USDC (6 decimals = 100,000). Mint address is USDC on Solana mainnet. Entry-level price — accessibility over exclusivity."
+      },
+      "mintLimit": null,
+      "_mintLimit_note": "No per-wallet mint limit. Warriors accumulate tokens to advance through the 11 military ranks. The more tokens held, the higher the rank.",
+      "allocation": {
+        "id": 3,
+        "limit": 522222,
+        "_note": "Hard supply cap for Phoenix Army: 522,222 tokens only. Ever. The number 522.222 carries the signature '22' of the entire project."
+      },
+      "botTax": {
+        "lamports": 1000000,
+        "lastInstruction": true,
+        "_note": "0.001 SOL bot tax — lower than other tiers because this is the entry-level tier. Still deters spam."
+      }
     }
   },
 
@@ -143,14 +173,6 @@
     "usdcMintAddress": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     "_note": "USDC mint address is for Solana mainnet. Use different address for devnet testing.",
     "tiers": {
-      "legion": {
-        "name": "Legion of Honour",
-        "supply": 22222,
-        "price_usdc": 10.00,
-        "price_raw": 10000000,
-        "max_per_wallet": 10,
-        "guard_label": "legion"
-      },
       "founding_warrior": {
         "name": "Founding Warrior",
         "supply": 22,
@@ -158,11 +180,36 @@
         "price_raw": 100000000,
         "max_per_wallet": 1,
         "guard_label": "founding_warrior",
-        "note": "Post-purchase personalisation required: patron provides name + zodiac sign. Art generated after payment confirmed."
+        "note": "Post-purchase personalisation required: patron provides name + zodiac sign. Art generated after payment confirmed.",
+        "revenue_usdc": 2200
+      },
+      "legion": {
+        "name": "Legion of Honour",
+        "supply": 22222,
+        "price_usdc": 10.00,
+        "price_raw": 10000000,
+        "max_per_wallet": 10,
+        "guard_label": "legion",
+        "revenue_usdc": 222220
+      },
+      "phoenix_army": {
+        "name": "Phoenix Army",
+        "supply": 522222,
+        "price_usdc": 0.10,
+        "price_raw": 100000,
+        "max_per_wallet": null,
+        "guard_label": "phoenix_army",
+        "note": "No per-wallet limit. Accumulate tokens to advance through 11 military ranks. Fungible — each token is identical. Deploy via Candy Machine guard OR via phoenix_army_token.js (standalone SPL).",
+        "revenue_usdc": 52222.20
       }
     },
-    "total_max_revenue_usdc": 224420,
-    "_revenue_note": "22,222 × 10 + 22 × 100 = 222,220 + 2,200 = 224,420 USDC maximum"
+    "total_supply": 544466,
+    "_supply_breakdown": "22 Founding Warriors + 22,222 Legion of Honour + 522,222 Phoenix Army = 544,466",
+    "total_max_revenue_usdc": 276642.20,
+    "_revenue_note": "22 × 100 + 22,222 × 10 + 522,222 × 0.10 = 2,200 + 222,220 + 52,222.20 = 276,642.20 USDC maximum",
+    "autism_donation_pct": 20,
+    "autism_donation_max_usdc": 55328.40,
+    "_donation_note": "20% of all revenue goes to autism research. 276,642.20 × 20% = 55,328.40 USDC maximum donation. Monthly proof published at https://rebornfenix.io/compromisos"
   },
 
   "royalties": {
@@ -184,22 +231,58 @@
     "revealUri": "https://arweave.net/REBORNFENIX_REVEALED_URI_PLACEHOLDER/"
   },
 
+  "phoenix_army_ranks": {
+    "_description": "11 military ranks for Phoenix Army holders. Rank is determined by total tokens held in a single wallet. No time-lock — rank reflects current holdings.",
+    "_note": "Accumulate more tokens to advance. Ranks are cumulative — higher ranks include all lower-rank benefits.",
+    "ranks": [
+      {"rank": "Recruta",             "rank_en": "Recruit",          "min_tokens": 1,      "max_tokens": 1},
+      {"rank": "Soldado",             "rank_en": "Soldier",          "min_tokens": 2,      "max_tokens": 10},
+      {"rank": "Cabo",                "rank_en": "Corporal",         "min_tokens": 11,     "max_tokens": 50},
+      {"rank": "Sargento",            "rank_en": "Sergeant",         "min_tokens": 51,     "max_tokens": 100},
+      {"rank": "Tenente",             "rank_en": "Lieutenant",       "min_tokens": 101,    "max_tokens": 500},
+      {"rank": "Capitão",             "rank_en": "Captain",          "min_tokens": 501,    "max_tokens": 1000},
+      {"rank": "Major",               "rank_en": "Major",            "min_tokens": 1001,   "max_tokens": 5000},
+      {"rank": "Coronel",             "rank_en": "Colonel",          "min_tokens": 5001,   "max_tokens": 10000},
+      {"rank": "General",             "rank_en": "General",          "min_tokens": 10001,  "max_tokens": 50000},
+      {"rank": "Marechal",            "rank_en": "Marshal",          "min_tokens": 50001,  "max_tokens": 100000},
+      {"rank": "Comandante Supremo",  "rank_en": "Supreme Commander","min_tokens": 100001, "max_tokens": null}
+    ]
+  },
+
+  "founder_commitments": {
+    "_description": "Public commitments made by the founder. Immutable once published. The 20% autism donation is the cornerstone of the project's purpose.",
+    "autism_donation_percentage": 20,
+    "commitments": [
+      "Puzzle do Mês: monthly puzzle photo from founder's autistic son, dedicated to all holders",
+      "Comprovativo Mensal: monthly donation receipt published on website",
+      "Guerreiro do Mês: monthly holder resilience story featured on website permanently",
+      "Relatório Anual: annual impact report of autism research funded"
+    ],
+    "proof_url": "https://rebornfenix.io/compromisos",
+    "commitment_date": "LAUNCH_DATE_PLACEHOLDER"
+  },
+
   "deploymentChecklist": [
     "1. Replace ALL PLACEHOLDER values in this config",
-    "2. Upload art assets to Arweave/IPFS and get base URIs (legion + founding warrior separate folders)",
+    "2. Upload art assets to Arweave/IPFS and get base URIs (founding warrior, legion, phoenix army — separate folders)",
     "3. Upload Legion metadata JSONs using 'sugar upload' (22,222 files)",
     "4. Upload Founding Warrior template JSONs separately (22 files, will be updated post-purchase)",
-    "5. Run 'sugar validate' to verify config",
-    "6. Create collection NFT: 'sugar collection create'",
-    "7. Deploy candy machine: 'sugar deploy'",
-    "8. Verify two guard groups are correctly configured: 'sugar show'",
-    "9. Test Legion mint (10 USDC) and Founding Warrior mint (100 USDC) on devnet",
-    "10. Verify mintLimit id:2 (Founding Warrior) enforces max 1 per wallet",
-    "11. Verify allocation id:2 hard-caps at 22 Founding Warriors",
-    "12. Set go-live date and announce",
-    "13. After Founding Warrior purchase: collect patron name + zodiac, generate personalised art, update metadata URI",
-    "14. After full sellout: run 'sugar reveal' for metadata reveal",
-    "15. Verify secondary marketplace royalties are enforced"
+    "5. Upload Phoenix Army metadata JSON (single fungible token template — 522,222 identical tokens)",
+    "6. Run 'sugar validate' to verify config",
+    "7. Create collection NFT: 'sugar collection create'",
+    "8. Deploy candy machine: 'sugar deploy'",
+    "9. Verify THREE guard groups are correctly configured: 'sugar show'",
+    "10. Test all three mints on devnet: Founding Warrior (100 USDC), Legion (10 USDC), Phoenix Army (0.10 USDC)",
+    "11. Verify mintLimit id:2 (Founding Warrior) enforces max 1 per wallet",
+    "12. Verify allocation id:2 hard-caps at 22 Founding Warriors",
+    "13. Verify allocation id:3 hard-caps at 522,222 Phoenix Army tokens",
+    "14. ALTERNATIVE for Phoenix Army: run 'node phoenix_army_token.js' to deploy as standalone SPL token",
+    "15. If using SPL token route: verify mint authority is revoked after deployment (proof of hard cap)",
+    "16. Set go-live date and announce",
+    "17. After Founding Warrior purchase: collect patron name + zodiac, generate personalised art, update metadata URI",
+    "18. After full sellout: run 'sugar reveal' for metadata reveal",
+    "19. Verify secondary marketplace royalties are enforced",
+    "20. Publish first monthly autism donation proof at https://rebornfenix.io/compromisos"
   ],
 
   "sugarCommands": {
@@ -220,13 +303,21 @@
   },
 
   "lore": {
-    "tagline": "22,222 warriors. One oath. No surrender.",
-    "tagline_pt": "22.222 guerreiros. Um juramento. Sem rendição.",
+    "tagline": "544,466 warriors. One oath. No surrender.",
+    "tagline_pt": "544.466 guerreiros. Um juramento. Sem rendição.",
+    "numerical_signature": "22 · 22.222 · 522.222 — the number 22 runs through the entire project like a warrior's mark.",
+    "numerical_signature_pt": "22 · 22.222 · 522.222 — o número 22 corre em todo o projecto como a marca de um guerreiro.",
     "founding_warrior_tagline": "22 patrons. Imperial Purple. Built the fire that made it possible.",
     "founding_warrior_tagline_pt": "22 patronos. Púrpura Imperial. Construíram o fogo que tornou tudo possível.",
+    "legion_tagline": "22,222 warriors. The Rune medal bearers. 10 generations strong.",
+    "legion_tagline_pt": "22.222 guerreiros. Os portadores da medalha Runa. 10 gerações fortes.",
+    "phoenix_army_tagline": "522,222 soldiers. The Phoenix Army. Rise through the ranks.",
+    "phoenix_army_tagline_pt": "522.222 soldados. O Exército da Fénix. Sobe pelos postos.",
     "mission": "Born from the fires of Ragnarök. Carrying the wisdom of the Elder Futhark. For every father who kept fighting when the world said stop.",
     "mission_pt": "Nascidos dos fogos de Ragnarök. Carregando a sabedoria das Elder Futhark. Por cada pai que continuou a lutar quando o mundo disse para parar.",
     "imperial_purple_lore": "In ancient Rome, wearing purple without being Emperor was punishable by death. The 22 Founding Warriors carry this color — not because they claimed it, but because they built the fire that made it possible.",
-    "imperial_purple_lore_pt": "Na Roma antiga, usar púrpura sem ser Imperador era punível com a morte. Os 22 Founding Warriors carregam esta cor — não porque a reclamaram, mas porque construíram o fogo que a tornou possível."
+    "imperial_purple_lore_pt": "Na Roma antiga, usar púrpura sem ser Imperador era punível com a morte. Os 22 Founding Warriors carregam esta cor — não porque a reclamaram, mas porque construíram o fogo que a tornou possível.",
+    "phoenix_army_lore": "The Phoenix Army is the heartbeat of the warband. 522,222 soldiers who each paid one small price and earned one sacred right: to rise. Every token is a step. Every rank is earned. The Fénix does not ask where you started — only how far you are willing to climb.",
+    "phoenix_army_lore_pt": "O Exército da Fénix é o batimento cardíaco da banda de guerra. 522.222 soldados que pagaram um pequeno preço e ganharam um direito sagrado: subir. Cada token é um passo. Cada posto é conquistado. A Fénix não pergunta onde começaste — apenas até onde estás disposto a chegar."
   }
 }
