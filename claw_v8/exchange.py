@@ -86,13 +86,13 @@ def get_public_ip() -> str:
 
 
 def get_balance() -> float | None:
-    """Saldo total da conta (walletBalance). Usado nos guards de risco.
-    Usa walletBalance (não availableBalance) para incluir margem em uso —
-    evita que o GUARDA 25% dispare com threshold de ~0 quando há posições abertas."""
+    """Saldo total da conta USDC/BNFCR via /fapi/v2/account (marginBalance).
+    marginBalance = walletBalance + unrealizedPnL — representa o capital real disponível
+    para cálculos de risco. Mais estável que availableBalance (que é ~0 com posições abertas)."""
     for attempt in range(2):
         try:
             r = requests.get(
-                f"{BASE_URL}/fapi/v2/balance",
+                f"{BASE_URL}/fapi/v2/account",
                 params=_sign({}), headers=_headers(), timeout=10
             )
             data = r.json()
@@ -100,15 +100,18 @@ def get_balance() -> float | None:
                 print("[AVISO] get_balance: timestamp desfasado — a resincronizar")
                 sync_time()
                 continue
-            if isinstance(data, dict):
-                msg = data.get("msg", "")
-                print(f"[ERRO] get_balance: {msg}")
-                if "Invalid API-key, IP" in msg:
-                    tg(f"🔒 <b>IP bloqueado</b>\nNovo IP: <code>{get_public_ip()}</code>")
-                return None
-            for a in data:
-                if a["asset"] in ("USDC", "BNFCR"):
-                    return float(a["walletBalance"])
+            if isinstance(data, list):
+                # resposta inesperada em formato de lista — ignora
+                break
+            for a in data.get("assets", []):
+                if a.get("asset") in ("USDC", "BNFCR"):
+                    mb = float(a.get("marginBalance") or a.get("walletBalance") or 0)
+                    if mb > 0:
+                        return mb
+            # fallback: totalMarginBalance da conta inteira
+            total = float(data.get("totalMarginBalance") or 0)
+            if total > 0:
+                return total
         except Exception as e:
             print(f"[ERRO] get_balance: {e}")
             break
