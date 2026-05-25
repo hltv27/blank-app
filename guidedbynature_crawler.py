@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Crawler — guidedbynature.pt
-Descobre todos os POIs e Eventos e exporta para Excel.
+Crawler v2 — guidedbynature.pt
+BFS completo por todos os links internos do site.
+Exporta Excel com dois sheets:
+  "Dados"    — valores reais extraídos
+  "Presença" — X se campo preenchido, vazio se não
 
-Padrões de URL conhecidos:
-  /pt/poi/{categoria}/{slug}/{id}/   → pontos de interesse
-  /pt/p/{tipo}/{id}/                 → eventos e outros
-
-Instalar dependências (uma vez só):
-    pip install requests beautifulsoup4 pandas openpyxl lxml
+Instalar dependências:
+    pip install requests beautifulsoup4 pandas openpyxl lxml cloudscraper
 
 Correr:
     python guidedbynature_crawler.py
@@ -21,7 +20,6 @@ try:
     _scraper = cloudscraper.create_scraper()
     _USE_CLOUDSCRAPER = True
 except ImportError:
-    import requests as _requests_fallback
     _scraper = None
     _USE_CLOUDSCRAPER = False
 
@@ -31,31 +29,24 @@ import pandas as pd
 import time
 import json
 import re
-import os
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
+from collections import deque
 
 BASE_URL  = "https://guidedbynature.pt"
 OUTPUT    = "guidedbynature_dados.xlsx"
-DELAY     = 0.8   # segundos entre pedidos (não sobrecarregar o servidor)
-DEBUG_HTML = False  # True → guarda o HTML da primeira página para inspeção
+DELAY     = 1.0     # segundos entre pedidos
+MAX_VISIT = 5000    # limite de segurança (páginas de listagem/nav)
 
 HEADERS = {
-    "User-Agent":                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                                  "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
-    "Accept":                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
-                                  "image/avif,image/webp,image/apng,*/*;q=0.8",
-    "Accept-Language":           "pt-PT,pt;q=0.9,en-GB;q=0.8,en;q=0.7",
-    "Accept-Encoding":           "gzip, deflate, br",
-    "Connection":                "keep-alive",
-    "Upgrade-Insecure-Requests": "1",
-    "Sec-Fetch-Dest":            "document",
-    "Sec-Fetch-Mode":            "navigate",
-    "Sec-Fetch-Site":            "none",
-    "Sec-Fetch-User":            "?1",
-    "Sec-CH-UA":                 '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
-    "Sec-CH-UA-Mobile":          "?0",
-    "Sec-CH-UA-Platform":        '"Windows"',
-    "Cache-Control":             "max-age=0",
+    "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                       "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+    "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "pt-PT,pt;q=0.9,en;q=0.7",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection":      "keep-alive",
+    "Sec-Fetch-Dest":  "document",
+    "Sec-Fetch-Mode":  "navigate",
+    "Cache-Control":   "max-age=0",
 }
 
 if _USE_CLOUDSCRAPER:
@@ -65,45 +56,91 @@ if _USE_CLOUDSCRAPER:
 else:
     session = requests.Session()
     session.headers.update(HEADERS)
-    print("[Info] requests (sem cloudscraper — instala com: pip install cloudscraper)")
+    print("[Info] requests simples (pip install cloudscraper para mais bypass)")
+
+# URL de item: termina em /poi/{cat}/{slug}/{id}/ ou /p/{tipo}/{id}/
+_ITEM_RE = re.compile(
+    r"/pt/(poi|event|tour)/[^/?#]+/[^/?#]+/\d+/?$"
+    r"|/pt/p/[^/?#]+/\d+/?$"
+)
+
+# Paths a ignorar no BFS
+_SKIP_PATHS = [
+    "/api/", "/admin/", "/static/", "/media/", "/files/",
+    "/en/", "/es/", "/fr/", "/de/",
+    ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".svg",
+    ".zip", ".xml", ".js", ".css", ".ico",
+    "mailto:", "tel:", "javascript:",
+]
 
 
-def _warm_session():
-    """Visita a homepage primeiro para obter cookies de sessão."""
-    for url in [BASE_URL + "/pt/", BASE_URL + "/"]:
-        try:
-            r = session.get(url, timeout=20)
-            if r.ok:
-                print(f"[Session] cookies obtidos de {url}")
-                return True
-        except Exception:
-            pass
-    return False
+# ── Utilitários de URL ────────────────────────────────────────────────────────
 
-
-# ── Utilitários ───────────────────────────────────────────────────────────────
-
-def get_page(url: str) -> BeautifulSoup | None:
-    global DEBUG_HTML
+def _normalize(url: str) -> str:
+    """
+    Normaliza URL: mantém só o domínio BASE_URL + path + ?page=N se existir.
+    Retorna "" se for externo ou inválido.
+    """
     try:
-        r = session.get(url, timeout=20)
-        r.raise_for_status()
-        if DEBUG_HTML:
-            with open("debug_page.html", "w", encoding="utf-8") as f:
-                f.write(r.text)
-            print(f"[DEBUG] HTML guardado em debug_page.html")
-            DEBUG_HTML = False
-        return BeautifulSoup(r.text, "lxml")
-    except Exception as e:
-        print(f"  [ERRO] {url}: {e}")
-        return None
+        p = urlparse(url)
+    except Exception:
+        return ""
+
+    # Só aceitar o mesmo domínio
+    if p.netloc and p.netloc not in BASE_URL:
+        return ""
+    if p.scheme and p.scheme not in ("http", "https"):
+        return ""
+
+    path = p.path
+    if not path:
+        path = "/"
+    if not path.endswith("/"):
+        path += "/"
+
+    # Preservar paginação
+    q = ""
+    m = re.search(r"page=(\d+)", p.query or "")
+    if m and int(m.group(1)) > 1:
+        q = f"?page={m.group(1)}"
+
+    return f"{BASE_URL}{path}{q}"
+
+
+def _is_item(url: str) -> bool:
+    return bool(_ITEM_RE.search(url))
+
+
+def _is_crawlable(url: str) -> bool:
+    if not url.startswith(BASE_URL):
+        return False
+    path = urlparse(url).path.lower()
+    return not any(s in path for s in _SKIP_PATHS)
+
+
+# ── HTTP ─────────────────────────────────────────────────────────────────────
+
+def get_page(url: str, retries: int = 2) -> BeautifulSoup | None:
+    for attempt in range(retries + 1):
+        try:
+            r = session.get(url, timeout=25)
+            if r.status_code == 404:
+                return None
+            r.raise_for_status()
+            return BeautifulSoup(r.text, "lxml")
+        except Exception as e:
+            if attempt < retries:
+                time.sleep(2 ** attempt)
+            else:
+                print(f"  [ERRO] {url}: {e}")
+    return None
 
 
 def _text(el) -> str:
     return el.get_text(" ", strip=True) if el else ""
 
 
-# ── Extracção de campos ───────────────────────────────────────────────────────
+# ── Extracção de dados de um item ─────────────────────────────────────────────
 
 def extract_jsonld(soup: BeautifulSoup) -> dict:
     for script in soup.find_all("script", type="application/ld+json"):
@@ -111,7 +148,8 @@ def extract_jsonld(soup: BeautifulSoup) -> dict:
             data = json.loads(script.string or "")
             if isinstance(data, list):
                 data = data[0]
-            return data
+            if isinstance(data, dict):
+                return data
         except Exception:
             pass
     return {}
@@ -127,18 +165,14 @@ def extract_meta(soup: BeautifulSoup) -> dict:
     return meta
 
 
-def extract_poi(url: str) -> dict | None:
+def extract_item(url: str) -> dict | None:
     soup = get_page(url)
     if not soup:
         return None
 
     row: dict = {"url": url}
 
-    # ── Derivar campos da URL ────────────────────────────────────────────────
-    # Padrões conhecidos:
-    #   /pt/poi/{categoria}/{slug}/{id}/
-    #   /pt/event/{categoria}/{slug}/{id}/
-    #   /pt/p/{tipo}/{id}/
+    # Campos da URL
     parts = url.rstrip("/").split("/")
     row["id_poi"] = parts[-1] if parts[-1].isdigit() else ""
 
@@ -163,7 +197,7 @@ def extract_poi(url: str) -> dict | None:
         row["slug"]      = parts[-2] if len(parts) >= 2 else ""
         row["categoria"] = parts[-3] if len(parts) >= 3 else ""
 
-    # ── JSON-LD (dados estruturados — mais fiáveis) ──────────────────────────
+    # JSON-LD (fonte mais fiável)
     jld = extract_jsonld(soup)
     if jld:
         row["nome"]      = jld.get("name", "")
@@ -175,10 +209,10 @@ def extract_poi(url: str) -> dict | None:
 
         addr = jld.get("address", {})
         if isinstance(addr, dict):
-            row["morada"]    = addr.get("streetAddress", "")
-            row["localidade"]= addr.get("addressLocality", "")
-            row["regiao"]    = addr.get("addressRegion", "")
-            row["pais"]      = addr.get("addressCountry", "")
+            row["morada"]     = addr.get("streetAddress", "")
+            row["localidade"] = addr.get("addressLocality", "")
+            row["regiao"]     = addr.get("addressRegion", "")
+            row["pais"]       = addr.get("addressCountry", "")
         elif isinstance(addr, str):
             row["morada"] = addr
 
@@ -191,7 +225,7 @@ def extract_poi(url: str) -> dict | None:
         row["horario"]       = str(jld.get("openingHours", "") or jld.get("openingHoursSpecification", ""))
         row["imagem_jsonld"] = str(jld.get("image", ""))
 
-    # ── Open Graph / meta tags ───────────────────────────────────────────────
+    # Open Graph / meta tags (fallback)
     meta = extract_meta(soup)
     if not row.get("nome"):
         row["nome"] = meta.get("og:title", meta.get("title", ""))
@@ -199,60 +233,52 @@ def extract_poi(url: str) -> dict | None:
         row["descricao"] = meta.get("og:description", meta.get("description", ""))
     row["og_image"] = meta.get("og:image", "")
 
-    # ── Título H1 ────────────────────────────────────────────────────────────
+    # H1
     h1 = soup.find("h1")
     if h1:
         row["h1"] = _text(h1)
 
-    # ── Pares label → valor (dt/dd, th/td, strong+span, etc.) ───────────────
+    # Pares label→valor (dl/dt/dd, tabelas, elementos com classes field/detail)
     pares: list[tuple[str, str]] = []
-
     for dl in soup.find_all("dl"):
-        dts = dl.find_all("dt")
-        dds = dl.find_all("dd")
-        for dt, dd in zip(dts, dds):
+        for dt, dd in zip(dl.find_all("dt"), dl.find_all("dd")):
             pares.append((_text(dt), _text(dd)))
-
     for tr in soup.find_all("tr"):
-        ths = tr.find_all("th")
-        tds = tr.find_all("td")
-        for th, td in zip(ths, tds):
+        for th, td in zip(tr.find_all("th"), tr.find_all("td")):
             pares.append((_text(th), _text(td)))
-
     for el in soup.find_all(class_=re.compile(r"field|detail|info|meta|attr|prop", re.I)):
-        label = el.find(["label", "strong", "b", "dt", "th", "span"],
-                        class_=re.compile(r"label|key|title|name", re.I))
-        value = el.find(["span", "p", "div", "dd", "td"],
-                        class_=re.compile(r"value|content|data|text", re.I))
-        if label and value:
-            pares.append((_text(label), _text(value)))
+        lbl = el.find(["label", "strong", "b", "dt", "th", "span"],
+                      class_=re.compile(r"label|key|title|name", re.I))
+        val = el.find(["span", "p", "div", "dd", "td"],
+                      class_=re.compile(r"value|content|data|text", re.I))
+        if lbl and val:
+            pares.append((_text(lbl), _text(val)))
 
     for label_txt, val_txt in pares:
         if not label_txt or not val_txt or label_txt == val_txt:
             continue
-        key = re.sub(r"[^\w]", "_", label_txt.lower().strip("_"))[:40]
-        key = f"campo_{key}"
+        key = "campo_" + re.sub(r"[^\w]", "_", label_txt.lower().strip("_"))[:40]
         if key not in row:
             row[key] = val_txt
 
-    # ── Imagens ──────────────────────────────────────────────────────────────
+    # Imagens
     imgs = []
     for img in soup.find_all("img", src=True):
         src = img["src"]
-        if any(x in src for x in ["/photo", "/image", "/media", "/upload", "/poi"]):
+        if any(x in src for x in ["/photo", "/image", "/media", "/upload", "/poi", "/tour", "/event"]):
             imgs.append(urljoin(BASE_URL, src))
-    row["imagens"] = " | ".join(dict.fromkeys(imgs))  # sem duplicados
+    row["imagens"] = " | ".join(dict.fromkeys(imgs))
 
-    # ── Descrição longa (texto livre) ────────────────────────────────────────
+    # Descrição longa (fallback)
     if not row.get("descricao"):
         for tag in soup.find_all(["p", "div"],
-                                 class_=re.compile(r"desc|content|body|text|about", re.I)):
+                                  class_=re.compile(r"desc|content|body|text|about", re.I)):
             txt = _text(tag)
             if len(txt) > 120:
                 row["descricao"] = txt[:3000]
                 break
 
-    # ── Tags / categorias adicionais ─────────────────────────────────────────
+    # Tags / badges
     tags = []
     for tag in soup.find_all(class_=re.compile(r"\btag\b|\bbadge\b|\blabel\b|\bchip\b", re.I)):
         t = _text(tag)
@@ -260,247 +286,177 @@ def extract_poi(url: str) -> dict | None:
             tags.append(t)
     row["tags"] = " | ".join(dict.fromkeys(tags))
 
-    # ── Redes sociais ────────────────────────────────────────────────────────
+    # Redes sociais
     sociais = []
     for a in soup.find_all("a", href=True):
         href = a["href"]
         if any(s in href for s in ["facebook.com", "instagram.com", "twitter.com",
-                                   "youtube.com", "tiktok.com", "linkedin.com"]):
+                                    "youtube.com", "tiktok.com", "linkedin.com"]):
             sociais.append(href)
     row["redes_sociais"] = " | ".join(dict.fromkeys(sociais))
 
     return row
 
 
-# ── Descoberta de URLs ────────────────────────────────────────────────────────
-
-# Categorias de fallback (caso a descoberta automática não encontre nada)
-_FALLBACK_CATS: dict[str, list[str]] = {
-    "poi": [
-        # MERGULHAR
-        "praias-ou-piscinas", "docas-cais-e-fluvinas", "termas-e-spa",
-        # CONHECER
-        "paisagens", "historia-e-cultura", "gastronomia",
-        # PLANEAR
-        "onde-comer", "onde-dormir", "postos-de-turismo",
-        # categorias anteriores
-        "outras-paisagens", "trilhos", "experiencias", "alojamentos",
-        "restaurantes", "praias", "parques", "miradouros", "monumentos",
-        "museus", "aldeias", "cascatas", "lagos", "praias-fluviais",
-        "atividades", "pontos-de-interesse",
-    ],
-    "event": [
-        "feiras-e-tradicoes", "festivais", "mercados", "concertos",
-        "desporto", "cultura", "gastronomia", "natureza", "outros",
-    ],
-    "tour": [
-        # PASSEAR (menu visível)
-        "caminhadas", "bicicleta", "roteiros-tematicos",
-        # categorias anteriores
-        "caminhada-de-longa-distancia", "caminhada", "btt", "ciclismo",
-        "trail", "canoagem", "escalada", "equitacao", "outros",
-    ],
-    "p": [
-        # PARTICIPAR
-        "desafios", "experiencias-guiadas", "comprar-produtos-locais",
-        # anteriores
-        "contactos", "praias-fluviais-ou-piscinas", "eventos", "noticias",
-        "percursos", "alojamento", "restauracao", "servicos", "outros",
-    ],
-}
-
-
-def _collect_links(soup: BeautifulSoup, urls: set, base: str) -> int:
-    """Recolhe todos os links de items (poi, event, tour, p) de uma página."""
-    found = 0
-    for a in soup.find_all("a", href=True):
-        href = a["href"].split("#")[0]
-        if re.search(r"/pt/(poi|event|tour|p)/", href) and re.search(r"/\d+/?$", href):
-            full = urljoin(base, href).rstrip("/") + "/"
-            if full not in urls:
-                urls.add(full)
-                found += 1
-    return found
-
-
-def _discover_nav_categories() -> dict[str, list[str]]:
-    """
-    Crawla a navegação do site para descobrir automaticamente todas as
-    categorias existentes. Retorna {tipo: [slug, ...]}
-    """
-    found: dict[str, set[str]] = {"poi": set(), "event": set(), "tour": set(), "p": set()}
-
-    for path in ["/pt/", "/"]:
-        soup = get_page(BASE_URL + path)
-        if not soup:
-            continue
-        for a in soup.find_all("a", href=True):
-            href = urljoin(BASE_URL, a["href"].split("#")[0]).rstrip("/")
-            m = re.match(r"https?://[^/]+/pt/(poi|event|tour|p)/([^/?#]+)$", href)
-            if m:
-                tipo, slug = m.group(1), m.group(2)
-                if not re.search(r"^\d+$", slug):  # ignorar IDs directos
-                    found[tipo].add(slug)
-
-    result = {k: sorted(v) for k, v in found.items() if v}
-    if result:
-        for tipo, cats in result.items():
-            print(f"[Nav] {tipo}: {', '.join(cats)}")
-    return result
-
-
-def _crawl_categories(base_type: str, cats: list[str], urls: set):
-    """Pagina por cada categoria e recolhe URLs de items."""
-    for cat in cats:
-        for page in range(1, 50):
-            soup = get_page(f"{BASE_URL}/pt/{base_type}/{cat}/?page={page}")
-            if not soup:
-                break
-            found = _collect_links(soup, urls, BASE_URL)
-            if found == 0:
-                break
-            print(f"  [{base_type}/{cat}] pág {page}: +{found}")
-            time.sleep(DELAY)
-
-
-def _fetch_sitemap(url: str, urls: set, visited: set, depth: int = 0):
-    """Segue sitemap recursivamente (índices + folhas)."""
-    if url in visited or depth > 5:
-        return
-    visited.add(url)
-    try:
-        r = session.get(url, timeout=20)
-        if not r.ok:
-            return
-        soup = BeautifulSoup(r.text, "lxml-xml")  # parser XML nativo
-        locs = [loc.get_text(strip=True) for loc in soup.find_all("loc")]
-
-        # Índice de sitemaps — segue recursivamente
-        if soup.find("sitemapindex") or soup.find("sitemap"):
-            sub = [l for l in locs if l.endswith(".xml") and l not in visited]
-            print(f"[Sitemap índice] {url}: {len(sub)} sub-sitemaps")
-            for s in sub:
-                _fetch_sitemap(s, urls, visited, depth + 1)
-            return
-
-        # Folha — extrai URLs de items
-        before = len(urls)
-        for u in locs:
-            if re.search(r"/pt/(poi|event|tour|p)/", u) and re.search(r"/\d+/?$", u):
-                urls.add(u.rstrip("/") + "/")
-        added = len(urls) - before
-        if added:
-            print(f"[Sitemap] {url}: +{added} (total {len(urls)})")
-    except Exception as e:
-        print(f"  [Sitemap ERRO] {url}: {e}")
-
+# ── Descoberta BFS ────────────────────────────────────────────────────────────
 
 def discover_urls() -> list[str]:
-    urls: set[str] = set()
-    visited: set[str] = set()
+    """
+    BFS completo a partir das páginas de entrada do site.
+    Visita todas as páginas internas em /pt/ e recolhe URLs de items.
+    Segue paginação ilimitada nas listagens.
+    """
+    # Sementes: homepage + raízes de cada secção
+    seeds = [
+        BASE_URL + "/pt/",
+        BASE_URL + "/",
+        BASE_URL + "/pt/poi/",
+        BASE_URL + "/pt/event/",
+        BASE_URL + "/pt/tour/",
+        BASE_URL + "/pt/p/",
+    ]
 
-    # 1. Sitemap — segue índices recursivamente
-    # Também tenta ler o robots.txt para encontrar o sitemap oficial
-    try:
-        r = session.get(BASE_URL + "/robots.txt", timeout=10)
-        if r.ok:
-            for m in re.finditer(r"(?i)Sitemap:\s*(\S+)", r.text):
-                _fetch_sitemap(m.group(1), urls, visited)
-    except Exception:
-        pass
+    queue    = deque(seeds)
+    visited  = set()          # páginas de navegação já visitadas
+    item_urls = set()         # URLs de items a extrair
 
-    if not urls:
-        for path in ["/sitemap.xml", "/sitemap_index.xml", "/pt/sitemap.xml"]:
-            _fetch_sitemap(BASE_URL + path, urls, visited)
-            if urls:
-                break
+    nav_count = 0
 
-    if urls:
-        print(f"[Sitemap] Total: {len(urls)} URLs descobertas")
-        return list(urls)
+    print(f"[BFS] A iniciar com {len(seeds)} sementes...")
 
-    # 2. Descoberta automática de categorias a partir da navegação
-    nav_cats = _discover_nav_categories()
+    while queue and nav_count < MAX_VISIT:
+        url = queue.popleft()
+        norm = _normalize(url)
+        if not norm or norm in visited:
+            continue
+        if not _is_crawlable(norm):
+            continue
+        visited.add(norm)
+        nav_count += 1
 
-    # 3. Para cada tipo, usa categorias da nav + fallback (sem duplicados)
-    for tipo in ("poi", "event", "tour", "p"):
-        nav = nav_cats.get(tipo, [])
-        fallback = _FALLBACK_CATS.get(tipo, [])
-        # nav primeiro; fallback acrescenta categorias não descobertas pela nav
-        all_cats = list(dict.fromkeys(nav + [c for c in fallback if c not in nav]))
-        _crawl_categories(tipo, all_cats, urls)
+        is_item = _is_item(norm)
+        if is_item:
+            item_urls.add(norm)
+            # Items não precisam de ser crawlados para links
+            continue
 
-    # 4. Páginas de topo (apanha links soltos)
-    for path in ["/pt/poi/", "/pt/event/", "/pt/tour/", "/pt/p/", "/pt/", "/"]:
-        soup = get_page(BASE_URL + path)
-        if soup:
-            _collect_links(soup, urls, BASE_URL)
+        if nav_count % 10 == 0 or nav_count <= 5:
+            print(f"  [BFS nav {nav_count:4}] {norm}  |  items: {len(item_urls)}")
 
-    print(f"[Descoberta] {len(urls)} URLs no total")
-    return list(urls)
+        soup = get_page(norm)
+        if not soup:
+            time.sleep(DELAY)
+            continue
+
+        # Recolher todos os links desta página
+        for a in soup.find_all("a", href=True):
+            href = a["href"].strip()
+            if not href or href.startswith("javascript") or href.startswith("mailto") or href.startswith("tel"):
+                continue
+            full = urljoin(norm, href).split("#")[0]
+            norm2 = _normalize(full)
+            if not norm2 or not _is_crawlable(norm2) or norm2 in visited:
+                continue
+
+            if _is_item(norm2):
+                item_urls.add(norm2)
+            else:
+                queue.append(norm2)
+
+        time.sleep(DELAY)
+
+    print(f"\n[BFS] Concluído: {nav_count} páginas nav | {len(item_urls)} items encontrados")
+    return list(item_urls)
+
+
+# ── Colunas principais (ordem preferida no Excel) ─────────────────────────────
+
+_COLS_PRIORITY = [
+    "id_poi", "nome", "h1", "tipo_url", "categoria", "slug", "tipo",
+    "descricao", "morada", "localidade", "regiao", "pais",
+    "latitude", "longitude", "telefone", "email", "website",
+    "preco", "horario", "imagem_jsonld", "og_image", "imagens",
+    "tags", "redes_sociais", "url",
+]
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
     print("=" * 60)
-    print("  guidedbynature.pt — Crawler")
+    print("  guidedbynature.pt — Crawler v2 (BFS completo)")
     print("=" * 60)
 
-    _warm_session()
+    # Aquece sessão (cookies)
+    try:
+        r = session.get(BASE_URL + "/pt/", timeout=20)
+        print(f"[Session] HTTP {r.status_code} — cookies: {dict(r.cookies)}")
+    except Exception as e:
+        print(f"[Session] Aviso: {e}")
+
+    # ── Fase 1: descoberta ───────────────────────────────────────────────────
+    print("\n[Fase 1] Descoberta de URLs por BFS...\n")
     urls = discover_urls()
 
     if not urls:
-        print("\n[Aviso] Não foi possível descobrir URLs automaticamente.")
-        print("A usar URLs de exemplo fornecidos.")
-        urls = [
-            "https://guidedbynature.pt/pt/poi/outras-paisagens/zona-de-lazer-de-fermil/803708969/",
-            "https://guidedbynature.pt/pt/poi/outras-paisagens/parque-da-fraga-do-rio/803708890/",
-            "https://guidedbynature.pt/pt/poi/outras-paisagens/praia-fluvial-de-espadanedo/803709017/",
-            "https://guidedbynature.pt/pt/event/feiras-e-tradicoes/festa-do-caldo-de-quintandona/810958021/",
-            "https://guidedbynature.pt/pt/p/eventos/803757503/",
-            "https://guidedbynature.pt/pt/p/contactos/803158587/",
-            "https://guidedbynature.pt/pt/p/praias-fluviais-ou-piscinas/803158567/",
-            "https://guidedbynature.pt/pt/tour/caminhada-de-longa-distancia/gr47-grande-rota-de-montemuro/66287236/",
-        ]
+        print("[Aviso] Nenhuma URL de item descoberta.")
+        print("Possíveis causas: site bloqueado por Cloudflare, ou conteúdo renderizado em JS.")
+        return
 
     total = len(urls)
-    print(f"\nA processar {total} POIs...\n")
+    print(f"\n[Fase 2] Extracção de dados: {total} items\n")
 
+    # ── Fase 2: extracção ────────────────────────────────────────────────────
     dados = []
-    for i, url in enumerate(urls, 1):
-        if i <= 5 or i % 100 == 0:
-            print(f"[{i:5}/{total}] {url.split('/')[-2] or url}")
-        row = extract_poi(url)
+    for i, url in enumerate(sorted(urls), 1):
+        if i <= 10 or i % 50 == 0:
+            print(f"[{i:5}/{total}] {url}")
+        row = extract_item(url)
         if row:
             dados.append(row)
 
-        # Guarda parcialmente a cada 500 items
-        if i % 500 == 0 and dados:
-            pd.DataFrame(dados).to_excel(OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"), index=False)
+        # Guarda parcialmente a cada 300 items
+        if i % 300 == 0 and dados:
+            pd.DataFrame(dados).fillna("").to_excel(
+                OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"), index=False
+            )
             print(f"  [Parcial] {i}/{total} guardados")
+
         time.sleep(DELAY)
 
     if not dados:
-        print("\n[Erro] Nenhum dado extraído. O site pode estar a bloquear.")
-        print("Abra debug_page.html no browser para ver o HTML.")
+        print("[Erro] Nenhum dado extraído.")
         return
 
-    df = pd.DataFrame(dados)
+    df = pd.DataFrame(dados).fillna("")
 
-    # Reordenar colunas: campos principais primeiro
-    priority = ["id_poi", "nome", "h1", "categoria", "slug", "tipo",
-                 "descricao", "morada", "localidade", "regiao", "pais",
-                 "latitude", "longitude", "telefone", "email", "website",
-                 "preco", "horario", "imagem_jsonld", "og_image", "imagens",
-                 "tags", "redes_sociais", "url"]
-    cols = [c for c in priority if c in df.columns]
-    extra = [c for c in df.columns if c not in cols]
-    df = df[cols + extra]
+    # Reordenar colunas
+    cols = [c for c in _COLS_PRIORITY if c in df.columns]
+    cols += [c for c in df.columns if c not in cols]
+    df = df[cols]
 
-    df.to_excel(OUTPUT, index=False)
-    print(f"\n✅ Exportado: {OUTPUT}")
-    print(f"   {len(dados)} linhas  ×  {len(df.columns)} colunas")
+    # ── Sheet "Presença": X se campo tem valor, vazio se não ─────────────────
+    df_pres = df.copy()
+    for col in df_pres.columns:
+        df_pres[col] = df_pres[col].apply(lambda v: "X" if str(v).strip() else "")
+
+    # ── Exportar ─────────────────────────────────────────────────────────────
+    with pd.ExcelWriter(OUTPUT, engine="openpyxl") as writer:
+        df.to_excel(writer, sheet_name="Dados", index=False)
+        df_pres.to_excel(writer, sheet_name="Presença", index=False)
+
+        # Sheet de resumo por categoria
+        resumo = (
+            df.groupby(["tipo_url", "categoria"])
+              .agg(total=("url", "count"))
+              .reset_index()
+              .sort_values(["tipo_url", "categoria"])
+        )
+        resumo.to_excel(writer, sheet_name="Resumo", index=False)
+
+    print(f"\n✅  Exportado: {OUTPUT}")
+    print(f"    {len(dados)} linhas × {len(df.columns)} colunas")
+    print(f"    Sheets: 'Dados' | 'Presença' (X/vazio) | 'Resumo' (por categoria)")
     print(f"\nCampos extraídos: {', '.join(df.columns.tolist())}")
 
 
