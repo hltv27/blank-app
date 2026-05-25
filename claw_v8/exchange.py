@@ -86,7 +86,9 @@ def get_public_ip() -> str:
 
 
 def get_balance() -> float | None:
-    """Saldo disponível. BNFCR é a moeda de margem nesta conta europeia."""
+    """Saldo total da conta (walletBalance). Usado nos guards de risco.
+    Usa walletBalance (não availableBalance) para incluir margem em uso —
+    evita que o GUARDA 25% dispare com threshold de ~0 quando há posições abertas."""
     for attempt in range(2):
         try:
             r = requests.get(
@@ -106,7 +108,7 @@ def get_balance() -> float | None:
                 return None
             for a in data:
                 if a["asset"] in ("USDC", "BNFCR"):
-                    return float(a["availableBalance"])
+                    return float(a["walletBalance"])
         except Exception as e:
             print(f"[ERRO] get_balance: {e}")
             break
@@ -264,39 +266,32 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 
 
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
+    """STOP_MARKET com closePosition=true via /fapi/v1/order (endpoint regular).
+    A conta EU/BNFCR não suporta STOP_MARKET no endpoint algoOrder — usa o endpoint
+    de ordens standard com closePosition=true em vez de reduceOnly=true."""
     try:
         decimals = SYMBOL_PRECISION.get(symbol, 4)
         params = {
             "symbol":        symbol,
             "side":          side,
-            "orderType":     "STOP_MARKET",
-            "algoType":      "CONDITIONAL",
+            "type":          "STOP_MARKET",
             "stopPrice":     f"{stop_price:.{decimals}f}",
             "closePosition": "true",
         }
-        signed = _sign(params)
-        # Binance /fapi/v1/algoOrder aceita params no body (POST) ou na query string
-        # Testamos as duas formas para compatibilidade máxima
-        r = requests.post(
-            f"{BASE_URL}/fapi/v1/algoOrder",
-            data=signed, headers=_headers(), timeout=10
-        )
-        data = r.json()
-        if data.get("code") == -1102 and "algotype" in str(data.get("msg", "")).lower():
-            # Fallback: Binance pode exigir query string em vez de body
+        for attempt in range(3):
+            signed = _sign(params)
             r = requests.post(
-                f"{BASE_URL}/fapi/v1/algoOrder",
-                params=_sign(params), headers=_headers(), timeout=10
+                f"{BASE_URL}/fapi/v1/order",
+                params=signed, headers=_headers(), timeout=10
             )
             data = r.json()
-        if _is_timestamp_error(data):
-            sync_time()
-            r = requests.post(f"{BASE_URL}/fapi/v1/algoOrder",
-                              data=_sign(params), headers=_headers(), timeout=10)
-            data = r.json()
-        if "algoId" in data:
-            return data["algoId"]
-        print(f"[AVISO] stop_market {symbol}: {data.get('msg', data)}")
+            if _is_timestamp_error(data):
+                sync_time()
+                continue
+            if "orderId" in data:
+                return data["orderId"]
+            print(f"[AVISO] stop_market {symbol}: {data.get('msg', data)}")
+            break
     except Exception as e:
         print(f"[ERRO] place_stop_market {symbol}: {e}")
     return None
@@ -463,8 +458,10 @@ def cancel_order(symbol: str, order_id) -> bool:
 
 
 def cancel_algo_order(symbol: str, algo_id) -> bool:
-    """Cancela uma algo order (STOP_MARKET/TP/Trailing) pelo algoId."""
+    """Cancela stop/TP. Tenta primeiro como algoId (trailing stops), depois como
+    orderId regular (STOP_MARKET colocados via /fapi/v1/order)."""
     try:
+        # Tentativa 1: algo endpoint (trailing stops / TP)
         params = _sign({"symbol": symbol, "algoId": int(algo_id)})
         r = requests.delete(
             f"{_SAPI_URL}/sapi/v1/algo/futures/order",
@@ -481,9 +478,8 @@ def cancel_algo_order(symbol: str, algo_id) -> bool:
             data = r.json()
         if data.get("success") is True or data.get("code") == 200:
             return True
-        # Ordem já executada ou não existe — não é erro crítico
-        print(f"[AVISO] cancel_algo_order {symbol} #{algo_id}: {data.get('msg', data)}")
-        return False
     except Exception as e:
-        print(f"[AVISO] cancel_algo_order {symbol} #{algo_id}: {e}")
-        return False
+        print(f"[AVISO] cancel_algo_order algo attempt {symbol} #{algo_id}: {e}")
+
+    # Tentativa 2: ordem regular (STOP_MARKET via /fapi/v1/order)
+    return cancel_order(symbol, algo_id)
