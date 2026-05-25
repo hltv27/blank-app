@@ -12,7 +12,7 @@ from config import (
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
     MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, BTC_CRASH_PCT, CORR_MAX,
     BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
-    ROI_TP_IMEDIATO, TIME_TP_MIN_MIN, SCORE_FORTE,
+    ROI_TP_IMEDIATO, TIME_TP_MIN_MIN, SCORE_FORTE, EMERGENCY_PNL_CUT,
     LIQUIDATION_GUARD_PCT, LIQUIDATION_WARN1_PCT, LIQUIDATION_WARN2_PCT, LIQUIDATION_WARN3_PCT,
     TRAILING_LOCK_USDC
 )
@@ -695,6 +695,21 @@ def gerir_posicoes(mem: dict):
                         f"🔒 Stop em +1R: {lock_price:.4f} | Runner livre"
                     )
                     save_memory(mem)
+
+        # Corte por perda absoluta em USDC (3 USDC independente do ROI %)
+        if pos["pnl"] <= -EMERGENCY_PNL_CUT:
+            if _fechar_com_retry(symbol, pos["qty"], side):
+                log_risk_event("EMERGENCY_PNL", symbol=symbol,
+                               details=f"pnl={pos['pnl']:.2f} roi={roi:.1f}%")
+                _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                pos["pnl"], "EMERGENCY_PNL", False, mem)
+                tg(
+                    f"🛑 <b>CORTE -3 USDC</b> — {symbol}\n"
+                    f"PnL: {pos['pnl']:+.2f} USDC | ROI: {roi:.1f}%"
+                )
+            else:
+                tg(f"🚨 <b>CLOSE FALHOU — PNL</b> — {symbol}\nPnL: {pos['pnl']:+.2f} — fecha MANUALMENTE")
+            continue
 
         # Emergency ROI cut
         if roi <= EMERGENCY_ROI_CUT:
