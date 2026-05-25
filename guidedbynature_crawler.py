@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 """
-Crawler v3 — guidedbynature.pt
+Crawler v4 — guidedbynature.pt
 Sem pandas, sem lxml — compatível com Termux/Android.
 
-Dependências (todas pip-installable no Termux):
+Descoberta em cascata:
+  1. Sitemap XML  (mais rápido e completo)
+  2. URLs em <script> JSON embutido  (para sites React/Vue)
+  3. BFS por links + atributos data-*  (fallback geral)
+
+Dependências:
     pip install beautifulsoup4 openpyxl cloudscraper
 
 Correr:
     python guidedbynature_crawler.py
 
-Ficheiro gerado: guidedbynature_dados.xlsx  (sheets: Dados | Presença | Resumo)
+Ficheiro gerado: guidedbynature_dados.xlsx  (Dados | Presença | Resumo)
 """
 
 try:
@@ -34,7 +39,7 @@ except ImportError:
         "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "pt-PT,pt;q=0.9,en;q=0.7",
     })
-    print("[Info] requests simples (instala cloudscraper para melhor bypass)")
+    print("[Info] requests simples")
 
 from bs4 import BeautifulSoup
 from openpyxl import Workbook
@@ -45,24 +50,25 @@ from collections import deque
 import json
 import re
 import time
-import os
 
 BASE_URL  = "https://guidedbynature.pt"
 OUTPUT    = "guidedbynature_dados.xlsx"
-DELAY     = 1.0    # segundos entre pedidos
-MAX_VISIT = 5000   # limite de páginas de navegação
+DELAY     = 0.8    # segundos entre pedidos
+MAX_VISIT = 8000   # limite de segurança para BFS
 
-# URL de item: termina com ID numérico
+# URL de item individual (com ID numérico no fim)
 _ITEM_RE = re.compile(
     r"/pt/(poi|event|tour)/[^/?#]+/[^/?#]+/\d+/?$"
     r"|/pt/p/[^/?#]+/\d+/?$"
 )
+# URL de item em qualquer formato — usado para extrair de scripts/JSON
+_ITEM_RE_LOOSE = re.compile(r"/pt/(poi|event|tour|p)/[^\"'\s]+/\d+")
 
 _SKIP = [
     "/api/", "/admin/", "/static/", "/media/", "/files/",
     "/en/", "/es/", "/fr/", "/de/",
     ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".svg",
-    ".zip", ".xml", ".js", ".css", ".ico",
+    ".zip", ".js", ".css", ".ico",
 ]
 
 
@@ -73,7 +79,9 @@ def _normalize(url: str) -> str:
         p = urlparse(url)
     except Exception:
         return ""
-    if p.netloc and p.netloc not in BASE_URL.replace("https://", ""):
+    netloc = p.netloc.replace("www.", "")
+    base_netloc = BASE_URL.replace("https://", "").replace("http://", "").replace("www.", "")
+    if p.netloc and netloc != base_netloc:
         return ""
     if p.scheme and p.scheme not in ("http", "https"):
         return ""
@@ -100,27 +108,183 @@ def _is_crawlable(url: str) -> bool:
 
 # ── HTTP ─────────────────────────────────────────────────────────────────────
 
-def get_page(url: str, retries: int = 2):
-    for attempt in range(retries + 1):
+def get_raw(url: str, timeout=25) -> str | None:
+    """Retorna o texto bruto da página, sem parsear."""
+    for attempt in range(3):
         try:
-            r = session.get(url, timeout=25)
+            r = session.get(url, timeout=timeout)
             if r.status_code == 404:
                 return None
             r.raise_for_status()
-            return BeautifulSoup(r.text, "html.parser")
+            return r.text
         except Exception as e:
-            if attempt < retries:
+            if attempt < 2:
                 time.sleep(2 ** attempt)
             else:
                 print(f"  [ERRO] {url}: {e}")
     return None
 
 
+def get_page(url: str):
+    html = get_raw(url)
+    return BeautifulSoup(html, "html.parser") if html else None
+
+
 def _text(el) -> str:
     return el.get_text(" ", strip=True) if el else ""
 
 
-# ── Extracção ─────────────────────────────────────────────────────────────────
+# ── Descoberta 1: Sitemap XML ─────────────────────────────────────────────────
+
+def _parse_sitemap(url: str, item_urls: set, visited: set, depth=0):
+    if url in visited or depth > 6:
+        return
+    visited.add(url)
+    html = get_raw(url, timeout=20)
+    if not html:
+        return
+
+    # Extrair todos os <loc>
+    locs = re.findall(r"<loc>\s*([^<]+)\s*</loc>", html)
+
+    # Se tem <sitemapindex> ou <sitemap>, são sub-sitemaps
+    if "<sitemapindex" in html or ("<sitemap>" in html and "<loc>" in html and ".xml" in html):
+        sub = [l.strip() for l in locs if l.strip().endswith(".xml")]
+        print(f"  [Sitemap índice] {len(sub)} sub-sitemaps em {url}")
+        for s in sub:
+            _parse_sitemap(s, item_urls, visited, depth + 1)
+        return
+
+    # Folha: extrair URLs de items
+    before = len(item_urls)
+    for loc in locs:
+        loc = loc.strip()
+        if _ITEM_RE.search(loc):
+            item_urls.add(loc.rstrip("/") + "/")
+    added = len(item_urls) - before
+    if added:
+        print(f"  [Sitemap] +{added} items ({len(item_urls)} total) — {url}")
+    time.sleep(0.3)
+
+
+def discover_via_sitemap() -> set:
+    item_urls: set = set()
+    visited:   set = set()
+
+    # 1. robots.txt
+    html = get_raw(BASE_URL + "/robots.txt", timeout=10)
+    if html:
+        for m in re.finditer(r"(?i)Sitemap:\s*(\S+)", html):
+            _parse_sitemap(m.group(1).strip(), item_urls, visited)
+
+    # 2. Localizações comuns
+    if not item_urls:
+        for path in [
+            "/sitemap.xml", "/sitemap_index.xml",
+            "/pt/sitemap.xml", "/sitemap-pt.xml",
+            "/sitemaps/index.xml", "/sitemap/sitemap.xml",
+        ]:
+            _parse_sitemap(BASE_URL + path, item_urls, visited)
+            if item_urls:
+                break
+
+    return item_urls
+
+
+# ── Descoberta 2: URLs embutidas em <script> ──────────────────────────────────
+
+def _urls_from_scripts(html: str, base: str) -> set:
+    """Extrai URLs de items que estejam embutidas em JSON/JS na página."""
+    found = set()
+    for m in _ITEM_RE_LOOSE.finditer(html):
+        raw = m.group(0).rstrip("\"'\\,; ")
+        norm = _normalize(urljoin(base, raw))
+        if norm and _is_item(norm):
+            found.add(norm)
+    return found
+
+
+def _urls_from_data_attrs(soup, base: str) -> set:
+    """Extrai URLs de atributos data-url, data-href, data-link, etc."""
+    found = set()
+    for el in soup.find_all(True):
+        for attr in ("data-url", "data-href", "data-link", "data-path", "data-target"):
+            val = el.get(attr, "")
+            if val and _ITEM_RE.search(val):
+                norm = _normalize(urljoin(base, val))
+                if norm:
+                    found.add(norm)
+    return found
+
+
+# ── Descoberta 3: BFS completo ────────────────────────────────────────────────
+
+def discover_via_bfs(known_items: set) -> set:
+    seeds = [
+        BASE_URL + "/pt/",
+        BASE_URL + "/",
+        BASE_URL + "/pt/poi/",
+        BASE_URL + "/pt/event/",
+        BASE_URL + "/pt/tour/",
+        BASE_URL + "/pt/p/",
+    ]
+
+    queue     = deque(seeds)
+    visited   = set()
+    item_urls = set(known_items)
+    nav_count = 0
+
+    print(f"[BFS] Inicio — {len(seeds)} sementes, {len(known_items)} items já conhecidos")
+
+    while queue and nav_count < MAX_VISIT:
+        url  = queue.popleft()
+        norm = _normalize(url)
+        if not norm or norm in visited or not _is_crawlable(norm):
+            continue
+        visited.add(norm)
+        nav_count += 1
+
+        if _is_item(norm):
+            item_urls.add(norm)
+            continue
+
+        if nav_count % 20 == 0 or nav_count <= 5:
+            print(f"  [BFS {nav_count:4}] {norm}  |  items: {len(item_urls)}")
+
+        html = get_raw(norm)
+        if not html:
+            time.sleep(DELAY)
+            continue
+
+        soup = BeautifulSoup(html, "html.parser")
+
+        # Extrair URLs de <script> e atributos data-*
+        for u in _urls_from_scripts(html, norm):
+            item_urls.add(u)
+        for u in _urls_from_data_attrs(soup, norm):
+            item_urls.add(u)
+
+        # Links <a href>
+        for a in soup.find_all("a", href=True):
+            href = a["href"].strip()
+            if not href or href.startswith("javascript") or href.startswith("mailto") or href.startswith("tel"):
+                continue
+            full  = urljoin(norm, href).split("#")[0]
+            norm2 = _normalize(full)
+            if not norm2 or not _is_crawlable(norm2) or norm2 in visited:
+                continue
+            if _is_item(norm2):
+                item_urls.add(norm2)
+            else:
+                queue.append(norm2)
+
+        time.sleep(DELAY)
+
+    print(f"[BFS] {nav_count} páginas nav | {len(item_urls)} items no total")
+    return item_urls
+
+
+# ── Extracção de dados de um item ─────────────────────────────────────────────
 
 def extract_jsonld(soup) -> dict:
     for script in soup.find_all("script", type="application/ld+json"):
@@ -152,7 +316,6 @@ def extract_item(url: str) -> dict | None:
 
     row: dict = {"url": url}
 
-    # Campos da URL
     parts = url.rstrip("/").split("/")
     row["id_poi"] = parts[-1] if parts[-1].isdigit() else ""
 
@@ -177,7 +340,6 @@ def extract_item(url: str) -> dict | None:
         row["slug"]      = parts[-2] if len(parts) >= 2 else ""
         row["categoria"] = parts[-3] if len(parts) >= 3 else ""
 
-    # JSON-LD
     jld = extract_jsonld(soup)
     if jld:
         row["nome"]      = jld.get("name", "")
@@ -202,7 +364,6 @@ def extract_item(url: str) -> dict | None:
         row["horario"]       = str(jld.get("openingHours", "") or jld.get("openingHoursSpecification", ""))
         row["imagem_jsonld"] = str(jld.get("image", ""))
 
-    # Open Graph / meta (fallback)
     meta = extract_meta(soup)
     if not row.get("nome"):
         row["nome"] = meta.get("og:title", meta.get("title", ""))
@@ -210,12 +371,10 @@ def extract_item(url: str) -> dict | None:
         row["descricao"] = meta.get("og:description", meta.get("description", ""))
     row["og_image"] = meta.get("og:image", "")
 
-    # H1
     h1 = soup.find("h1")
     if h1:
         row["h1"] = _text(h1)
 
-    # Pares label→valor
     pares = []
     for dl in soup.find_all("dl"):
         for dt, dd in zip(dl.find_all("dt"), dl.find_all("dd")):
@@ -237,7 +396,6 @@ def extract_item(url: str) -> dict | None:
         if key not in row:
             row[key] = val
 
-    # Imagens
     imgs = []
     for img in soup.find_all("img", src=True):
         src = img["src"]
@@ -245,7 +403,6 @@ def extract_item(url: str) -> dict | None:
             imgs.append(urljoin(BASE_URL, src))
     row["imagens"] = " | ".join(dict.fromkeys(imgs))
 
-    # Descrição longa (fallback)
     if not row.get("descricao"):
         for tag in soup.find_all(["p", "div"],
                                   class_=re.compile(r"desc|content|body|text|about", re.I)):
@@ -254,7 +411,6 @@ def extract_item(url: str) -> dict | None:
                 row["descricao"] = txt[:3000]
                 break
 
-    # Tags
     tags = []
     for tag in soup.find_all(class_=re.compile(r"\btag\b|\bbadge\b|\blabel\b|\bchip\b", re.I)):
         t = _text(tag)
@@ -262,7 +418,6 @@ def extract_item(url: str) -> dict | None:
             tags.append(t)
     row["tags"] = " | ".join(dict.fromkeys(tags))
 
-    # Redes sociais
     sociais = []
     for a in soup.find_all("a", href=True):
         href = a["href"]
@@ -274,64 +429,7 @@ def extract_item(url: str) -> dict | None:
     return row
 
 
-# ── BFS ───────────────────────────────────────────────────────────────────────
-
-def discover_urls() -> list:
-    seeds = [
-        BASE_URL + "/pt/",
-        BASE_URL + "/",
-        BASE_URL + "/pt/poi/",
-        BASE_URL + "/pt/event/",
-        BASE_URL + "/pt/tour/",
-        BASE_URL + "/pt/p/",
-    ]
-    queue     = deque(seeds)
-    visited   = set()
-    item_urls = set()
-    nav_count = 0
-
-    print(f"[BFS] Inicio com {len(seeds)} sementes...")
-
-    while queue and nav_count < MAX_VISIT:
-        url  = queue.popleft()
-        norm = _normalize(url)
-        if not norm or norm in visited or not _is_crawlable(norm):
-            continue
-        visited.add(norm)
-        nav_count += 1
-
-        if _is_item(norm):
-            item_urls.add(norm)
-            continue
-
-        if nav_count % 10 == 0 or nav_count <= 5:
-            print(f"  [nav {nav_count:4}] {norm}  |  items: {len(item_urls)}")
-
-        soup = get_page(norm)
-        if not soup:
-            time.sleep(DELAY)
-            continue
-
-        for a in soup.find_all("a", href=True):
-            href = a["href"].strip()
-            if not href or href.startswith("javascript") or href.startswith("mailto") or href.startswith("tel"):
-                continue
-            full  = urljoin(norm, href).split("#")[0]
-            norm2 = _normalize(full)
-            if not norm2 or not _is_crawlable(norm2) or norm2 in visited:
-                continue
-            if _is_item(norm2):
-                item_urls.add(norm2)
-            else:
-                queue.append(norm2)
-
-        time.sleep(DELAY)
-
-    print(f"\n[BFS] {nav_count} páginas nav | {len(item_urls)} items encontrados")
-    return list(item_urls)
-
-
-# ── Excel (openpyxl directo, sem pandas) ─────────────────────────────────────
+# ── Excel com openpyxl ────────────────────────────────────────────────────────
 
 _COLS_PRIORITY = [
     "id_poi", "nome", "h1", "tipo_url", "categoria", "slug", "tipo",
@@ -343,13 +441,12 @@ _COLS_PRIORITY = [
 
 _HDR_FILL  = PatternFill("solid", fgColor="1F4E79")
 _HDR_FONT  = Font(color="FFFFFF", bold=True)
-_PRES_FILL = PatternFill("solid", fgColor="E2EFDA")  # verde claro nas células X
+_X_FILL    = PatternFill("solid", fgColor="E2EFDA")
 
 
 def _write_sheet(ws, headers, rows, presence=False):
     ws.append(headers)
-    # Estilo cabeçalho
-    for col_idx, _ in enumerate(headers, 1):
+    for col_idx in range(1, len(headers) + 1):
         cell = ws.cell(row=1, column=col_idx)
         cell.fill = _HDR_FILL
         cell.font = _HDR_FONT
@@ -359,21 +456,16 @@ def _write_sheet(ws, headers, rows, presence=False):
         values = []
         for col in headers:
             val = str(row.get(col, "") or "").strip()
-            if presence:
-                values.append("X" if val else "")
-            else:
-                values.append(val)
+            values.append("X" if presence and val else ("" if presence else val))
         ws.append(values)
 
-    # Destacar X a verde na sheet Presença
     if presence:
         for r in ws.iter_rows(min_row=2):
             for cell in r:
                 if cell.value == "X":
-                    cell.fill = _PRES_FILL
+                    cell.fill = _X_FILL
                     cell.alignment = Alignment(horizontal="center")
 
-    # Auto-largura
     for col_idx, col_name in enumerate(headers, 1):
         max_len = len(col_name)
         for r in ws.iter_rows(min_row=2, min_col=col_idx, max_col=col_idx):
@@ -383,7 +475,7 @@ def _write_sheet(ws, headers, rows, presence=False):
         ws.column_dimensions[get_column_letter(col_idx)].width = max_len + 2
 
 
-def _write_resumo(ws, dados, headers):
+def _write_resumo(ws, dados):
     from collections import Counter
     ws.append(["tipo_url", "categoria", "total"])
     for col_idx in range(1, 4):
@@ -391,18 +483,13 @@ def _write_resumo(ws, dados, headers):
         cell.fill = _HDR_FILL
         cell.font = _HDR_FONT
         cell.alignment = Alignment(horizontal="center")
-
     counter = Counter()
     for row in dados:
-        tipo = str(row.get("tipo_url", "") or "")
-        cat  = str(row.get("categoria", "") or "")
-        counter[(tipo, cat)] += 1
-
+        counter[(str(row.get("tipo_url", "")), str(row.get("categoria", "")))] += 1
     for (tipo, cat), total in sorted(counter.items()):
         ws.append([tipo, cat, total])
-
-    for col_idx in [1, 2, 3]:
-        ws.column_dimensions[get_column_letter(col_idx)].width = 25
+    for i in range(1, 4):
+        ws.column_dimensions[get_column_letter(i)].width = 25
 
 
 def save_excel(dados, output=OUTPUT):
@@ -410,77 +497,67 @@ def save_excel(dados, output=OUTPUT):
         print("[Erro] Sem dados para guardar.")
         return
 
-    # Determinar colunas
-    all_keys = []
-    seen = set()
+    all_keys, seen = [], set()
     for row in dados:
         for k in row:
             if k not in seen:
-                seen.add(k)
-                all_keys.append(k)
+                seen.add(k); all_keys.append(k)
 
     priority = [c for c in _COLS_PRIORITY if c in seen]
-    extra    = [c for c in all_keys if c not in priority]
-    headers  = priority + extra
+    headers  = priority + [c for c in all_keys if c not in priority]
 
     wb = Workbook()
-
-    # Sheet 1 — Dados
     ws_dados = wb.active
     ws_dados.title = "Dados"
-    _write_sheet(ws_dados, headers, dados, presence=False)
+    _write_sheet(ws_dados, headers, dados)
 
-    # Sheet 2 — Presença
     ws_pres = wb.create_sheet("Presença")
     _write_sheet(ws_pres, headers, dados, presence=True)
 
-    # Sheet 3 — Resumo
     ws_res = wb.create_sheet("Resumo")
-    _write_resumo(ws_res, dados, headers)
+    _write_resumo(ws_res, dados)
 
     wb.save(output)
-    print(f"\n✅  Exportado: {output}")
+    print(f"\n✅  {output}")
     print(f"    {len(dados)} linhas × {len(headers)} colunas")
-    print(f"    Sheets: Dados | Presença (X/vazio) | Resumo")
-
-
-def save_partial(dados, i):
-    name = OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx")
-    save_excel(dados, name)
-    print(f"  [Parcial] {i} items guardados em {name}")
+    print(f"    Sheets: Dados | Presença (X/vazio) | Resumo por categoria")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
     print("=" * 60)
-    print("  guidedbynature.pt — Crawler v3 (Termux-friendly)")
+    print("  guidedbynature.pt — Crawler v4")
     print("=" * 60)
 
-    # Warm session
     try:
         r = session.get(BASE_URL + "/pt/", timeout=20)
         print(f"[Session] HTTP {r.status_code}")
-        if r.status_code == 403:
-            print("[Aviso] Site a bloquear — tenta mesmo assim...")
     except Exception as e:
         print(f"[Session] {e}")
 
-    # Fase 1: descoberta
-    print("\n[Fase 1] Descoberta BFS...\n")
-    urls = discover_urls()
+    # ── Fase 1: Sitemap ──────────────────────────────────────────────────────
+    print("\n[Fase 1] Sitemap XML...")
+    item_urls = discover_via_sitemap()
+    print(f"  → {len(item_urls)} items via sitemap")
 
-    if not urls:
+    # ── Fase 2: BFS (sempre corre — apanha o que o sitemap perdeu) ───────────
+    print("\n[Fase 2] BFS completo (links + scripts + data-attrs)...")
+    item_urls = discover_via_bfs(item_urls)
+    print(f"  → {len(item_urls)} items no total")
+
+    if not item_urls:
         print("\n[Aviso] Nenhum item encontrado.")
-        print("O site pode estar a bloquear ou o conteúdo é renderizado em JS.")
+        print("Causa provável: conteúdo 100% renderizado em JS (precisa de Selenium).")
         return
 
+    urls  = sorted(item_urls)
     total = len(urls)
-    print(f"\n[Fase 2] Extracção de {total} items\n")
+    print(f"\n[Fase 3] Extracção de dados: {total} items\n")
 
-    # Fase 2: extracção
+    # ── Fase 3: extracção ────────────────────────────────────────────────────
     dados = []
-    for i, url in enumerate(sorted(urls), 1):
+    for i, url in enumerate(urls, 1):
         if i <= 10 or i % 50 == 0:
             print(f"[{i:5}/{total}] {url}")
         row = extract_item(url)
@@ -488,7 +565,7 @@ def main():
             dados.append(row)
 
         if i % 300 == 0 and dados:
-            save_partial(dados, i)
+            save_excel(dados, OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"))
 
         time.sleep(DELAY)
 
