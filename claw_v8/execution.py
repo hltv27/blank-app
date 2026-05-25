@@ -27,6 +27,18 @@ from strategy import calc_sl_tp, calc_qty, signal_trending
 
 # Timestamp do último check de reversão de sinal por símbolo (rate-limit 60s)
 _signal_inv_ts: dict = {}
+
+
+def _fechar_com_retry(symbol: str, qty: float, side: str, tentativas: int = 3) -> bool:
+    """Tenta fechar posição na exchange. Retorna True se bem-sucedido."""
+    for i in range(tentativas):
+        result = close_position(symbol, qty, side)
+        if result is not None:
+            return True
+        if i < tentativas - 1:
+            time.sleep(1.5)
+    return False
+
 from filters import (
     macro_event_proximo, volatility_regime_ok, spread_ok,
     market_conditions_ok, htf_4h_ok, htf_1h_ok, fear_greed_ok,
@@ -432,18 +444,19 @@ def gerir_posicoes(mem: dict):
 
         # ROI alto → fecha imediatamente, sem esperar tempo
         if roi >= ROI_TP_IMEDIATO:
-            close_position(symbol, pos["qty"], side)
-            _registar_fecho(symbol, side, entry, sl, tp, qty,
-                            pos["pnl"], "ROI_TP", True, mem)
-            tg(
-                f"🎯 <b>ROI TP</b> — {symbol}\n"
-                f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} | {int(elapsed/60)}min"
-            )
+            if _fechar_com_retry(symbol, pos["qty"], side):
+                _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                pos["pnl"], "ROI_TP", True, mem)
+                tg(
+                    f"🎯 <b>ROI TP</b> — {symbol}\n"
+                    f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} | {int(elapsed/60)}min"
+                )
             continue
 
         # Saída por tempo + ROI ≥ 5%
         if elapsed >= TIME_TP_MIN_MIN * 60 and roi >= 5.0:
-            close_position(symbol, pos["qty"], side)
+            if not _fechar_com_retry(symbol, pos["qty"], side):
+                continue
             _registar_fecho(symbol, side, entry, sl, tp, qty,
                             pos["pnl"], "TIME_TP", True, mem)
             tg(
@@ -470,15 +483,15 @@ def gerir_posicoes(mem: dict):
                     inv_dir, inv_score, inv_det = signal_trending(
                         c_inv, h_inv, l_inv, v_inv, symbol)
                     if inv_dir is not None and inv_dir != side and inv_score >= SCORE_FORTE:
-                        close_position(symbol, pos["qty"], side)
-                        _registar_fecho(symbol, side, entry, sl, tp, qty,
-                                        pos["pnl"], "SIGNAL_INV", pos["pnl"] > 0, mem)
-                        tg(
-                            f"🔄 <b>SINAL INVERTIDO</b> — {symbol}\n"
-                            f"Era {side} | Agora: {inv_dir} (score {inv_score})\n"
-                            f"PnL: {pos['pnl']:+.2f} USDC | ROI: {roi:.1f}%\n"
-                            f"{inv_det}"
-                        )
+                        if _fechar_com_retry(symbol, pos["qty"], side):
+                            _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                            pos["pnl"], "SIGNAL_INV", pos["pnl"] > 0, mem)
+                            tg(
+                                f"🔄 <b>SINAL INVERTIDO</b> — {symbol}\n"
+                                f"Era {side} | Agora: {inv_dir} (score {inv_score})\n"
+                                f"PnL: {pos['pnl']:+.2f} USDC | ROI: {roi:.1f}%\n"
+                                f"{inv_det}"
+                            )
                         continue
             except Exception as _e:
                 print(f"[AVISO] signal_inv {symbol}: {_e}")
@@ -487,7 +500,8 @@ def gerir_posicoes(mem: dict):
         # Trade aberto > 45min com ganho marginal: liberta capital
         tempo_min = elapsed / 60
         if tempo_min >= 45 and pos["pnl"] < 0.5 and not trade.get("trailing_lock_done"):
-            close_position(symbol, pos["qty"], side)
+            if not _fechar_com_retry(symbol, pos["qty"], side):
+                continue
             _registar_fecho(symbol, side, entry, sl, tp, qty,
                             pos["pnl"], "STAGNADO", pos["pnl"] > 0, mem)
             tg(
@@ -684,15 +698,20 @@ def gerir_posicoes(mem: dict):
 
         # Emergency ROI cut
         if roi <= EMERGENCY_ROI_CUT:
-            close_position(symbol, pos["qty"], side)
-            log_risk_event("EMERGENCY_CUT", symbol=symbol,
-                           details=f"roi={roi:.1f}% pnl={pos['pnl']:.2f}")
-            _registar_fecho(symbol, side, entry, sl, tp, qty,
-                            pos["pnl"], "EMERGENCY_SL", False, mem)
-            tg(
-                f"🛑 <b>CORTE EMERGÊNCIA</b> — {symbol}\n"
-                f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f}"
-            )
+            if _fechar_com_retry(symbol, pos["qty"], side):
+                log_risk_event("EMERGENCY_CUT", symbol=symbol,
+                               details=f"roi={roi:.1f}% pnl={pos['pnl']:.2f}")
+                _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                pos["pnl"], "EMERGENCY_SL", False, mem)
+                tg(
+                    f"🛑 <b>CORTE EMERGÊNCIA</b> — {symbol}\n"
+                    f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f}"
+                )
+            else:
+                tg(
+                    f"🚨 <b>CLOSE FALHOU — EMERGÊNCIA</b> — {symbol}\n"
+                    f"ROI: {roi:.1f}% | 3 tentativas falharam — fecha MANUALMENTE"
+                )
             continue
 
         if sl <= 0 or tp <= 0:
@@ -702,7 +721,9 @@ def gerir_posicoes(mem: dict):
         hit_tp = (side == "LONG" and price >= tp) or (side == "SHORT" and price <= tp)
 
         if hit_sl or hit_tp:
-            close_position(symbol, pos["qty"], side)
+            if not _fechar_com_retry(symbol, pos["qty"], side):
+                tg(f"⚠️ <b>CLOSE FALHOU</b> — {symbol}\nSL/TP hit mas close recusado — retry ciclo seguinte")
+                continue
             reason = "TP" if hit_tp else "SL"
             _registar_fecho(symbol, side, entry, sl, tp, qty,
                             pos["pnl"], reason, hit_tp, mem)
