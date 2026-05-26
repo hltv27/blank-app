@@ -51,11 +51,13 @@ def run():
     sync_time()
 
     # Fetch dinâmico dos top N pares USDC-M por volume + precisão
-    dinamicos, precisoes = get_top_futures_symbols(TOP_N_FUTURES)
+    dinamicos, precisoes, price_precisoes = get_top_futures_symbols(TOP_N_FUTURES)
     if dinamicos:
         config.SYMBOLS = dinamicos
     if precisoes:
         config.SYMBOL_PRECISION.update(precisoes)
+    if price_precisoes:
+        config.PRICE_PRECISION.update(price_precisoes)
     SYMBOLS = config.SYMBOLS
 
     ultima_actualizacao_symbols = time.time()
@@ -86,12 +88,14 @@ def run():
 
             # Actualiza lista de pares a cada 24h
             if time.time() - ultima_actualizacao_symbols > 86400:
-                novos, precisoes_novas = get_top_futures_symbols(TOP_N_FUTURES)
+                novos, precisoes_novas, price_precisoes_novas = get_top_futures_symbols(TOP_N_FUTURES)
                 if novos:
                     config.SYMBOLS = novos
                     SYMBOLS = config.SYMBOLS
                 if precisoes_novas:
                     config.SYMBOL_PRECISION.update(precisoes_novas)
+                if price_precisoes_novas:
+                    config.PRICE_PRECISION.update(price_precisoes_novas)
                 print(f"[{hora}] Pares actualizados: {len(SYMBOLS)}")
                 ultima_actualizacao_symbols = time.time()
 
