@@ -9,13 +9,17 @@ Bot de trading automático para Binance Futures USDC-M (perpétuos).
 
 ## Como arrancar o bot
 ```bash
-cd ~/blank-app && git pull origin claude/setup-project-structure-3xwuR
 pkill -f "python.*main.py"; sleep 2
-cd ~/blank-app/claw_v8 && nohup python main.py > ~/claw.log 2>&1 &
+cd ~/blank-app && git pull origin main
+cd claw_v8 && python -u main.py > ~/claw.log 2>&1 &
+sleep 3 && tail -20 ~/claw.log
 ```
+> **Nota**: usar `python -u` (unbuffered) — sem isso o log fica vazio com nohup.
 
-## Branch de desenvolvimento
-`claude/setup-project-structure-3xwuR` — NUNCA fazer push para main sem confirmar
+## Branches
+- **Desenvolvimento**: `claude/setup-project-structure-3xwuR`
+- **Produção**: `main` — pushes vão sempre para `main` no GitHub (hltv27/blank-app)
+- NUNCA fazer push para main sem confirmar com o utilizador
 
 ## Credenciais
 **NUNCA mostrar no chat.** Estão em `~/.bashrc` como variáveis de ambiente:
@@ -49,27 +53,28 @@ O profit lock cancela o stop antigo ANTES de colocar o novo. Ver `execution.py`.
 
 ---
 
-## Bugs corrigidos (histórico)
+## Parâmetros actuais em `config.py`
 
-### 1. STOP_MARKET conflito com TP order
-- **Causa**: profit lock tentava colocar 2º closePosition stop sem cancelar o 1º
-- **Fix**: cancela stop antigo PRIMEIRO, só depois coloca novo (`execution.py`)
-
-### 2. Bot geria posições manuais do utilizador
-- **Causa**: sync em `main.py` detectava qualquer posição em SYMBOLS e geria
-- **Custo real**: SUIUSDC -8.76 USDC (posição do bot órfã), ZECUSDC +30 USDC fechado
-- **Fix**: `pending_sync[symbol]` escrito antes de colocar ordem; sync só recupera se marcador < 5min
-
-### 3. Profit lock spam no Telegram
-- **Causa**: stop falhava, bot não actualizava nível, ciclo infinito de mensagens
-- **Fix**: avança `profit_lock_level` e `sl` em memória independentemente do resultado da exchange
-
-### 4. Guards fechavam trades manuais
-- **Fix**: todos os guards verificam `if sym not in trades_bot: continue`
-
-### 5. `abrir_trade` fechava posição quando SL falhava
-- **Antes**: 3 falhas de SL → fecha posição por segurança → perde a oportunidade
-- **Agora**: mantém posição, software SL em memória, avisa no Telegram
+```python
+CAPITAL_MAX_BOT     = 300.0    # capital máximo que o bot usa
+RISCO_USDC          = 5.0      # risco por trade em USDC
+ALAVANCAGEM         = 6        # leverage
+MAX_TRADES_ABERTOS  = 5
+MAX_MARGEM_TRADE    = 0.20     # máx 20% do capital por posição
+PROFIT_LOCK_USDC    = 1.0      # activa lock a partir de +1 USDC
+PROFIT_LOCK_STEP    = 0.5      # move stop a cada +0.5 USDC
+TRAILING_LOCK_USDC  = 4.0      # ao atingir 4 USDC muda para trailing stop
+EMERGENCY_ROI_CUT   = -5.5     # % ROI para corte de emergência
+EMERGENCY_PNL_CUT   = 3.0      # fecha se perda absoluta > 3 USDC
+SCORE_ALERTA        = 6        # score mínimo para abrir trade (era 4)
+SCORE_FORTE         = 6        # score considerado forte
+ADX_TREND_MIN_MAJOR = 22.5     # BTC/ETH/BNB
+ADX_TREND_MIN_ALT   = 30.0     # alts — exige tendência mais forte
+ROI_TP_IMEDIATO     = 7.0      # % ROI → fecha imediatamente
+TIME_TP_MIN_MIN     = 10       # minutos mínimos para TIME_TP
+SESSOES_UTC         = [(5, 23)]
+TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
+```
 
 ---
 
@@ -81,18 +86,25 @@ O profit lock cancela o stop antigo ANTES de colocar o novo. Ver `execution.py`.
 3. Vol scale: se ATR/price > 0.3%, reduz qty proporcionalmente
 4. Escreve `pending_sync[symbol]` → coloca ordem MARKET → coloca STOP_MARKET → coloca TP
 
-### Gestão (`gerir_posicoes`, ciclo de 10s quando há posições)
-- **Profit lock**: PnL > 1 USDC → move SL a cada +0.5 USDC. Cancela stop antigo, coloca novo
-- **TP1** (2R): fecha 33%, trailing stop para breakeven
-- **TP2** (3R): fecha mais 33%, trailing stop para +1R
-- **TIME_TP**: 30min aberto + ROI ≥ 5% → fecha
-- **Emergency cut**: ROI ≤ -5.5% → fecha imediatamente
-- **Software SL**: `price <= sl` (LONG) ou `price >= sl` (SHORT) → fecha via MARKET
+### Saídas (`gerir_posicoes`, ciclo de 10s quando há posições)
+| Regra | Condição | Acção |
+|---|---|---|
+| **Profit lock** | PnL > 1 USDC | Move SL a cada +0.5 USDC |
+| **Trailing lock** | PnL ≥ 4 USDC | Muda stop fixo → trailing stop |
+| **TP1** | 2R atingido | Fecha 33%, trailing para breakeven |
+| **TP2** | 3R atingido | Fecha mais 33% |
+| **TIME_TP** | >10min + ROI ≥ 7% | Fecha tudo |
+| **SIGNAL_INV** | Sinal oposto score≥6 após 5min | Fecha tudo |
+| **STAGNADO** | >60min + PnL entre -0.5 e +1.0 | Fecha (sem trailing lock) |
+| **EMERGENCY_PNL** | Perda > 3 USDC absolutos | Fecha imediatamente |
+| **EMERGENCY_ROI** | ROI ≤ -5.5% | Fecha imediatamente |
+| **Software SL** | price ≤ sl (LONG) / price ≥ sl (SHORT) | Fecha via MARKET |
 
 ### Guards de risco
 - BTC crash > 3% → fecha todos os LONGs do bot
 - Drawdown 25% do saldo → fecha tudo do bot
 - Margem > 35% → fecha tudo do bot
+- Margem global > 50% → fecha posições a positivo (liquidation guard)
 - **Nunca tocam em posições manuais**
 
 ### Posições manuais (detectadas no scan)
@@ -100,36 +112,68 @@ O profit lock cancela o stop antigo ANTES de colocar o novo. Ver `execution.py`.
 - Bot envia alertas de ROI (-5%, -3%, +3%, +5%, +10%, +15%, +20%)
 - Bot NÃO coloca stops, NÃO fecha, P&L NÃO conta para circuit breaker
 
----
-
-## Circuit breaker
+### Circuit breaker
 - `MAX_LOSS_DIA = 15 USDC` → cooldown 120min
 - `MAX_PERDAS_SEGUIDAS = 3` → cooldown 120min
 - Veto por símbolo: 3 perdas seguidas → 24h; WR < 30% em 5+ trades → 12h
 
 ---
 
-## Parâmetros chave em `config.py`
+## Bugs corrigidos — histórico completo
 
-```python
-CAPITAL_MAX_BOT     = 300.0    # capital máximo que o bot usa
-RISCO_USDC          = 5.0      # risco por trade em USDC
-ALAVANCAGEM         = 6        # leverage
-MAX_TRADES_ABERTOS  = 5
-MAX_MARGEM_TRADE    = 0.20     # máx 20% do capital por posição
-PROFIT_LOCK_USDC    = 1.0      # activa lock a partir de +1 USDC
-PROFIT_LOCK_STEP    = 0.5      # move stop a cada +0.5 USDC
-EMERGENCY_ROI_CUT   = -5.5     # % ROI para corte de emergência
-SESSOES_UTC         = [(5, 23)] # horário de abertura de posições
-TOP_N_FUTURES       = 20       # top 20 pares USDC-M por volume
-```
+### 1. STOP_MARKET conflito com TP order
+- **Causa**: profit lock tentava colocar 2º closePosition stop sem cancelar o 1º
+- **Fix**: cancela stop antigo PRIMEIRO, só depois coloca novo (`execution.py`)
+
+### 2. Bot geria posições manuais do utilizador
+- **Custo real**: SUIUSDC -8.76 USDC (posição do bot órfã), ZECUSDC +30 USDC fechado
+- **Fix**: `pending_sync[symbol]` escrito antes de colocar ordem; sync só recupera se marcador < 5min
+
+### 3. Profit lock spam no Telegram
+- **Causa**: stop falhava, bot não actualizava nível, ciclo infinito de mensagens
+- **Fix**: avança `profit_lock_level` e `sl` em memória independentemente do resultado da exchange
+
+### 4. Guards fechavam trades manuais
+- **Fix**: todos os guards verificam `if sym not in trades_bot: continue`
+
+### 5. `abrir_trade` fechava posição quando SL falhava
+- **Fix**: mantém posição, software SL em memória, avisa no Telegram
+
+### 6. "Posição manual detectada" spam a cada 10-30s (`storage.py`)
+- **Causa**: `load_memory()` não incluía `posicoes_externas` nem `pending_sync` → reset a `{}` em cada ciclo
+- **Fix**: adicionadas as duas chaves ao `load_memory()` em `storage.py`
+- **GitHub**: SHA d691f48
+
+### 7. `trades_abertos = {}` após restart (posições tratadas como externas)
+- **Causa**: mesmo bug do `load_memory()` + pending_sync expirado (>5min)
+- **Fix**: mesmo fix do bug 6
+
+### 8. STAGNADO fechava posições perdedoras (ex: -2 USDC após 68min)
+- **Causa**: regra antiga `pnl < 0.5` fechava qualquer posição com menos de 0.5 USDC de lucro
+- **Fix**: nova condição `-0.5 <= pnl < 1.0` e tempo mínimo de 60min (era 45min)
+- **GitHub**: SHA 92e1a97
+
+### 9. Stop loss com preço errado — ordens rejeitadas pela Binance (`exchange.py`)
+- **Causa**: `place_stop_market`, `place_take_profit`, `place_trailing_stop` usavam `SYMBOL_PRECISION` (casas decimais da QUANTIDADE) para formatar o `stopPrice`
+- **Exemplo**: ZECUSDC preço ~617, qty precision=4 → enviava 617.3475; Binance exige price precision=2 → 617.35
+- **Fix**: todas as funções de preço usam agora `PRICE_PRECISION` (default 2)
+- `get_top_futures_symbols` agora também extrai `PRICE_FILTER` tickSize e retorna 3-tuple
+- `main.py` actualiza `config.PRICE_PRECISION` dinamicamente ao arrancar e a cada 24h
+- **GitHub**: SHA de19dff
+
+### 10. Score mínimo de entrada demasiado baixo
+- **Causa**: `SCORE_ALERTA = 4` permitia entradas com apenas 4/10+ indicadores a confirmar
+- **Fix**: `SCORE_ALERTA = 6` — exige sinal forte antes de abrir qualquer trade
+- **GitHub**: SHA e0003ea
 
 ---
 
-## Lições aprendidas (não repetir)
+## Regras importantes que NÃO mudar
 
-1. O utilizador perdeu **234 USDC** numa posição manual sem stop loss
-2. O bot perdeu **8.76 USDC** no SUI por bugs no stop (agora corrigidos)
-3. O bot fechou o ZEC manual **+30 USDC** por engano (agora corrigido)
-4. `reduceOnly=true` não funciona nesta conta → usar sempre `closePosition=true`
-5. Nunca mostrar credenciais no chat
+1. `reduceOnly=true` não funciona nesta conta → usar sempre `closePosition=true`
+2. Só pode haver **um** STOP_MARKET closePosition por símbolo de cada vez
+3. `_fechar_com_retry` — 3 tentativas antes de registar fecho (evita posições órfãs)
+4. `place_stop_market` usa `/fapi/v1/order` (endpoint regular), NÃO `/fapi/v1/algoOrder`
+5. `get_balance` usa `/fapi/v2/account` assets[].marginBalance com fallback totalMarginBalance
+6. Nunca mostrar credenciais no chat
+7. NUNCA push para main sem confirmar com o utilizador
