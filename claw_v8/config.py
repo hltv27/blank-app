@@ -67,7 +67,7 @@ RSI_OVERSOLD    = 42.0
 RSI_OVERBOUGHT  = 58.0
 STOCH_VETO_LONG = 95.0
 STOCH_VETO_SHORT= 2.5
-SCORE_ALERTA    = 4
+SCORE_ALERTA    = 6
 SCORE_FORTE     = 6
 
 ATR_MIN_PCT     = 0.0008
@@ -103,7 +103,7 @@ TRAILING_CB_BTC     = 0.5      # callback trailing BTC/ETH/BNB (%)
 TRAILING_CB_ALT     = 1.2      # callback trailing alts (%)
 
 # ─────────────────────────────────────────────
-#  PROTECÇÕES
+#  PROTEÇÕES
 # ─────────────────────────────────────────────
 FUNDING_RATE_MAX    = 0.0005   # 0.05% — longs pagam demasiado acima disto
 SPREAD_MAX_PCT      = 0.05
