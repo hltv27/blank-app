@@ -128,6 +128,8 @@ def load_memory() -> dict:
         "loss_dia":         state_get("loss_dia",         0.0),
         "perdas_seguidas":  state_get("perdas_seguidas",  0),
         "trades_abertos":   state_get("trades_abertos",   {}),
+        "posicoes_externas": state_get("posicoes_externas", {}),
+        "pending_sync":     state_get("pending_sync",     {}),
         "ultimo_reset":     state_get("ultimo_reset",     ""),
         "bloqueado_ate":    state_get("bloqueado_ate",    0),
         "total_trades":     state_get("total_trades",     0),
