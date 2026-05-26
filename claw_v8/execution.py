@@ -215,22 +215,18 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             print(f"[AVISO] {symbol}: stop falhou (tentativa {tentativa}/{STOP_RETRY_MAX})")
             time.sleep(2)
         if not stop_id:
-            # Exchange stop não suportado (conta EU/BNFCR) — software SL protege a posição
             print(f"[AVISO] {symbol}: stop na exchange falhou — software SL activo em {sl:.4f}")
             tg(f"⚠️ <b>{symbol}</b> aberto | SL @ {sl:.4f} (software)\nStop na exchange falhou — bot vigia preço a cada 10s.")
 
-        # TP como ordem real
         tp_side      = "SELL" if direction == "LONG" else "BUY"
         tp_order_id  = place_take_profit(symbol, tp_side, tp)
 
-        # Regista no SQLite
         try:
             db_open_position(symbol, direction, fill_price, sl, tp, qty,
                              mode, stop_id, tp_order_id)
         except Exception as _db_e:
             print(f"[AVISO] db_open_position falhou: {_db_e}")
 
-        # Regista na memória
         mem.setdefault("trades_abertos", {})[symbol] = {
             "direction":     direction,
             "entry":         fill_price,
@@ -281,7 +277,7 @@ def gerir_posicoes(mem: dict):
         fechados = []
         for sym, pos in posicoes_all.items():
             if sym not in trades_bot:
-                continue  # não toca em trades manuais
+                continue
             if pos["side"] == "LONG" and sym != "BTCUSDC":
                 close_position(sym, pos["qty"], "LONG")
                 mem.get("trades_abertos", {}).pop(sym, None)
@@ -312,7 +308,7 @@ def gerir_posicoes(mem: dict):
             fechados_dd = []
             for sym, pos in posicoes_dd.items():
                 if sym not in trades_bot:
-                    continue  # nunca fechar trades manuais
+                    continue
                 close_position(sym, pos["qty"], pos["side"])
                 close_position_db(sym, "DRAWDOWN_25PCT", pos["pnl"], 0)
                 mem.get("trades_abertos", {}).pop(sym, None)
@@ -338,7 +334,7 @@ def gerir_posicoes(mem: dict):
         trades_bot     = mem.get("trades_abertos", {})
         for sym, pos in posicoes_todas.items():
             if sym not in trades_bot:
-                continue  # não toca em trades manuais
+                continue
             close_position(sym, pos["qty"], pos["side"])
             close_position_db(sym, "MARGIN_CRITICAL", pos["pnl"], 0)
             mem.get("trades_abertos", {}).pop(sym, None)
@@ -351,12 +347,11 @@ def gerir_posicoes(mem: dict):
         return
 
     # ── Guard de liquidação global (USDT-M + USDC-M) ─────────────────────
-    # Monitora a conta inteira. Se > LIQUIDATION_GUARD_PCT, fecha tudo a positivo.
     ratio_global = get_margin_ratio_global()
     if ratio_global is not None:
         agora_ts = time.time()
         ultimo_alerta = mem.get("liq_alerta_ts", 0)
-        alerta_intervalo = 300  # no máximo 1 alerta por 5 minutos
+        alerta_intervalo = 300
 
         if ratio_global >= LIQUIDATION_WARN3_PCT and agora_ts - ultimo_alerta > alerta_intervalo:
             mem["liq_alerta_ts"] = agora_ts
@@ -372,8 +367,6 @@ def gerir_posicoes(mem: dict):
             tg(f"🟡 <b>MARGEM EM ATENÇÃO</b> — conta global: <b>{ratio_global:.1f}%</b>")
 
         if ratio_global >= LIQUIDATION_GUARD_PCT:
-            # Exceção: fecha TODAS as posições a positivo (bot + manuais)
-            # para libertar margem e evitar liquidação total da conta
             if posicoes_all is None:
                 posicoes_all = get_positions() or {}
             fechados_liq = []
@@ -409,7 +402,6 @@ def gerir_posicoes(mem: dict):
 
     for symbol, trade in list(trades_abertos.items()):
         if symbol not in posicoes_binance:
-            # Posição fechou externamente (trailing stop Binance)
             pnl_ext   = trade.get("pnl_ultimo", None)
             side_ext  = trade.get("direction", "LONG")
             entry_ext = trade.get("entry", 0)
@@ -466,8 +458,6 @@ def gerir_posicoes(mem: dict):
             continue
 
         # ── Saída por reversão de sinal ──────────────────────────────────
-        # Se o sinal original inverteu completamente (score forte na direcção oposta),
-        # fecha antes de o preço atingir o SL. Não actua se trailing já protege.
         if (elapsed > 300
                 and not trade.get("trailing_lock_done")
                 and not trade.get("partial_tp2_done")
@@ -497,9 +487,13 @@ def gerir_posicoes(mem: dict):
                 print(f"[AVISO] signal_inv {symbol}: {_e}")
 
         # ── Saída por estagnação ──────────────────────────────────────────
-        # Trade aberto > 45min com ganho marginal: liberta capital
+        # Só fecha se aberto > 60min E PnL entre -0.5 e +1.0 (verdadeira estagnação).
+        # Posições muito negativas ficam para emergency cut (-3 USDC / -5.5% ROI).
+        # Posições lucrativas ficam para profit lock / TIME_TP.
         tempo_min = elapsed / 60
-        if tempo_min >= 45 and pos["pnl"] < 0.5 and not trade.get("trailing_lock_done"):
+        if (tempo_min >= 60
+                and -0.5 <= pos["pnl"] < 1.0
+                and not trade.get("trailing_lock_done")):
             if not _fechar_com_retry(symbol, pos["qty"], side):
                 continue
             _registar_fecho(symbol, side, entry, sl, tp, qty,
@@ -510,7 +504,7 @@ def gerir_posicoes(mem: dict):
             )
             continue
         # Alerta quando marginal e no-man's-land (não fecha automaticamente)
-        if (25 <= tempo_min < 45 and 0.5 <= pos["pnl"] <= 2.0
+        if (25 <= tempo_min < 60 and 0.5 <= pos["pnl"] <= 2.0
                 and not trade.get("partial_tp_done")
                 and time.time() - trade.get("stag_alerta_ts", 0) > 1800):
             mem["trades_abertos"][symbol]["stag_alerta_ts"] = time.time()
@@ -522,7 +516,6 @@ def gerir_posicoes(mem: dict):
             )
 
         # ── Trailing stop ao atingir TRAILING_LOCK_USDC (default 4 USDC) ──
-        # Substitui o stop fixo por trailing stop — garante pelo menos 10 USDC
         if (pos["pnl"] >= TRAILING_LOCK_USDC
                 and not trade.get("trailing_lock_done")
                 and entry > 0 and qty > 0):
@@ -557,28 +550,22 @@ def gerir_posicoes(mem: dict):
             current_lock = trade.get("profit_lock_level", 0.0)
             new_lock = math.floor(pos["pnl"] / PROFIT_LOCK_STEP) * PROFIT_LOCK_STEP
             if new_lock >= PROFIT_LOCK_USDC and new_lock > current_lock + 1e-9:
-                # Stop no nível ANTERIOR garante distância mínima ao preço actual.
-                # Binance rejeita stops a < 0.1% do mark price — a fórmula "entry + new_lock/qty"
-                # coincide quase exactamente com o preço corrente quando o PnL acabou de cruzar o limiar.
                 lock_usdc = max(new_lock - PROFIT_LOCK_STEP, 0.0)
                 if side == "LONG":
                     lock_price = round(entry + lock_usdc / qty, 8) if lock_usdc > 0 else round(entry * 1.0005, 8)
                 else:
                     lock_price = round(entry - lock_usdc / qty, 8) if lock_usdc > 0 else round(entry * 0.9995, 8)
 
-                # Cancela stop antigo PRIMEIRO (closePosition só permite um de cada vez)
                 old_stop_lock = trade.get("stop_order_id")
                 if old_stop_lock:
                     cancel_algo_order(symbol, old_stop_lock)
                     mem["trades_abertos"][symbol]["stop_order_id"] = None
 
-                # Tenta colocar stop — 3 tentativas com buffer crescente se falhar
                 new_lock_id = None
                 for attempt in range(3):
                     new_lock_id = place_stop_market(symbol, lock_side, lock_price, qty)
                     if new_lock_id:
                         break
-                    # Afasta o stop 0.15% a cada tentativa para evitar rejeição Binance
                     if side == "LONG":
                         lock_price = round(lock_price * (1 - 0.0015), 8)
                     else:
@@ -616,12 +603,10 @@ def gerir_posicoes(mem: dict):
                 if qty_tp1 > 0:
                     close_position(symbol, qty_tp1, side)
                     qty_restante = round(qty_total - qty_tp1, decimals_p)
-                    # Breakeven stop: entrada + 0.2% (cobre fees)
                     if side == "LONG":
                         be_price = round(entry_trade * (1 + BREAKEVEN_OFFSET), 8)
                     else:
                         be_price = round(entry_trade * (1 - BREAKEVEN_OFFSET), 8)
-                    # Cancela trailing stop antigo e coloca stop de breakeven
                     old_stop = trade.get("stop_order_id")
                     if old_stop:
                         try:
@@ -664,7 +649,6 @@ def gerir_posicoes(mem: dict):
                 if qty_tp2 > 0:
                     close_position(symbol, qty_tp2, side)
                     qty_restante = round(qty_total - qty_tp2, decimals_p)
-                    # Stop para +1R (lock de lucro no runner)
                     sl_dist = abs(entry_trade - trade.get("sl", entry_trade))
                     if sl_dist == 0:
                         sl_dist = abs(entry_trade - tp) / 3.0
@@ -758,7 +742,6 @@ def gerir_posicoes(mem: dict):
 
     save_memory(mem)
 
-    # Snapshot de equity a cada ciclo com posições abertas
     try:
         bal   = get_balance()
         ratio = get_margin_ratio()
