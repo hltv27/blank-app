@@ -99,7 +99,7 @@ def verificar_veto_simbolo(symbol: str, mem: dict) -> tuple[bool, str]:
     total = stats.get("wins", 0) + stats.get("losses", 0)
     wr    = stats.get("wins", 0) / total * 100 if total > 0 else 0
     tg(
-        f"🔓 <b>VETO EXPIRADO — {symbol}</b>\n"
+        f"\U0001f513 <b>VETO EXPIRADO — {symbol}</b>\n"
         f"Stats: {stats.get('wins',0)}W / {stats.get('losses',0)}L | "
         f"WR: {wr:.0f}% | PnL: {stats.get('pnl_total',0):+.2f}\n"
         f"<i>Perdas seguidas reiniciadas.</i>"
@@ -133,12 +133,12 @@ def atualizar_stats_simbolo(symbol: str, won: bool, pnl: float, mem: dict):
         stats["vetado_ate"] = time.time() + 24 * 3600
     elif total >= 5 and wr < 30:
         motivo = f"win rate crítico {wr:.0f}% em {total} trades"
-        stats["vetado_ate"] = time.time() + 12 * 3600
+        stats["vetado_ate"] = time.time() + 72 * 3600  # 3 dias (era 12h)
 
     if motivo:
-        h_veto = 24 if ps >= 3 else 12
+        h_veto = 24 if ps >= 3 else 72
         tg(
-            f"🚫 <b>VETO — {symbol}</b>\nMotivo: {motivo}\n"
+            f"\U0001f6ab <b>VETO — {symbol}</b>\nMotivo: {motivo}\n"
             f"Stats: {stats['wins']}W / {stats['losses']}L | "
             f"WR: {wr:.0f}% | PnL: {stats['pnl_total']:+.2f}\n"
             f"Bot não abre {symbol} durante {h_veto}h."

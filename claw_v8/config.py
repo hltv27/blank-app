@@ -17,7 +17,7 @@ BASE_URL = "https://fapi.binance.com"
 # ─────────────────────────────────────────────
 #  PARES
 # ─────────────────────────────────────────────
-TOP_N_FUTURES = 150  # top 150 por volume (USDC-M + USDT-M sem equivalente USDC)
+TOP_N_FUTURES = 50   # top 50 por volume — evita memecoins exóticos de baixo volume
 
 # Lista base de fallback (usada se a fetch dinâmica falhar)
 SYMBOLS = [
@@ -103,7 +103,7 @@ TRAILING_CB_BTC     = 0.5      # callback trailing BTC/ETH/BNB (%)
 TRAILING_CB_ALT     = 1.2      # callback trailing alts (%)
 
 # ─────────────────────────────────────────────
-#  PROTEÇÕES
+#  PROTECÇÕES
 # ─────────────────────────────────────────────
 FUNDING_RATE_MAX    = 0.0005   # 0.05% — longs pagam demasiado acima disto
 SPREAD_MAX_PCT      = 0.05
