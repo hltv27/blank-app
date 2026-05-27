@@ -14,6 +14,7 @@ from config import (
 
 _time_offset_ms = 0
 _SAPI_URL = "https://api.binance.com"
+_last_ip_alerta_ts = 0  # rate limit: só envia alerta de IP bloqueado 1x por 10min
 
 
 def sync_time():
@@ -152,7 +153,10 @@ def get_positions() -> dict | None:
                 msg = data.get("msg", "")
                 print(f"[ERRO] get_positions: {msg}")
                 if "Invalid API-key, IP" in msg:
-                    tg(f"🔒 <b>IP bloqueado</b>\nNovo IP: <code>{get_public_ip()}</code>")
+                    global _last_ip_alerta_ts
+                    if time.time() - _last_ip_alerta_ts > 600:
+                        _last_ip_alerta_ts = time.time()
+                        tg(f"\U0001f512 <b>IP bloqueado</b>\nNovo IP: <code>{get_public_ip()}</code>\n<i>Adiciona este IP na Binance API → Restrições de IP</i>")
                 return None
             pos = {}
             for p in data:
