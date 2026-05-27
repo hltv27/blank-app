@@ -87,9 +87,8 @@ def get_public_ip() -> str:
 
 
 def get_balance() -> float | None:
-    """Saldo total da conta USDC/BNFCR via /fapi/v2/account (marginBalance).
-    marginBalance = walletBalance + unrealizedPnL — representa o capital real disponível
-    para cálculos de risco. Mais estável que availableBalance (que é ~0 com posições abertas)."""
+    """Saldo do activo USDC/BNFCR (conta USDC-M) via /fapi/v2/account.
+    Usa apenas o activo USDC ou BNFCR — não inclui saldo USDT-M."""
     for attempt in range(2):
         try:
             r = requests.get(
@@ -102,17 +101,14 @@ def get_balance() -> float | None:
                 sync_time()
                 continue
             if isinstance(data, list):
-                # resposta inesperada em formato de lista — ignora
                 break
             for a in data.get("assets", []):
                 if a.get("asset") in ("USDC", "BNFCR"):
                     mb = float(a.get("marginBalance") or a.get("walletBalance") or 0)
                     if mb > 0:
                         return mb
-            # fallback: totalMarginBalance da conta inteira
-            total = float(data.get("totalMarginBalance") or 0)
-            if total > 0:
-                return total
+            # sem fallback para totalMarginBalance — evita usar saldo USDT-M no sizing
+            print(f"[AVISO] get_balance: activo USDC/BNFCR não encontrado na resposta")
         except Exception as e:
             print(f"[ERRO] get_balance: {e}")
             break
