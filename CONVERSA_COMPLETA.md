@@ -1,9 +1,9 @@
 # Affiliate Bot — Resumo Completo da Conversa
 
-**Data:** 23 de Maio de 2026  
-**Utilizador:** Hugo Vaz  
-**Repositório:** github.com/hltv27/blank-app  
-**Branch:** `claude/affiliate-bot-automation-5rsFF`  
+**Última actualização:** 29 de Maio de 2026
+**Utilizador:** Hugo Vaz
+**Repositório:** github.com/hltv27/blank-app
+**Branch:** `claude/affiliate-bot-automation-5rsFF`
 
 ---
 
@@ -24,9 +24,9 @@ Construir um bot automático 24/7 que:
 - Depois simplificámos para focar no **AliExpress** via **RapidAPI DataHub** (sem burocracia)
 
 ### Canais de publicação
-- **Telegram** (principal — mais fácil)
-- **Instagram Reels** (segundo)
-- **TikTok** (terceiro)
+- **Telegram** ✅ A funcionar
+- **Instagram Reels** ⏳ Em configuração
+- **TikTok** ⏳ Futuro
 
 ### Mercado alvo
 - **Global** (conteúdo em inglês)
@@ -41,7 +41,7 @@ Construir um bot automático 24/7 que:
 
 ### Tipo de conteúdo
 - Imagens geradas com **Pillow** (1080x1080, cores por niche)
-- Legendas geradas com **Claude Haiku** (IA)
+- Legendas geradas com **Claude Haiku** (IA) — opcional, bot funciona sem ela
 - Cada plataforma recebe conteúdo adaptado
 
 ### Infraestrutura
@@ -65,19 +65,19 @@ Construir um bot automático 24/7 que:
 
 ---
 
-## Problema com a API do AliExpress
+## Problemas resolvidos
 
-**Problema:** A API oficial (portals.aliexpress.com) exige aprovação via OAuth que redireciona para Taobao e dá erro 500 — bug do lado deles.
+### AliExpress API oficial — RESOLVIDO
+- **Problema:** OAuth redireccionava para Taobao e dava erro 500
+- **Solução:** Trocámos para **RapidAPI AliExpress DataHub**
 
-**Tentativas:**
-1. portals.aliexpress.com → Apply for API → erro 500 Taobao
-2. open.aliexpress.com → foi parar ao portal errado (service providers chineses)
+### RapidAPI DataHub primeira chave — RESOLVIDO
+- **Problema:** Chave `fa20537...` dava erro 5008 "data gather failed"
+- **Solução:** Nova chave `7e295416...` de conta fresca funciona correctamente
 
-**Solução:** Trocámos para **RapidAPI AliExpress DataHub**
-- Sem aprovações
-- Sem OAuth
-- Só uma chave API
-- Chave obtida pelo Hugo em rapidapi.com
+### Parsing da resposta DataHub — RESOLVIDO
+- **Problema:** Campos errados (`averageStar`, `totalOrders`, URLs sem `https:`)
+- **Solução:** Corrigido para `averageStarRate`, `sales`, `_fix_url()`
 
 ---
 
@@ -85,58 +85,46 @@ Construir um bot automático 24/7 que:
 
 | Serviço | Estado | Observação |
 |---------|--------|------------|
-| RapidAPI AliExpress DataHub | ✅ Chave obtida | Não partilhar publicamente — regenerar se necessário |
-| AliExpress Tracking ID | ⏳ Falta | portals.aliexpress.com → Tools → Link Generator |
-| Telegram Bot Token | ✅ Existe | Mesmo token do bot de trading |
-| Telegram Canal | ⏳ Falta criar | Canal público novo para afiliados |
+| RapidAPI AliExpress DataHub | ✅ A funcionar | Chave `7e295416...` — não partilhar |
+| AliExpress Tracking ID | ⏳ Opcional | portals.aliexpress.com → Tools → Link Generator |
+| Telegram Bot | ✅ Configurado | `@hltv27_bot` — mesmo do bot de trading |
+| Telegram Canal | ✅ Criado | `@TopDealsGadgetss` |
 | Anthropic Claude | ⏳ Opcional | console.anthropic.com — bot funciona sem ele |
-| Instagram Graph API | ⏳ Futuro | Adicionar depois |
+| Instagram Graph API | ⏳ Em configuração | Tem conta Business/Creator |
 | TikTok Content API | ⏳ Futuro | Adicionar depois |
 
 ---
 
-## Ficheiros criados
+## Estado actual do .env no servidor
 
-```
-affiliate-bot/
-├── bot.py                          ← entry point (--test / --check / --stats)
-├── .env.example                    ← template de configuração
-├── requirements.txt                ← dependências Python
-├── SETUP.md                        ← guia completo de setup
-├── PROGRESSO.md                    ← resumo do progresso
-├── setup_termux.sh                 ← instalação Termux (não necessário com VPS)
-├── start_bot.sh                    ← arranque com wake lock
-├── stop_bot.sh                     ← parar o bot
-├── .termux/boot/                   ← auto-arranque no telemóvel
-└── affiliate_bot/
-    ├── config.py                   ← lê .env, valida chaves
-    ├── database.py                 ← SQLite: produtos, posts, evita repetições 30 dias
-    ├── scheduler.py                ← APScheduler: 15 posts/dia distribuídos 7h–23h
-    ├── fetchers/
-    │   └── aliexpress.py           ← RapidAPI DataHub: busca produtos por keyword
-    ├── generators/
-    │   ├── content.py              ← Claude Haiku gera legenda (fallback sem chave)
-    │   └── image.py                ← Pillow: card 1080x1080 com cores por niche
-    ├── publishers/
-    │   ├── telegram.py             ← Telegram Bot API
-    │   ├── instagram.py            ← Instagram Graph API
-    │   └── tiktok.py               ← TikTok Content Posting API v2
-    └── niches/
-        └── config.json             ← 4 nichos, keywords, hashtags, horários
+```env
+RAPIDAPI_KEY=7e295416famshf37b06a5532e422p10a6c7jsnc48b85f0aed6
+ALIEXPRESS_TRACKING_ID=
+TELEGRAM_BOT_TOKEN=8612510987:AAGZAeejYZ_L4wssnojosN0SfA2U1jUslOc
+TELEGRAM_CHANNEL_ID=@TopDealsGadgetss
+INSTAGRAM_ACCESS_TOKEN=
+INSTAGRAM_BUSINESS_ACCOUNT_ID=
+TIKTOK_ACCESS_TOKEN=
+ANTHROPIC_API_KEY=
+LOG_LEVEL=INFO
+DB_PATH=affiliate_bot.db
+IMAGES_DIR=generated_images
 ```
 
 ---
 
-## Como o bot publica
+## Marcos concluídos ✅
 
-1. APScheduler dispara o job (hora configurada)
-2. Busca produtos no AliExpress via RapidAPI (keyword do niche)
-3. Ordena por score: desconto × vendas
-4. Verifica na base de dados se o produto já foi publicado (últimos 30 dias)
-5. Gera imagem 1080x1080 com Pillow
-6. Gera legenda com Claude Haiku (ou fallback se sem chave)
-7. Publica no canal activo
-8. Regista na base de dados
+- [x] Código completo construído e no GitHub
+- [x] Servidor Hetzner identificado e acessível
+- [x] Código clonado no servidor (`/root/affiliate-bot`)
+- [x] RapidAPI DataHub a funcionar com nova chave
+- [x] `.env` configurado com Telegram + RapidAPI
+- [x] Canal Telegram `@TopDealsGadgetss` criado
+- [x] Bot `@hltv27_bot` adicionado como Admin ao canal
+- [x] Primeiro post publicado com sucesso (Lenovo XT53 earphones)
+- [x] Bot a correr 24/7 via systemd (`affiliatebot.service`)
+- [x] Logo criado (`logo_instagram.png` em `/storage/emulated/0/Download/`)
 
 ---
 
@@ -144,7 +132,7 @@ affiliate-bot/
 
 | Canal | Posts/dia | Horário |
 |-------|-----------|---------|
-| Telegram | 8 | 7h–23h UTC |
+| Telegram | 8 | 7h–23h UTC ✅ activo |
 | Instagram | 4 | 7h–23h UTC (quando configurado) |
 | TikTok | 3 | 7h–23h UTC (quando configurado) |
 | **Total** | **15** | com jitter ±10 min para parecer orgânico |
@@ -163,40 +151,47 @@ affiliate-bot/
 
 ---
 
-## Ficheiro .env (configuração do servidor)
+## Próximos passos
 
-```env
-# ✅ Já tens
-RAPIDAPI_KEY=fa20537...   ← NÃO partilhar — regenerar se necessário
-
-# ⏳ Falta (obrigatório para Telegram)
-TELEGRAM_BOT_TOKEN=        ← mesmo token do bot de trading
-TELEGRAM_CHANNEL_ID=       ← @username do novo canal de afiliados
-
-# ⏳ Opcional (bot funciona sem isto)
-ALIEXPRESS_TRACKING_ID=    ← portals.aliexpress.com → Tools → Link Generator
-ANTHROPIC_API_KEY=         ← console.anthropic.com → API Keys
-
-# ⏳ Futuro (Instagram e TikTok)
-INSTAGRAM_ACCESS_TOKEN=
-INSTAGRAM_BUSINESS_ACCOUNT_ID=
-TIKTOK_ACCESS_TOKEN=
-```
+- [x] ~~Telegram configurado e a publicar~~
+- [ ] **Instagram** — configurar Graph API (conta Business já existe)
+  - Criar Facebook Page dedicada para deals
+  - Criar App em developers.facebook.com
+  - Gerar access token com permissão `instagram_content_publish`
+  - Obter Instagram Business Account ID
+  - Preencher `.env`: `INSTAGRAM_ACCESS_TOKEN` + `INSTAGRAM_BUSINESS_ACCOUNT_ID`
+- [ ] **Logo** — copiar para Downloads: `cp ~/logo_instagram.png /storage/emulated/0/Download/`
+- [ ] **TikTok** — configurar depois do Instagram
+- [ ] **Anthropic** — opcional, melhora as legendas: console.anthropic.com
 
 ---
 
-## Próximos passos (por ordem)
+## Ficheiros criados
 
-- [ ] **1.** Criar canal Telegram público (nome + @username)
-- [ ] **2.** Adicionar bot de trading como Admin no novo canal
-- [ ] **3.** Copiar TELEGRAM_BOT_TOKEN do bot de trading
-- [ ] **4.** Preencher `.env` no servidor: `nano ~/affiliate-bot/.env`
-- [ ] **5.** Actualizar código: `cd ~/affiliate-bot && git pull`
-- [ ] **6.** Testar: `python3 bot.py --check`
-- [ ] **7.** Primeiro post: `python3 bot.py --test`
-- [ ] **8.** Arrancar 24/7: `python3 bot.py` (ou systemd)
-- [ ] **9.** Configurar Instagram (quando estiver pronto)
-- [ ] **10.** Configurar TikTok (quando estiver pronto)
+```
+affiliate-bot/
+├── bot.py                          ← entry point (--test / --check / --stats)
+├── .env.example                    ← template de configuração
+├── requirements.txt                ← dependências Python
+├── SETUP.md                        ← guia completo de setup
+├── PROGRESSO.md                    ← resumo do progresso
+├── CONVERSA_COMPLETA.md            ← este ficheiro
+└── affiliate_bot/
+    ├── config.py                   ← lê .env, valida chaves
+    ├── database.py                 ← SQLite: produtos, posts, evita repetições 30 dias
+    ├── scheduler.py                ← APScheduler: 15 posts/dia distribuídos 7h–23h
+    ├── fetchers/
+    │   └── aliexpress.py           ← RapidAPI DataHub (campo correcto: averageStarRate, sales)
+    ├── generators/
+    │   ├── content.py              ← Claude Haiku gera legenda (fallback sem chave)
+    │   └── image.py                ← Pillow: card 1080x1080 com cores por niche
+    ├── publishers/
+    │   ├── telegram.py             ← Telegram Bot API ✅
+    │   ├── instagram.py            ← Instagram Graph API ⏳
+    │   └── tiktok.py               ← TikTok Content Posting API v2 ⏳
+    └── niches/
+        └── config.json             ← 4 nichos, keywords, hashtags, horários
+```
 
 ---
 
@@ -206,59 +201,37 @@ TIKTOK_ACCESS_TOKEN=
 # Entrar no servidor
 ssh root@178.105.52.219
 
-# Actualizar código
-cd ~/affiliate-bot && git pull
-
-# Editar configuração
-nano ~/affiliate-bot/.env
-
-# Testar ligações
-cd ~/affiliate-bot && python3 bot.py --check
-
-# Publicar 1 post de teste
-cd ~/affiliate-bot && python3 bot.py --test
-
-# Arrancar bot 24/7
-cd ~/affiliate-bot && python3 bot.py
-
-# Ver logs em tempo real
-tail -f ~/affiliate-bot/affiliate_bot.log
-
-# Ver estatísticas de posts
-cd ~/affiliate-bot && python3 bot.py --stats
-```
-
----
-
-## Arranque automático 24/7 com systemd (fazer no final)
-
-```bash
-nano /etc/systemd/system/affiliatebot.service
-```
-
-```ini
-[Unit]
-Description=Affiliate Bot
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/root/affiliate-bot
-ExecStart=/usr/bin/python3 /root/affiliate-bot/bot.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-systemctl enable affiliatebot
-systemctl start affiliatebot
+# Ver se o bot está a correr
 systemctl status affiliatebot
+
+# Ver posts em tempo real
+tail -f /root/affiliate-bot/affiliate_bot.log
+
+# Ver estatísticas
+cd /root/affiliate-bot && python3 bot.py --stats
+
+# Publicar post de teste
+cd /root/affiliate-bot && python3 bot.py --test
+
+# Reiniciar o bot
+systemctl restart affiliatebot
+
+# Actualizar código
+cd /root/affiliate-bot && git pull && systemctl restart affiliatebot
 ```
 
 ---
 
-*Gerado em 23/05/2026 — Conversa com Claude Code*
+## systemd — já configurado ✅
+
+```bash
+# Estado
+systemctl status affiliatebot
+
+# O serviço está em:
+# /etc/systemd/system/affiliatebot.service
+```
+
+---
+
+*Actualizado em 29/05/2026 — Conversa com Claude Code*
