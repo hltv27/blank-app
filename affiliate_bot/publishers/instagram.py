@@ -1,12 +1,12 @@
 import logging
 from pathlib import Path
 
-from affiliate_bot.config import Config
+from affiliate_bot.config import Config, BASE_DIR
 
 logger = logging.getLogger(__name__)
 
 _client = None
-_SESSION = Config.BASE_DIR / "instagram_session.json"
+_SESSION = BASE_DIR / "instagram_session.json"
 
 
 def _get_client():
