@@ -16,9 +16,15 @@ def _headers() -> dict:
     }
 
 
+def _fix_url(url: str) -> str:
+    if url.startswith("//"):
+        return "https:" + url
+    return url
+
+
 def _affiliate_url(product_id: str) -> str:
-    tracking = Config.ALIEXPRESS_TRACKING_ID
     base = f"https://www.aliexpress.com/item/{product_id}.html"
+    tracking = Config.ALIEXPRESS_TRACKING_ID
     if tracking:
         return f"{base}?aff_fcid={tracking}&aff_platform=portals-tool"
     return base
@@ -35,7 +41,12 @@ def search_products(keyword: str, niche: str, min_rating: float = 4.0, page_size
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:
-        logger.error("RapidAPI AliExpress search error: %s", e)
+        logger.error("RapidAPI search error: %s", e)
+        return []
+
+    status_code = data.get("result", {}).get("status", {}).get("code")
+    if status_code != 200:
+        logger.warning("RapidAPI returned status %s for keyword '%s'", status_code, keyword)
         return []
 
     products = []
@@ -44,25 +55,28 @@ def search_products(keyword: str, niche: str, min_rating: float = 4.0, page_size
     for entry in items:
         try:
             item = entry.get("item", {})
-            prices = item.get("sku", {}).get("def", {}).get("promotionPrice", "0")
-            price = float(str(prices).replace(",", "").split("-")[0]) if prices else 0.0
+
+            price_raw = item.get("sku", {}).get("def", {}).get("promotionPrice")
+            if not price_raw:
+                continue
+            price = float(price_raw)
             if price <= 0:
                 continue
 
-            orig_prices = item.get("sku", {}).get("def", {}).get("price", str(price))
-            original = float(str(orig_prices).replace(",", "").split("-")[0])
+            # original price not available — use same as price
+            original_raw = item.get("sku", {}).get("def", {}).get("price")
+            original = float(original_raw) if original_raw else price
             discount = round((1 - price / original) * 100) if original > price else 0
 
-            rating_raw = item.get("averageStar", "0")
-            rating = float(str(rating_raw)) if rating_raw else 0.0
+            rating = float(item.get("averageStarRate", 0) or 0)
             if rating < min_rating:
                 continue
 
-            orders_raw = item.get("totalOrders", "0")
-            orders = int(str(orders_raw).replace(",", "").replace("+", "").replace("k", "000")) if orders_raw else 0
+            orders_raw = item.get("sales", "0") or "0"
+            orders = int(str(orders_raw).replace(",", "").replace("+", ""))
 
             product_id = str(item.get("itemId", ""))
-            image = item.get("image", "")
+            image = _fix_url(item.get("image", ""))
             title = item.get("title", "")[:120]
 
             if not product_id or not title:
@@ -81,7 +95,7 @@ def search_products(keyword: str, niche: str, min_rating: float = 4.0, page_size
                 "rating": rating,
                 "orders": orders,
             })
-        except (KeyError, ValueError, ZeroDivisionError) as e:
+        except (KeyError, ValueError, ZeroDivisionError, TypeError) as e:
             logger.debug("Skipping product: %s", e)
             continue
 
