@@ -1,90 +1,67 @@
 import logging
-import requests
+from pathlib import Path
 
 from affiliate_bot.config import Config
 
 logger = logging.getLogger(__name__)
 
-GRAPH_API = "https://graph.facebook.com/v19.0"
+_client = None
+_SESSION = Config.BASE_DIR / "instagram_session.json"
 
 
-def _post(endpoint: str, **kwargs) -> dict | None:
-    url = f"{GRAPH_API}/{endpoint}"
+def _get_client():
+    global _client
+    if _client is not None:
+        return _client
+
+    from instagrapi import Client
+    from instagrapi.exceptions import LoginRequired, BadPassword, TwoFactorRequired
+
+    cl = Client()
+    cl.delay_range = [2, 5]
+
+    if _SESSION.exists():
+        try:
+            cl.load_settings(_SESSION)
+            cl.login(Config.INSTAGRAM_USERNAME, Config.INSTAGRAM_PASSWORD)
+            logger.info("Instagram: resumed cached session @%s", Config.INSTAGRAM_USERNAME)
+            _client = cl
+            return _client
+        except (LoginRequired, BadPassword):
+            logger.warning("Instagram: cached session expired, logging in fresh")
+        except Exception as e:
+            logger.warning("Instagram: session load error: %s", e)
+
+    cl = Client()
+    cl.delay_range = [2, 5]
+    cl.login(Config.INSTAGRAM_USERNAME, Config.INSTAGRAM_PASSWORD)
+    cl.dump_settings(_SESSION)
+    logger.info("Instagram: fresh login @%s", Config.INSTAGRAM_USERNAME)
+    _client = cl
+    return _client
+
+
+def publish(product: dict, caption: str, image_path: str) -> bool:
+    full_caption = f"{caption}\n\n🔗 {product['affiliate_url']}"[:2200]
+
     try:
-        resp = requests.post(url, timeout=60, **kwargs)
-        data = resp.json()
-        if "error" in data:
-            logger.error("Instagram API error: %s", data["error"].get("message"))
-            return None
-        return data
-    except Exception as e:
-        logger.error("Instagram request error: %s", e)
-        return None
-
-
-def _get(endpoint: str, params: dict) -> dict | None:
-    url = f"{GRAPH_API}/{endpoint}"
-    try:
-        resp = requests.get(url, params=params, timeout=30)
-        data = resp.json()
-        if "error" in data:
-            logger.error("Instagram GET error: %s", data["error"].get("message"))
-            return None
-        return data
-    except Exception as e:
-        logger.error("Instagram GET request error: %s", e)
-        return None
-
-
-def publish(product: dict, caption: str, image_url: str) -> bool:
-    """
-    Instagram Graph API two-step publish:
-    1. Create media container
-    2. Publish container
-    """
-    account_id = Config.INSTAGRAM_BUSINESS_ACCOUNT_ID
-    token = Config.INSTAGRAM_ACCESS_TOKEN
-
-    full_caption = f"{caption}\n\n🔗 Link in bio → {product['affiliate_url'][:50]}..."
-
-    # Step 1: Create container
-    container = _post(
-        f"{account_id}/media",
-        data={
-            "image_url": image_url,
-            "caption": full_caption[:2200],
-            "access_token": token,
-        },
-    )
-    if not container or "id" not in container:
-        logger.error("Instagram: failed to create media container")
-        return False
-
-    creation_id = container["id"]
-
-    # Step 2: Publish container
-    result = _post(
-        f"{account_id}/media_publish",
-        data={
-            "creation_id": creation_id,
-            "access_token": token,
-        },
-    )
-
-    if result and "id" in result:
-        logger.info("Instagram: published post %s for product %s", result["id"], product["product_id"])
+        cl = _get_client()
+        media = cl.photo_upload(path=image_path, caption=full_caption)
+        logger.info("Instagram: posted %s for product %s", media.pk, product["product_id"])
         return True
-
-    logger.error("Instagram: failed to publish container %s", creation_id)
-    return False
+    except Exception as e:
+        global _client
+        _client = None
+        logger.error("Instagram publish error: %s", e)
+        return False
 
 
 def test_connection() -> bool:
-    data = _get(
-        Config.INSTAGRAM_BUSINESS_ACCOUNT_ID,
-        {"fields": "username,name", "access_token": Config.INSTAGRAM_ACCESS_TOKEN},
-    )
-    if data:
-        logger.info("Instagram connected: @%s", data.get("username"))
+    try:
+        cl = _get_client()
+        info = cl.account_info()
+        logger.info("Instagram connected: @%s", info.username)
         return True
-    return False
+    except Exception as e:
+        logger.error("Instagram connection test failed: %s", e)
+        return False

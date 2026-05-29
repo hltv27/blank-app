@@ -12,24 +12,6 @@ from affiliate_bot import publishers
 logger = logging.getLogger(__name__)
 
 
-def _upload_image_to_imgbb(image_path: Path) -> str | None:
-    """Upload image to imgbb (free, no auth needed for short-lived URLs) for Instagram."""
-    import requests
-    try:
-        with open(image_path, "rb") as f:
-            resp = requests.post(
-                "https://api.imgbb.com/1/upload",
-                params={"expiration": "600"},
-                data={"key": "public"},  # imgbb free tier
-                files={"image": f},
-                timeout=20,
-            )
-        data = resp.json()
-        return data.get("data", {}).get("url")
-    except Exception as e:
-        logger.warning("imgbb upload failed: %s", e)
-        return None
-
 
 def run_post_cycle(platform: str, niche_key: str, niche_config: dict) -> bool:
     logger.info("Starting post cycle: platform=%s niche=%s", platform, niche_key)
@@ -61,9 +43,7 @@ def run_post_cycle(platform: str, niche_key: str, niche_config: dict) -> bool:
             success = publishers.telegram.publish(product, caption, image_path)
 
         elif platform == "instagram":
-            # Instagram needs a public URL for the image
-            public_url = _upload_image_to_imgbb(image_path) or product.get("image_url", "")
-            success = publishers.instagram.publish(product, caption, public_url)
+            success = publishers.instagram.publish(product, caption, str(image_path))
 
         elif platform == "tiktok":
             success = publishers.tiktok.publish(product, caption, str(image_path))
@@ -126,7 +106,7 @@ def start(use_apscheduler: bool = True):
 
 def _active_platforms() -> list[str]:
     platforms = ["telegram"]
-    if Config.INSTAGRAM_ACCESS_TOKEN and Config.INSTAGRAM_BUSINESS_ACCOUNT_ID:
+    if Config.INSTAGRAM_USERNAME and Config.INSTAGRAM_PASSWORD:
         platforms.append("instagram")
     if Config.TIKTOK_ACCESS_TOKEN:
         platforms.append("tiktok")

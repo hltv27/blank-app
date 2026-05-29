@@ -22,9 +22,9 @@ class Config:
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
     TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID", "")
 
-    # Instagram
-    INSTAGRAM_ACCESS_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
-    INSTAGRAM_BUSINESS_ACCOUNT_ID = os.getenv("INSTAGRAM_BUSINESS_ACCOUNT_ID", "")
+    # Instagram (instagrapi — login direto com user+password)
+    INSTAGRAM_USERNAME = os.getenv("INSTAGRAM_USERNAME", "")
+    INSTAGRAM_PASSWORD = os.getenv("INSTAGRAM_PASSWORD", "")
 
     # TikTok
     TIKTOK_CLIENT_KEY = os.getenv("TIKTOK_CLIENT_KEY", "")
