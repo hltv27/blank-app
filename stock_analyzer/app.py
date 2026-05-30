@@ -3,21 +3,38 @@ import os
 import pandas as pd
 import streamlit as st
 
-# ── Stocks extracted from user's 19 TikTok/Instagram screenshots ─────────────
+# ── All tickers extracted from user's screenshots (batches 1 & 2) ─────────────
 SEED_TICKERS = [
-    # Morgan Stanley Top Picks 2026 — semicondutores
-    "NVDA", "ALAB", "AVGO", "MU", "TSM", "AMAT", "ADI", "NXPI",
-    # TikTok picks
-    "TSEM",   # linalikesmoney — Tower Semiconductor
-    "DELL",   # kenangrace1 — servidores IA
-    "HOOD",   # fintech
-    "NBIS",   # charlesbuildswealth — Nebius AI cloud
-    "ASTS",   # AST SpaceMobile
-    "RKLB",   # Rocket Lab
-    "OKLO",   # energia nuclear
-    "CIFR",   # Cipher Mining
-    "CRWV",   # CoreWeave
-    "IREN",   # Iris Energy
+    # ── IA & Semicondutores ──────────────────────────────────────────────────
+    "NVDA", "ALAB", "AVGO", "AMD", "MRVL", "QCOM", "INTC", "ON", "TXN",
+    "CRDO", "AMKR", "SIVEF", "POET",
+    # ── Memória & Armazenamento ──────────────────────────────────────────────
+    "MU", "WDC",
+    # ── Foundry & Fabrico de Chips ───────────────────────────────────────────
+    "TSM", "TSEM", "GFS", "UMC",
+    # ── Equipamento Semicondutores ───────────────────────────────────────────
+    "AMAT", "ASML", "LRCX", "KLAC", "TER", "ADI", "NXPI",
+    # ── EDA & Design de Chips ────────────────────────────────────────────────
+    "SNPS", "CDNS", "ARM",
+    # ── IA Cloud & Infraestrutura ────────────────────────────────────────────
+    "NBIS", "CRWV", "DELL", "SMCI", "NET", "DDOG",
+    # ── Defesa & Drones ──────────────────────────────────────────────────────
+    "AVAV", "KTOS", "HWM", "UMAC", "RCAT", "ONDS", "DPRO", "UAVS",
+    # ── Espaço & Comunicações ─────────────────────────────────────────────────
+    "ASTS", "RKLB",
+    # ── Energia Nuclear & Grid ───────────────────────────────────────────────
+    "OKLO", "VST",
+    # ── Cripto Mining ────────────────────────────────────────────────────────
+    "CIFR", "IREN",
+    # ── Fintech ──────────────────────────────────────────────────────────────
+    "HOOD",
+]
+
+# Companies seen in screenshots that are NOT yet publicly traded
+PRIVATE_COMPANIES = [
+    ("Physical Intelligence (π)", "Robotics IA — valuation $11B (Series B). Sem IPO anunciado."),
+    ("Aetherflux",                "Space data centers — Series B $2B. Privada."),
+    ("Starcloud",                 "AI cloud compute — Series A $1.1B. Privada."),
 ]
 
 st.set_page_config(
@@ -29,7 +46,8 @@ st.set_page_config(
 st.title("📊 Analisador de Ações — Por Sector de Investimento")
 st.markdown(
     "Extrai tickers de screenshots → analisa fundamentos + momentum → "
-    "categoriza por **sector** (IA, Espaço, Nuclear, Cripto…) → encontra os melhores ETFs."
+    "categoriza por **sector** (IA & Semis, Defesa, Espaço, Nuclear, Drones…) → "
+    "encontra os melhores ETFs."
 )
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -44,7 +62,6 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("""
 ### Score (0–100)
-Composto por:
 - **Momentum** 1A + 3M → 25 %
 - **Qualidade** ROE + margens → 25 %
 - **Crescimento** receita + EPS → 20 %
@@ -59,6 +76,22 @@ Composto por:
 | ≥ 32 | 🟠 Evitar |
 | < 32 | 🔴 Vender/Ignorar |
 """)
+    st.markdown("---")
+    st.markdown("""
+### Estratégia simples 🇵🇹
+De **miguelduartevfd** (vídeo nos screenshots):
+- **60% VWCE** — 3.600 empresas mundiais, 0,22%/ano
+- **30% QDVE** — S&P 500 Tech sector
+- **10% liquidez** — fundo emergência
+
+*"O simples bate o complicado quase sempre"*
+""")
+
+# ── Private companies warning ─────────────────────────────────────────────────
+with st.expander("⚠️ Empresas nos screenshots que ainda NÃO têm cotação", expanded=False):
+    for name, desc in PRIVATE_COMPANIES:
+        st.markdown(f"- **{name}**: {desc}")
+    st.caption("Não é possível investir directamente nestas — esperar por IPO ou usar ETFs temáticos.")
 
 # ── Input ─────────────────────────────────────────────────────────────────────
 col_up, col_man = st.columns([3, 2])
@@ -72,18 +105,16 @@ with col_up:
 
 with col_man:
     manual_input = st.text_area(
-        "Tickers (pré-carregados dos teus screenshots — edita à vontade):",
+        "Tickers (pré-carregados dos teus 34 screenshots — edita à vontade):",
         value="\n".join(SEED_TICKERS),
-        height=230,
+        height=280,
     )
 
 if not st.button("🔍 Analisar e Categorizar por Sector", type="primary", use_container_width=True):
     st.stop()
 
 # ── Collect tickers ───────────────────────────────────────────────────────────
-from analyzer import (
-    SECTOR_DESC, SECTOR_ETFS, analyze_stocks
-)
+from analyzer import SECTOR_DESC, SECTOR_ETFS, analyze_stocks
 from etf_finder import find_etfs_for_stocks
 
 all_tickers: set = set()
@@ -109,7 +140,8 @@ if not all_tickers:
     st.error("Nenhuma ação encontrada.")
     st.stop()
 
-st.info(f"**{len(all_tickers)} ações únicas** a analisar: {', '.join(sorted(all_tickers))}")
+n = len(all_tickers)
+st.info(f"**{n} ações únicas** a analisar. Pode demorar {n // 3}–{n // 2} minutos (rate limit Yahoo Finance).")
 
 # ── Analysis ──────────────────────────────────────────────────────────────────
 st.markdown("---")
@@ -126,74 +158,67 @@ tab_sector, tab_ranking, tab_etf = st.tabs([
     "🏦 ETFs Recomendados",
 ])
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TAB 1 — By Sector
-# ─────────────────────────────────────────────────────────────────────────────
 DISPLAY_COLS = [
     "Ticker", "Nome", "Score", "Veredicto",
     "Preço", "P/E Fwd", "ROE", "Margem Liq.",
     "Cresc. Receita", "Ret. 1 Ano", "Upside Analysts", "Recomendação",
 ]
 
+# ─────────────────────────────────────────────────────────────────────────────
+# TAB 1 — By Sector
+# ─────────────────────────────────────────────────────────────────────────────
 with tab_sector:
-    st.subheader("Ações agrupadas por sector de investimento")
+    st.subheader("Ações agrupadas por sector — do melhor sector para o pior")
 
-    # Summary cards
-    sectors_present = df["_sector_key"].unique()
-    cols_per_row = 3
-    sector_list = sorted(sectors_present)
-    rows = [sector_list[i:i + cols_per_row] for i in range(0, len(sector_list), cols_per_row)]
-
-    for row in rows:
-        cols = st.columns(cols_per_row)
-        for col, sec in zip(cols, row):
-            count = len(df[df["_sector_key"] == sec])
-            best_score = df[df["_sector_key"] == sec]["Score"].max()
-            sector_label = df[df["_sector_key"] == sec]["Sector"].iloc[0]
-            col.metric(
-                label=sector_label,
-                value=f"{count} ação{'ões' if count != 1 else ''}",
-                delta=f"Melhor score: {best_score}",
-            )
-
-    st.markdown("---")
-
-    # One section per sector (ordered by best score in sector)
+    # Summary metric cards
     sector_order = (
-        df.groupby("_sector_key")["Score"].max()
+        df.groupby("_sector_key")["Score"]
+        .max()
         .sort_values(ascending=False)
         .index.tolist()
     )
 
+    cols_per_row = 4
+    for i in range(0, len(sector_order), cols_per_row):
+        chunk = sector_order[i:i + cols_per_row]
+        cols = st.columns(cols_per_row)
+        for col, sec in zip(cols, chunk):
+            sec_df = df[df["_sector_key"] == sec]
+            label = sec_df["Sector"].iloc[0]
+            count = len(sec_df)
+            best = sec_df["Score"].max()
+            col.metric(label=label, value=f"{count} ação{'ões' if count != 1 else ''}", delta=f"Top score: {best}")
+
+    st.markdown("---")
+
+    # One section per sector
     for sec_key in sector_order:
         sec_df = df[df["_sector_key"] == sec_key].copy()
         sector_label = sec_df["Sector"].iloc[0]
         description = SECTOR_DESC.get(sec_key, "")
         etf_recs = SECTOR_ETFS.get(sec_key, [])
 
-        # Header
         st.markdown(f"### {sector_label}")
         if description:
             st.markdown(f"> {description}")
-
-        # ETFs for this sector
         if etf_recs:
             st.markdown(f"**ETFs deste sector:** `{'` · `'.join(etf_recs)}`")
 
-        # Stocks table
         show = sec_df[DISPLAY_COLS].reset_index(drop=True)
         show.index = show.index + 1
         st.dataframe(
             show.style.background_gradient(subset=["Score"], cmap="RdYlGn", vmin=0, vmax=100),
             use_container_width=True,
-            height=min(400, 45 + len(show) * 38),
+            height=min(450, 45 + len(show) * 38),
         )
 
-        # Individual stock notes
+        # Per-stock notes
+        notes_shown = False
         for _, row in sec_df.iterrows():
             note = row.get("_note", "")
             if note:
                 st.caption(f"**{row['Ticker']}** — {note}")
+                notes_shown = True
 
         st.markdown("---")
 
@@ -201,9 +226,8 @@ with tab_sector:
 # TAB 2 — Overall Ranking
 # ─────────────────────────────────────────────────────────────────────────────
 with tab_ranking:
-    st.subheader("Todas as ações ordenadas de melhor para pior")
+    st.subheader(f"Todas as {len(df)} ações ordenadas de melhor para pior")
 
-    # Summary pills
     cat_counts = df["Veredicto"].value_counts()
     c1, c2, c3, c4, c5 = st.columns(5)
     for col, v in zip(
@@ -214,17 +238,19 @@ with tab_ranking:
 
     st.markdown("")
 
-    rank_cols = ["Ticker", "Nome", "Sector", "Score", "Veredicto",
-                 "Preço", "P/E Fwd", "ROE", "Margem Liq.",
-                 "Cresc. Receita", "Cresc. EPS", "Ret. 1 Ano",
-                 "Ret. 3 Meses", "Upside Analysts", "Recomendação"]
+    rank_cols = [
+        "Ticker", "Nome", "Sector", "Score", "Veredicto",
+        "Preço", "P/E Fwd", "ROE", "Margem Liq.",
+        "Cresc. Receita", "Cresc. EPS", "Ret. 1 Ano",
+        "Ret. 3 Meses", "Upside Analysts", "Recomendação",
+    ]
     show_rank = df[rank_cols].reset_index(drop=True)
     show_rank.index = show_rank.index + 1
 
     st.dataframe(
         show_rank.style.background_gradient(subset=["Score"], cmap="RdYlGn", vmin=0, vmax=100),
         use_container_width=True,
-        height=min(800, 45 + len(show_rank) * 38),
+        height=min(900, 45 + len(show_rank) * 38),
     )
 
     st.download_button(
@@ -234,27 +260,25 @@ with tab_ranking:
         "text/csv",
     )
 
-    # Top 5
     st.markdown("---")
-    st.subheader("🏆 Top 5 — Melhores para Investir Agora")
-    top5 = df.head(5)[["Ticker", "Nome", "Sector", "Score", "Veredicto",
-                        "Ret. 1 Ano", "Cresc. Receita", "Upside Analysts"]].reset_index(drop=True)
-    top5.index = top5.index + 1
-    st.table(top5)
+    st.subheader("🏆 Top 10 — Melhores para Investir Agora")
+    top10 = df.head(10)[["Ticker", "Nome", "Sector", "Score", "Veredicto",
+                          "Ret. 1 Ano", "Cresc. Receita", "Upside Analysts"]].reset_index(drop=True)
+    top10.index = top10.index + 1
+    st.table(top10)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 3 — ETFs
 # ─────────────────────────────────────────────────────────────────────────────
 with tab_etf:
-    st.subheader("ETFs que cobrem as tuas melhores ações")
+    st.subheader("ETFs que cobrem os teus sectores — para investir sem comprar tudo")
 
     st.markdown("""
-Como não tens dinheiro para comprar tudo, os ETFs permitem-te ter exposição
-a **vários sectores ao mesmo tempo** com um único produto.
-Abaixo: ETFs recomendados por sector + ETFs que realmente contêm as tuas top ações.
+Se não tens capital para comprar todas as ações individualmente, os ETFs dão-te
+exposição diversificada a um sector inteiro com **uma única compra**.
 """)
 
-    # Manual ETF table per sector
+    # ETF per sector table
     etf_rows = []
     for sec_key in sector_order:
         sec_df = df[df["_sector_key"] == sec_key]
@@ -262,30 +286,29 @@ Abaixo: ETFs recomendados por sector + ETFs que realmente contêm as tuas top a�
         best_score = sec_df.iloc[0]["Score"]
         sector_label = sec_df["Sector"].iloc[0]
         etf_recs = SECTOR_ETFS.get(sec_key, [])
+        all_tickers_in_sector = ", ".join(sec_df["Ticker"].tolist())
         etf_rows.append({
             "Sector": sector_label,
-            "Melhor Ação": best_ticker,
-            "Score": best_score,
+            "Ações no sector": all_tickers_in_sector,
+            "Melhor Score": best_score,
             "ETFs Recomendados": " · ".join(etf_recs) if etf_recs else "—",
         })
 
     etf_summary = pd.DataFrame(etf_rows)
     st.dataframe(etf_summary, use_container_width=True, hide_index=True)
 
+    # Auto ETF finder
     st.markdown("---")
     st.subheader("🔍 ETFs que realmente contêm as tuas top ações")
 
-    top_k = min(12, len(df))
+    top_k = min(15, len(df))
     top_tickers = df.head(top_k)["Ticker"].tolist()
-    st.info(f"A verificar {top_k} ETFs curados contra as tuas top {top_k} ações…")
+    st.info(f"A verificar {top_k} ETFs curados com as tuas top {top_k} ações…")
 
     etf_df = find_etfs_for_stocks(top_tickers)
 
     if etf_df.empty:
-        st.warning(
-            "Dados de holdings indisponíveis via yfinance. "
-            "Usa os ETFs recomendados por sector na tabela acima."
-        )
+        st.warning("Dados de holdings indisponíveis via yfinance. Usa a tabela por sector acima.")
     else:
         st.dataframe(etf_df, use_container_width=True)
         best = etf_df.iloc[0]
@@ -295,18 +318,28 @@ Abaixo: ETFs recomendados por sector + ETFs que realmente contêm as tuas top a�
             f"Peso combinado no ETF: **{best['Peso Combinado (%)']}%**"
         )
 
+    # Strategy guide
     st.markdown("---")
     st.markdown("""
-### 💡 Estratégia se tiveres pouco capital
+### 💡 Estratégia por capital disponível
 
-| Objectivo | ETF sugerido | Porquê |
-|-----------|-------------|--------|
-| Exposição IA + Semis | **SMH** ou **SOXX** | Concentrado em semicondutores; cobre NVDA, AVGO, MU, TSM, AMAT |
-| Exposição Nasdaq ampla | **QQQ** | Top 100 Nasdaq; inclui maioria das tuas tech picks |
-| Nuclear + Energia limpa | **URA** + **ICLN** | Única forma barata de ter OKLO + outros SMRs |
-| Espaço | **UFO** ou **ARKX** | Cobre ASTS, RKLB e outros |
-| Cripto (sem comprar BTC) | **WGMI** | Mineiros BTC incluindo CIFR e IREN |
+| Capital | Abordagem sugerida | ETFs |
+|---------|-------------------|------|
+| < €500 | 1-2 ETFs amplos | **QQQ** + **SMH** |
+| €500–2k | Cobertura por sector | **QQQ** + **SMH** + **ITA** (defesa) + **URA** (nuclear) |
+| €2k–10k | ETFs + top picks individuais | ETFs + **NVDA**, **ASML**, **AVAV** individualmente |
+| > €10k | Selectivo por sector | Compra as top 2 ações por sector |
+
+### 📊 Estratégia simples 🇵🇹 (miguelduartevfd)
+Para quem não quer complexidade — bate 90% dos gestores:
+- **60% VWCE** — Vanguard FTSE All-World; 3.600 empresas, 0,22%/ano
+- **30% QDVE** — iShares S&P 500 Info Tech; exposição directa a tech
+- **10% fundo de emergência** — Trade Republic a 2-3%/ano antes de investir
+
+### 🚫 Empresas privadas dos screenshots — sem forma de investir ainda
 """)
+    for name, desc in PRIVATE_COMPANIES:
+        st.markdown(f"- **{name}**: {desc}")
 
     st.caption(
         "Dados financeiros via Yahoo Finance. Scores e recomendações são indicativos — "
