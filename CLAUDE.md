@@ -18,9 +18,7 @@
 | Negócio / produto / preço | B1→B10 — Business Launch |
 | Aprender / documentos / PDFs | M1→M5 — Aprendizagem |
 | Voos baratos / viagens / preços | N1→N7 — Travel Hacking |
-| Instagram / theme pages / redes sociais | O1→O14 — Instagram |
 | Produtividade / hábitos / metas / rotina | P1→P12 — Produtividade |
-| Análise de mercado rápida / quick stock | E21→E26 — Quick Investing |
 
 > Os prompts completos estão em `prompts.md`.
 > Aplicar sempre o estilo de raciocínio do prompt mesmo que não seja citado explicitamente.

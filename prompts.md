@@ -300,62 +300,6 @@ Provide:
 
 ---
 
-## CATEGORIA C — Referência: Ferramentas Claude Code
-
-> Informação de referência sobre o ecossistema Claude Code. Não são prompts directos.
-
-### Plug-ins recomendados
-| # | Nome | Descrição |
-|---|---|---|
-| 01 | gstack | 23 ferramentas. Full dev team num install |
-| 02 | superpowers | Complete dev methodology. 14 skills |
-| 03 | codex-plugin-cc | OpenAI's Codex plugin for Claude Code |
-| 04 | financial-services | IB, equity research, PE, wealth management |
-| 05 | claude-for-legal | Legal workflows |
-| 06 | claude-skills | 263+ skills |
-| 07 | marketingskills | 40 marketing tools |
-| 08 | social-media-skills | Posts, reels, captions |
-
-### Skills recomendadas
-| # | Nome | Descrição |
-|---|---|---|
-| 01 | frontend-design | Kills generic AI UI. The taste fixer |
-| 02 | hyperframes | Write HTML, render video |
-| 03 | ai-second-brain | Karpathy-style wiki from AI history |
-| 04 | notebooklm-skill | Claude queries research and playbooks |
-| 05 | humanizer | Strips AI writing tells |
-| 06 | claude-seo | GEO-first SEO skill |
-| 07 | skills | Vue and Vite core team collection |
-| 08 | caveman | Cuts 65% of tokens |
-
-### MCP Servers recomendados
-| # | Nome | Descrição |
-|---|---|---|
-| 01 | granola | Feeds every meeting note to Claude |
-| 02 | slack | Posts updates, reads channel history |
-| 03 | notion | Reads and writes databases and docs |
-| 04 | kondo | Flags which LinkedIn DMs need reply |
-| 05 | zapier | 9,000+ apps, 40,000+ actions |
-| 06 | higgsfield | Cinematic video from a single prompt |
-| 07 | perplexity | Real-time web search inside Claude |
-| 08 | agent-browser | Token-efficient browser automation |
-
----
-
-## CATEGORIA D — Referência: Camadas de Stocks AI
-
-> Contexto de mercado. Usar quando o utilizador perguntar sobre investimento em AI.
-
-| Camada | Sector | Stocks |
-|---|---|---|
-| Layer 1 | Power | CEG, VST, GEV, ETN |
-| Layer 2 | Chips | NVDA, AVGO, TSM, AMD |
-| Layer 3 | Data Centers | AMZN, MSFT, EQIX, DLR |
-| Layer 4 | AI Platforms | ORCL, PLTR, SNOW, MSFT |
-| Layer 5 | Enterprise Software | CRM, ADBE, NOW, SAP |
-
----
-
 ## CATEGORIA E — Análise de Stocks & Investimento
 
 > Usar quando o utilizador pedir análise de acções, portfólio, earnings, risco, entrada.
@@ -462,59 +406,6 @@ For each ticker:
 Cite the source for each claim.
 Format: three short cards, one per ticker."
 ```
-
----
-
-## CATEGORIA F — Ferramentas AI de Referência
-
-> 15 ferramentas AI recomendadas (@prompt.wiz). Usar quando o utilizador perguntar sobre ferramentas externas.
-
-### F1 — AI & Automation
-| # | Ferramenta | Descrição |
-|---|---|---|
-| 1 | Lindy.ai | AI employee — meetings, emails, customer support |
-| 2 | Perplexity.ai | "Google Killer" de 2026. Respostas citadas sem ads |
-| 3 | Make.com | "Glue" da internet — conecta apps sem código |
-
-### F2 — Visual & Video
-| # | Ferramenta | Descrição |
-|---|---|---|
-| 4 | Klingai.com | Vídeos 1080p cinemáticos a partir de texto |
-| 5 | Runwayml.com | Editor de vídeo AI profissional |
-| 6 | Gamma.app | Apresentação completa a partir de uma frase |
-
-### F3 — Growth & Marketing
-| # | Ferramenta | Descrição |
-|---|---|---|
-| 7 | Vappi.ai | Lead generation com mensagens personalizadas |
-| 8 | ManyChat.com | Automação de DMs Instagram/Facebook |
-| 9 | AdCreative.ai | Gera centenas de banners e posts adaptados à marca |
-
-### F4 — Research & Academic
-| # | Ferramenta | Descrição |
-|---|---|---|
-| 10 | Consensus.app | Motor de busca AI em 200M+ papers científicos |
-| 11 | Humata.ai | Faz upload de PDF de 100 páginas e conversa com ele |
-| 12 | Tome.app | Apresentações imersivas com AI |
-
-### F5 — Coding & Utility
-| # | Ferramenta | Descrição |
-|---|---|---|
-| 13 | Replit.com | Build, host, deploy directamente no browser |
-| 14 | TinyWow.com | PDF, vídeo trimming, remoção de background |
-| 15 | 10MinuteMail.com | Email temporário para evitar spam |
-
----
-
-## CATEGORIA G — GitHub Repos Notáveis
-
-> Repos open-source de referência. Instalar apenas quando necessário.
-
-| Stars | Repo | Descrição |
-|---|---|---|
-| 3.7k | AgriciDaniel/claude-ads | Ad agency num comando. 250+ checks Google/Meta/YouTube/LinkedIn/TikTok |
-| 17.4k | Fincept-Corporation/FinceptTerminal | Bloomberg Terminal open-source. 100+ fontes, 37 AI agents (Buffett, Munger, Lynch) |
-| 10k | Anil-matcha/Open-Generative-AI | Midjourney+Sora+HeyGen self-hosted. 200+ modelos. Free |
 
 ---
 
@@ -831,20 +722,6 @@ Then design the conversion.
 **The Equity Gap:** [What your income could look like in 2 years if you convert the top opportunity]
 **First Escape Move:** [One action to start this week]
 ```
-
----
-
-## CATEGORIA C (ACTUALIZAÇÃO) — Novas Skills Claude Code
-
-> Adicionadas ao lote existente de plugins/skills (@0verlens)
-
-### Novas Skills via npx/plugin
-| Nome | Comando | Descrição |
-|---|---|---|
-| UI-UX PRO MAX | `/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill` | Design thinking real, hierarquia visual, psicologia das cores |
-| Emil Kowalski Design | `npx skills add emilkowalski/skill` | Animações, design, código, performance (baseado nos artigos do Emil) |
-| App Store Design | `npx skills add ParthJadhav/app-store-screenshots` | Screenshots prontos para App Store iOS em todas as resoluções |
-| Garry Tan Gstack | `https://github.com/garrytan/gstack.git` | Avalia design 0-10, detecta "AI Slop", pergunta ao utilizador em cada escolha |
 
 ---
 
@@ -1540,95 +1417,6 @@ to increase my reach and revenue."
 
 ---
 
-## CATEGORIA O — Instagram & Theme Pages (@abundancewithchelsea + @wizofai)
-
-> Prompts para criar, crescer e monetizar páginas de Instagram sem rosto (theme pages).
-
-### O1 — Niche Finder
-```
-"List 10 Instagram theme page niches with low competition, high growth potential,
-and strong monetization opportunities."
-```
-
-### O2 — Viral Content Blueprint
-```
-"For [chosen niche], give me 20 viral reel or carousel ideas I can recreate without showing my face."
-```
-
-### O3 — Caption Generator
-```
-"Write a viral-style Instagram caption with a strong hook and CTA for this post: [paste content idea]."
-```
-
-### O4 — Hashtag & Hook Formula
-```
-"Generate 15 high-performing hashtags and 5 scroll-stopping hook texts for my theme page in [niche]."
-```
-
-### O5 — Content Schedule
-```
-"Build me a 30-day content calendar for my theme page, optimized for engagement and growth."
-```
-
-### O6 — Monetization Map
-```
-"List 5 ways to monetize an Instagram theme page in [niche], including affiliates, shoutouts, and digital products."
-```
-
-### O7 — Automation Setup
-```
-"Show me how to batch content, schedule posts, and automate captions so my theme page runs on autopilot."
-```
-
-### O8 — Viral Instagram Content Ideas
-```
-"I want to create a faceless Instagram page about [insert niche].
-Generate a list of 10 content ideas that could go viral, based on current trends,
-hot topics, and what's working best in my niche right now."
-```
-
-### O9 — Viral Instagram Caption (Full)
-```
-"Write an Instagram caption for my post about [insert topic].
-Make sure to include a strong hook to grab attention, an engaging story to keep people reading,
-and a clear call to action that boosts engagement."
-```
-
-### O10 — Instagram Page Automation
-```
-"I want to start a faceless Instagram page in [niche].
-Show me how to use ChatGPT for writing captions, AI tools for creating content,
-and scheduling apps to automate everything and generate consistent cash-flow."
-```
-
-### O11 — Instagram Growth Strategy
-```
-"I'm launching a new faceless Instagram page about [niche].
-Help me create a 30-day plan with content ideas, posting schedule,
-strategies to grow my audience, and ways to start monetizing through promo posts and affiliate links."
-```
-
-### O12 — Instagram Reel Hook
-```
-"Help me craft a catchy 3-second hook for my Instagram reel about [insert topic].
-Make it attention-grabbing so viewers stop scrolling immediately and want to keep watching."
-```
-
-### O13 — Repurpose Content Across Platforms
-```
-"I have an Instagram post about [insert topic].
-Show me how to turn this post into different formats: Instagram reels, Stories, carousels,
-and even adapt it for other platforms to maximize reach."
-```
-
-### O14 — Boost Instagram Engagement
-```
-"Analyze the current Instagram algorithm and create high-performing hashtags, caption structure,
-and posting times for my faceless page in [niche] to maximize reach and engagement."
-```
-
----
-
 ## CATEGORIA P — Produtividade & Objetivos (Google/Gemini + @gurudoprompt)
 
 > Prompts para criar rotinas, alcançar metas e construir hábitos duradouros.
@@ -1725,53 +1513,6 @@ Inclua mapa de competências, erros comuns, como detectar e corrigir, e rubrica 
 Crie ritual semanal: destilar → aplicar → ensinar (post curto explicando o aprendido).
 Entregue também um template de anotações (captura atômica + Zettelkasten simples)
 e métricas de retenção/aplicação."
-```
-
----
-
-## CATEGORIA E (EXTENSÃO 3) — Quick Investing Prompts (@theaiguyhere)
-
-> Prompts de investimento directos e práticos para análise rápida.
-
-### E21 — Market Analysis
-```
-"Analyze the current trends in the stock market, focusing on [input sector or stock].
-Identify any emerging patterns and suggest potential investment opportunities.
-Consider recent earnings reports and industry news in your analysis."
-```
-
-### E22 — Portfolio Diversification
-```
-"Given a portfolio with a mix of [input current sectors or stocks], suggest strategies to diversify further
-while minimizing risk. Include potential sectors to explore and specific stocks to consider."
-```
-
-### E23 — Risk Management for Traders
-```
-"Discuss effective risk management techniques for a stock trader.
-Provide detailed examples of how to implement stop-loss orders, diversification, and position sizing
-in a trading strategy. Use [input current trading strategy or stock] as a reference."
-```
-
-### E24 — Technical Analysis Quick
-```
-"Using technical analysis, evaluate the stock of [input stock].
-Analyze recent price movements, volume, and key indicators such as moving averages and RSI.
-Provide a buy, sell, or hold recommendation."
-```
-
-### E25 — Value Investing
-```
-"Describe the principles of value investing and how to identify undervalued stocks.
-Use real-world examples, including [input stock or company], to illustrate how investors
-can apply this strategy in the current market."
-```
-
-### E26 — Growth Stock vs Dividend Stocks
-```
-"Compare and contrast growth stocks and dividend stocks.
-Discuss the benefits and risks of each type of investment and suggest scenarios where one might be more suitable
-than the other. Reference [input specific growth stock and dividend stock]."
 ```
 
 ---
