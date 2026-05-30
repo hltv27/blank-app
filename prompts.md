@@ -845,3 +845,301 @@ Then design the conversion.
 | Emil Kowalski Design | `npx skills add emilkowalski/skill` | Animações, design, código, performance (baseado nos artigos do Emil) |
 | App Store Design | `npx skills add ParthJadhav/app-store-screenshots` | Screenshots prontos para App Store iOS em todas as resoluções |
 | Garry Tan Gstack | `https://github.com/garrytan/gstack.git` | Avalia design 0-10, detecta "AI Slop", pergunta ao utilizador em cada escolha |
+
+---
+
+## CATEGORIA E (EXTENSÃO) — Análise Avançada de Mercados (@uncover.ai)
+
+> Prompts de nível institucional para análise profunda de investimento.
+
+### E11 — BlackRock-Style Portfolio Construction
+```
+"You are a senior portfolio strategist at BlackRock managing multi-asset portfolios worth $500M+ for institutional clients.
+I need a custom investment portfolio built from scratch for my situation.
+
+Create:
+• Exact asset allocation with percentages across stocks, bonds, alternatives
+• Specific ETF or fund recommendations for each category with ticker symbols
+• Core holdings vs satellite positions clearly labeled
+• Expected annual return range based on historical data
+• Expected maximum drawdown in a bad year
+• Rebalancing schedule and trigger rules
+• Tax efficiency strategy for my account type
+• Dollar cost averaging plan if I invest monthly
+• Benchmark to measure my performance against
+• One-page investment policy statement I can follow
+
+Format as a professional investment policy document with an allocation pie chart description.
+
+My details: [DESCRIBE YOUR AGE, INCOME, SAVINGS, GOALS, RISK TOLERANCE, AND ACCOUNT TYPE - 401K, IRA, TAXABLE]"
+```
+
+### E12 — Citadel-Grade Technical Analysis System
+```
+"You are a senior quantitative trader at Citadel who combines technical analysis
+with statistical models to time entries and exits.
+
+I need a full technical analysis breakdown of a stock. Analyze:
+• Current trend direction on daily, weekly, and monthly timeframes
+• Key support and resistance levels with exact price points
+• Moving average analysis (50-day, 100-day, 200-day) and crossover signals
+• RSI, MACD, and Bollinger Band readings with plain-English interpretation
+• Volume trend analysis and what it signals about buyer/seller strength
+• Chart pattern identification (head and shoulders, cup and handle, etc.)
+• Fibonacci retracement levels for potential bounce zones
+• Ideal entry price, stop-loss level, and profit target
+• Risk-to-reward ratio for the current setup
+• Confidence rating: strong buy, buy, neutral, sell, strong sell
+
+Format as a technical analysis report card with a clear trade plan summary.
+
+The stock to analyze: [ENTER TICKER SYMBOL AND YOUR CURRENT POSITION IF ANY]"
+```
+
+### E13 — Harvard Endowment Dividend Strategy
+```
+"You are the chief investment strategist for Harvard's $50B endowment fund
+specializing in income-generating equity strategies.
+
+I need a dividend income portfolio that generates reliable passive income.
+
+Build:
+• 15-20 dividend stock picks with ticker symbols and current yield
+• Dividend safety score for each stock (1-10 scale)
+• Consecutive years of dividend growth for each pick
+• Payout ratio analysis to flag any unsustainable dividends
+• Monthly income projection based on my investment amount
+• Sector diversification breakdown to avoid concentration
+• Dividend growth rate estimate for the next 5 years
+• DRIP reinvestment projection showing compounding over 10 years
+• Tax implications summary for dividends in my account type
+• Ranked list from safest to most aggressive picks
+
+Format as a dividend portfolio blueprint with an income projection table.
+
+My situation: [ENTER YOUR TOTAL INVESTMENT AMOUNT, MONTHLY INCOME GOAL, ACCOUNT TYPE, AND TAX BRACKET]"
+```
+
+### E14 — Bain-Style Competitive Advantage Analysis
+```
+"You are a senior partner at Bain & Company conducting a competitive strategy analysis
+for a major investment fund evaluating an industry.
+
+I need a full competitive landscape report to find the best stock to buy in a sector.
+Provide:
+• Top 5-7 competitors in the sector with market cap comparison
+• Revenue and profit margin comparison in a table format
+• Competitive moat analysis for each company (brand, cost, network, switching)
+• Market share trends over the last 3 years
+• Management quality rating based on capital allocation track record
+• Innovation pipeline and R&D spending comparison
+• Biggest threats to the sector (regulation, disruption, macro)
+• SWOT analysis for the top 2 companies
+• My single best stock pick with a clear rationale
+• Catalysts that could move the winner stock in the next 12 months
+
+Format as a Bain-style competitive strategy deck summary with comparison tables.
+
+The sector I want analyzed: [ENTER INDUSTRY OR SECTOR NAME]"
+```
+
+### E15 — Renaissance Technologies Pattern Finder
+```
+"You are a quantitative researcher at Renaissance Technologies using data-driven methods
+to find statistical edges in the stock market.
+
+I need you to identify hidden patterns and anomalies in a stock's behavior.
+
+Research:
+• Seasonal patterns: best and worst months historically
+• Day-of-week performance patterns if any exist
+• Correlation with major market events (Fed meetings, CPI reports)
+• Insider buying and selling patterns from recent filings
+• Institutional ownership trend: are big funds buying or selling
+• Short interest analysis and squeeze potential
+• Unusual options activity signals worth watching
+• Price behavior around earnings (pre-run, post-gap patterns)
+• Sector rotation signals that affect this stock
+• Statistical edge summary: what gives this stock a quantifiable advantage
+
+Format as a quantitative research memo with data tables and pattern summaries.
+
+The stock to investigate: [ENTER TICKER SYMBOL AND TIME PERIOD YOU CARE ABOUT]"
+```
+
+### E16 — McKinsey-Level Macro Impact Assessment
+```
+"You are a senior partner at McKinsey's Global Institute who advises sovereign wealth funds
+on how macroeconomic trends affect equity markets.
+
+I need a macro analysis showing how current economic conditions affect my portfolio.
+
+Analyze:
+• Current interest rate environment and its impact on growth vs value stocks
+• Inflation trend analysis and which sectors benefit or suffer
+• GDP growth forecast and what it means for corporate earnings
+• US dollar strength impact on international vs domestic holdings
+• Employment data trends and consumer spending implications
+• Federal Reserve policy outlook for the next 6-12 months
+• Global risk factors (geopolitics, trade wars, supply chains)
+• Sector recommendation based on current economic cycle
+• Specific portfolio adjustments I should consider right now
+• Timeline: when these macro factors will most likely impact markets
+
+Format as an executive macro strategy briefing with a clear action plan.
+
+My current holdings: [LIST YOUR PORTFOLIO AND DESCRIBE YOUR BIGGEST CONCERN ABOUT THE ECONOMY]"
+```
+
+---
+
+## CATEGORIA K — Claude Code: Memória & Automação (@construyendoia)
+
+> Prompts para dar ao Claude Code memória persistente, personalidade e automação.
+
+### K1 — Sistema de Memória Persistente
+```
+"Crea un sistema de memoria persistente para mí.
+Haz un directorio /memory con estos archivos: decisions.md, people.md, preferences.md y user.md.
+Luego escribe un CLAUDE.md que le indique leer todos esos archivos al inicio de cada sesión,
+y crea un hook que los actualice al terminar."
+```
+
+### K2 — Dar Personalidade ao Claude Code
+```
+"Lee todo lo que hay en mi directorio /memory y escribe un personality.md
+que defina cómo debes pensar, comunicarte y tomar decisiones cuando trabajas conmigo.
+Basate únicamente en los patrones que observes en mis archivos.
+Este archivo se convierte en tu personalidad para cada sesión futura.
+Información adicional: [agrega aquí cualquier dato relevante]"
+```
+
+### K3 — Briefing Matutino Automatizado
+```
+"Configura un briefing matutino automatizado usando las tareas programadas de Claude Code.
+Cada día a las 8am debes: leer mis archivos /memory, revisar active.md en /todos,
+resumir en qué estaba trabajando y generar mis 3 prioridades del día.
+Luego envía el briefing a mi Slack como DM usando un webhook.
+Guarda la URL del webhook en mi archivo .env como SLACK_WEBHOOK_URL."
+```
+
+### K4 — Dashboard de Tarefas em Tempo Real
+```
+"Constrúyeme un dashboard de tareas en tiempo real usando Next.js y Supabase.
+Crea una tabla 'todos' en Supabase con los campos: title, status, priority, assigned_agent y updated_at.
+Activa Supabase Realtime en la tabla para que la interfaz se actualice automáticamente
+vía websockets, sin recargar la página.
+Cuando un agente complete una tarea, debe actualizar el estado directamente en Supabase
+y el dashboard lo refleja al instante.
+Estilo: oscuro, minimalista y limpio."
+```
+
+---
+
+## CATEGORIA L — YouTube & Conteúdo Faceless (@razvanpbusiness)
+
+> Prompts para canais YouTube sem rosto. Usar quando o utilizador quiser criar conteúdo vídeo.
+
+### L1 — Competitor Channel Analysis
+```
+"You are a YouTube channel intelligence analyst specializing in faceless content.
+I am building a faceless YouTube channel in the [NICHE] space.
+
+Analyze the following competitor channels: [CHANNEL 1], [CHANNEL 2], [CHANNEL 3]
+
+For each channel, break down:
+- Their core content pillars and what topics they return to most
+- Upload cadence and how it affects their growth trajectory
+- Their best-performing video formats (listicles, explainers, docustyle, etc.)
+- Thumbnail and title patterns that appear across their top 20 videos
+- Gaps in their content — topics their audience asks about but they never cover
+- Comment section sentiment: what do viewers love, complain about, or wish existed
+
+Finish with a strategic opportunity map: where can a new channel enter this space,
+differentiate, and grow fastest without directly competing."
+```
+
+### L2 — Viral Idea Finding
+```
+"You are a viral content strategist for faceless YouTube channels.
+My channel is in the [NICHE] space and targets [TARGET AUDIENCE].
+
+Generate 20 video ideas with genuine viral potential. For each idea:
+- Write a working title using a proven psychological trigger (curiosity gap, controversy, fear of missing out, status, or forbidden knowledge)
+- Explain in one sentence WHY this idea would make someone stop scrolling and click
+- Identify the emotional hook: what feeling drives the click (shock, validation, aspiration, outrage, fear)?
+- Rate its monetization ceiling (low/medium/high) based on advertiser interest in this topic
+
+Prioritize ideas that: have search volume AND trending momentum, can be produced without original footage,
+and have a clear narrative arc. Flag any ideas that have been overdone and suggest a fresh angle instead."
+```
+
+### L3 — Choosing The Right Title
+```
+"You are a content strategist and data analyst for faceless YouTube channels.
+I have the following video ideas I am considering for my next upload:
+
+[PASTE YOUR LIST OF IDEAS]
+
+Score each idea across five dimensions on a scale of 1 to 10:
+1. Search demand — is there an existing audience actively searching for this?
+2. Trend velocity — is interest growing, stable, or declining right now?
+3. Competition density — how saturated is this topic on YouTube?
+4. Production feasibility — how easily can this be made without original footage or a face?
+5. Monetization value — would advertisers pay premium CPM for this content?
+
+Calculate a weighted total score (search demand x2, trend velocity x2, others x1).
+
+Recommend the top 2 ideas to pursue now and explain your reasoning.
+For the winner, outline the ideal angle, target keyword, and the one thing that will make this video
+stand out from everything else already ranking."
+```
+
+### L4 — Studying Viral Transcripts
+```
+"You are a YouTube content forensics expert.
+I am going to give you the transcript of a viral video from my niche that performed exceptionally well.
+
+[PASTE TRANSCRIPT]
+
+Reverse engineer why this video worked by analyzing:
+- The hook structure: what happens in the first 30 seconds and why it earns the next click-through?
+- Pacing and information density: how does the script balance revelation, tension, and payoff throughout?
+- Retention mechanics: where does the script re-hook the viewer and how (open loops, pattern interrupts, stakes escalation)?
+- Language and tone: what vocabulary, sentence length, and emotional register does the script use?
+- The story architecture: does it follow a specific narrative framework (problem-agitate-solve, hero journey, countdown, etc.)?"
+```
+
+### L5 — Writing Viral Scripts
+```
+"You are a professional YouTube scriptwriter specializing in high-retention faceless content.
+Write a full script for the following video:
+
+Topic: [VIDEO TOPIC]
+Target length: [X] minutes
+Tone: [authoritative / conversational / dramatic / investigative]
+Target audience: [DESCRIBE AUDIENCE]
+
+Script requirements:
+- Open with a hook that creates an immediate curiosity gap or emotional trigger — no intros, no channel plugs, no 'welcome back'
+- Every 60 to 90 seconds, plant a new open loop or raise the stakes to protect retention
+- Write in short punchy sentences designed to be read aloud — no walls of text
+- Include [B-ROLL CUE] markers throughout suggesting what footage or graphics should appear on screen"
+```
+
+### L6 — Thumbnail and Title Analysis
+```
+"You are a YouTube thumbnail and title conversion specialist.
+My video is about [TOPIC] and targets [AUDIENCE].
+
+Analyze the top 10 performing thumbnails in this niche based on the following competitor videos:
+[LIST VIDEO TITLES OR URLS]
+
+Break down:
+- The visual formula: what elements appear repeatedly (faces, text overlays, color schemes, arrows, contrast ratios, negative space usage)?
+- Emotional cues: what psychological state does the thumbnail create — curiosity, fear, excitement, disbelief?
+- Text strategy: how much text is used, where is it placed, and what font weight and color patterns dominate?
+- The clickable moment: what single visual element is doing the most work in driving the click?
+
+Then for my video, generate thumbnail and title recommendations."
+```
