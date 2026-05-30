@@ -1,5 +1,27 @@
 # Claw Agent v8 — Contexto para Claude
 
+## Selecção Automática de Prompts
+
+**Ao receber qualquer mensagem, consultar `prompts.md` e aplicar o prompt mais adequado:**
+
+| Tipo de pedido | Prompt |
+|---|---|
+| Bug / erro / crash / log | A2 — Debugging Monster |
+| Rever código / arquitectura | A1 — Audit Codebase |
+| Refactorizar / limpar | A3 — Clean Architecture |
+| Novo sistema / API / DB | A4 — Systems Architect |
+| Tarefa complexa multi-parte | A5 — AI Engineering Team |
+| UI / frontend | A6 — Senior Frontend |
+| Decisão técnica / trade-off | A7 — Tech Lead Mode |
+| Segurança / credenciais | A8 — Security Audit |
+| Deploy / CI/CD / Termux | A9 — DevOps Engineer |
+| Negócio / produto / preço | B1→B10 — Business Launch |
+
+> Os prompts completos estão em `prompts.md`.
+> Aplicar sempre o estilo de raciocínio do prompt mesmo que não seja citado explicitamente.
+
+---
+
 ## O que é este projecto
 Bot de trading automático para Binance Futures USDC-M (perpétuos).
 - Capital: ~240 USDC | Alavancagem: 6x | Margem: Cross
