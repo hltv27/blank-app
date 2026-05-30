@@ -1143,3 +1143,678 @@ Break down:
 
 Then for my video, generate thumbnail and title recommendations."
 ```
+
+---
+
+## CATEGORIA E (EXTENSÃO 2) — Análise Avançada de Mercados (@uncover.ai)
+
+### E17 — JPMorgan-Level Earnings Breakdown
+```
+"You are a senior research analyst at JPMorgan preparing a pre-earnings research brief
+for institutional clients before a major company reports quarterly results.
+
+I need a full pre-earnings breakdown for [COMPANY NAME] ([TICKER]).
+
+Deliver:
+• Consensus EPS estimate and revenue forecast with analyst range
+• The company's historical earnings beat/miss rate for the last 8 quarters
+• The 3 most important metrics Wall Street is watching this quarter (not just EPS)
+• Guidance analysis: what did management say last quarter and was it credible?
+• Key risks that could cause a miss this quarter
+• One bullish scenario and one bearish scenario with price targets for each
+• Options market implied move: how much the stock is expected to move on earnings day
+• My single recommendation: buy before earnings, wait until after, or avoid entirely
+
+Format as a JPMorgan earnings preview note with a clear actionable summary at the top.
+
+Company to analyze: [ENTER COMPANY NAME, TICKER, AND EARNINGS DATE]"
+```
+
+### E18 — Bridgewater-Inspired Risk Analysis Framework
+```
+"You are a senior risk analyst at Bridgewater Associates applying Ray Dalio's All Weather
+and Pure Alpha risk frameworks to evaluate a portfolio's resilience.
+
+I need a full risk analysis for my current portfolio.
+
+Assess:
+• Correlation matrix: how do my holdings move together in a downturn?
+• Concentration risk: which single position or sector could hurt me most?
+• Stress test results: what happens to my portfolio if specific crisis scenarios occur?
+• Factor exposure: am I unknowingly overweight growth, leverage, or rate sensitivity?
+• Liquidity risk: which positions would be hardest to exit in a panic market?
+• Tail risk events: what low-probability, high-impact events threaten my portfolio?
+• Hedging recommendations: specific instruments to protect against my top 3 risks
+• Portfolio balance score: am I truly diversified or just holding correlated assets?
+• Drawdown simulation: estimated max loss in a 2008-style or 2020-style crash
+• Action plan: the 3 changes that would reduce my risk the most right now
+
+Format as a Bridgewater risk memo with a risk dashboard summary table.
+
+My portfolio: [LIST YOUR HOLDINGS WITH PERCENTAGES AND TOTAL PORTFOLIO SIZE]"
+```
+
+### E19 — Morgan Stanley-Style DCF Valuation Deep Dive
+```
+"You are a senior equity analyst at Morgan Stanley conducting a discounted cash flow
+valuation for a major institutional client considering a significant investment.
+
+I need a complete DCF valuation for [COMPANY NAME] ([TICKER]).
+
+Build:
+• 5-year revenue growth forecast with bull, base, and bear case assumptions
+• EBITDA margin trajectory and operating leverage analysis
+• Free cash flow projection for each year across all 3 scenarios
+• WACC calculation with cost of equity and debt components explained
+• Terminal value using both exit multiple and perpetuity growth methods
+• Intrinsic value per share for bull, base, and bear scenarios
+• Current price vs intrinsic value: is the stock cheap, fair, or expensive?
+• Sensitivity table showing how value changes with different growth and margin assumptions
+• Key risks that would invalidate the bull case thesis
+• My verdict: buy, hold, or sell, and at what price would I change my view
+
+Format as a Morgan Stanley equity research DCF model summary with scenario table.
+
+Company to value: [ENTER COMPANY NAME, TICKER, AND ANY SPECIFIC CONCERNS YOU HAVE]"
+```
+
+### E20 — Goldman Sachs-Level Stock Screener
+```
+"You are a senior portfolio strategist at Goldman Sachs running a quantitative screen
+to find the top 10 stocks most likely to outperform the market over the next 12 months.
+
+Screen for stocks that meet these criteria:
+• Revenue growth above sector average for the last 4 quarters
+• Net profit margin expanding year-over-year
+• Free cash flow positive with a FCF yield above X%
+• Price-to-earnings ratio below the sector median or justified by growth
+• Return on equity above 15% consistently
+• Low debt-to-equity ratio relative to peers
+• Institutional ownership increasing over the last 2 quarters
+• Management with strong capital allocation track record (buybacks, dividends, M&A)
+• Identifiable economic moat (brand, cost, network, switching, or regulatory)
+• A clear near-term catalyst in the next 3-6 months
+
+For each of the top 10 stocks found:
+• Give the ticker, sector, and one-line thesis
+• Price target with bull and bear case
+• The single biggest risk to owning this stock
+
+Format as a Goldman Sachs conviction list with a ranking rationale.
+
+My filters: [ENTER YOUR PREFERRED MARKET CAP RANGE, SECTORS TO INCLUDE OR EXCLUDE, AND GEOGRAPHIC PREFERENCE]"
+```
+
+---
+
+## CATEGORIA M — Aprendizagem & Documentos (@create_daniel2)
+
+> Prompts para transformar documentos, PDFs e conteúdo complexo em material de estudo organizado.
+
+### M1 — Mapa Mental Automático
+```
+"Transforma este [DOCUMENTO/PDF/TEXTO] num mapa mental completo e estruturado.
+
+Cria uma hierarquia visual clara:
+• Tópico central no centro
+• Ramos principais para cada conceito-chave
+• Sub-ramos com detalhes, exemplos e definições
+• Conexões entre ramos relacionados claramente indicadas
+• Código de cores sugerido para cada categoria principal
+
+Formato: usa indentação e símbolos para simular a estrutura visual do mapa mental.
+Inclui no final um resumo de 3 frases sobre os conceitos mais importantes.
+
+[COLA O TEU DOCUMENTO AQUI]"
+```
+
+### M2 — Conceitos-Chave & Definições Essenciais
+```
+"Analisa este [DOCUMENTO/PDF/TEXTO] e extrai todos os conceitos-chave e definições essenciais.
+
+Para cada conceito encontrado:
+• Nome do conceito em negrito
+• Definição clara e simples em 1-2 frases
+• Exemplo prático do mundo real
+• Por que é importante saber isto
+• Como se relaciona com outros conceitos do documento
+
+Organiza por ordem de importância (mais fundamental primeiro).
+No final, cria um glossário rápido de referência.
+
+[COLA O TEU DOCUMENTO AQUI]"
+```
+
+### M3 — Simplificar Conteúdo Difícil
+```
+"Pega neste [DOCUMENTO/PDF/TEXTO] complexo e simplifica-o para que alguém sem
+conhecimento técnico da área o possa entender completamente.
+
+Faz isto:
+• Reescreve cada secção em linguagem simples e directa
+• Substitui jargão técnico por explicações do quotidiano
+• Usa analogias e metáforas para conceitos abstractos
+• Adiciona exemplos concretos onde o texto é vago
+• Destaca os 5 pontos mais importantes que o leitor DEVE reter
+• Termina com um resumo de 1 parágrafo como se explicasses a um amigo
+
+[COLA O TEU DOCUMENTO AQUI]"
+```
+
+### M4 — Aulas Estruturadas por Capítulo
+```
+"Transforma este [DOCUMENTO/PDF/LIVRO] numa série de aulas estruturadas e progressivas.
+
+Para cada capítulo/secção, cria:
+• Título da aula e objectivo de aprendizagem
+• Resumo dos conceitos principais (bullet points)
+• Explicação aprofundada dos pontos mais importantes
+• 3-5 perguntas de revisão para testar a compreensão
+• Exercício prático ou aplicação do conteúdo
+• Ligação ao próximo capítulo/conceito
+
+Organiza as aulas por ordem de dificuldade crescente.
+No início, cria um índice com estimativa de tempo por aula.
+
+[COLA O TEU DOCUMENTO AQUI]"
+```
+
+### M5 — Ensina-me do Zero
+```
+"Usa este [DOCUMENTO/PDF/TEXTO] para me ensinar [TÓPICO] do zero, assumindo que não sei nada sobre o assunto.
+
+Segue esta progressão pedagógica:
+1. Contexto: Porquê é que este assunto importa? Qual o problema que resolve?
+2. Fundamentos: As 3-5 ideias base que preciso de entender primeiro
+3. Desenvolvimento: Como os conceitos se constroem uns sobre os outros
+4. Aplicação: Exemplos práticos e casos de uso reais
+5. Síntese: Como tudo se liga numa visão coerente
+6. Próximos passos: O que devo estudar a seguir para aprofundar
+
+Usa o método socrático quando relevante — faz-me perguntas para consolidar o conhecimento.
+Tom: paciente, claro, encorajador.
+
+[COLA O TEU DOCUMENTO AQUI]"
+```
+
+---
+
+## CATEGORIA N — Travel Hacking & Voos Baratos (@entrepreneurshipquotes)
+
+> Prompts para encontrar voos baratos, explorar brechas de preços e optimizar viagens.
+
+### N1 — Hidden Route Scanner
+```
+"You are an expert flight hacker who finds cheap routes that most travelers miss.
+
+I want to fly from [ORIGIN] to [DESTINATION] around [DATE RANGE].
+
+Find hidden route options by:
+• Identifying indirect routes with connections that cost significantly less than direct
+• Spotting nearby alternative airports within 2-3 hours that could save money
+• Finding positioning flights: cheap flights to a hub where better deals originate
+• Checking if splitting the trip into 2 separate one-way tickets beats round-trip pricing
+• Identifying open-jaw routes (fly into one city, out of another) that unlock cheaper fares
+• Flagging any lesser-known carriers operating this corridor that aggregators often miss
+
+For each option found: total travel time, total cost estimate, and the catch (if any).
+Rank by best value considering time vs money trade-off.
+
+My constraints: [ENTER YOUR BUDGET, MAX TRAVEL TIME, AND ANY FLEXIBILITY IN DATES OR AIRPORTS]"
+```
+
+### N2 — Price Manipulation Detector
+```
+"You are a pricing analyst who understands how airlines manipulate fares using dynamic pricing algorithms.
+
+I am trying to book a flight for [ROUTE] on [DATE].
+
+Expose the pricing tricks airlines use and how to beat them:
+• Cookie and browser history manipulation: does clearing cookies actually change prices?
+• Device and location pricing differences: do prices vary by mobile vs desktop?
+• Time-of-day pricing patterns: when do airlines typically drop prices in a 24-hour cycle?
+• Day-of-week purchase patterns: which day is statistically cheapest to buy tickets?
+• How far in advance to buy for this specific route type (short-haul vs long-haul)
+• Flash sales and error fare patterns: when and where do they appear?
+• How to set price alerts correctly without triggering demand detection
+
+Give me an action plan: exactly what steps to take in what order to book this flight at the lowest possible price.
+
+My situation: [ENTER ROUTE, TRAVEL DATE, CURRENT PRICE YOU FOUND, AND HOW FLEXIBLE YOU ARE]"
+```
+
+### N3 — Geo-Pricing Bypass
+```
+"You are a travel hacker specializing in geographic price discrimination by airlines.
+
+I need to check if airlines are charging different prices based on the country of purchase.
+
+Investigate:
+• Which countries or regions typically show cheaper fares for my route
+• How to safely use a VPN to access foreign booking sites
+• Which foreign airline websites to check directly (not just aggregators)
+• How to pay without foreign transaction fees when booking from another country's site
+• Currency conversion strategy: book in which currency for the best rate
+• Whether the fare difference is real or cancelled out by taxes and fees
+• Risks: can the airline cancel a ticket booked via geo-arbitrage?
+
+Provide a step-by-step geo-pricing check routine I can run in 15 minutes for any flight.
+
+My route: [ENTER ORIGIN, DESTINATION, DATE, AND CURRENT BEST PRICE FOUND]"
+```
+
+### N4 — Timing Sweet Spot Finder
+```
+"You are a data analyst specialized in airline fare timing patterns.
+
+I need to book a flight for [ROUTE] and want to buy at the perfect moment.
+
+Analyze timing strategy:
+• The typical booking window sweet spot for this route type (domestic vs international)
+• How prices move in the days leading up to departure for this kind of flight
+• Best months to fly this route for lowest fares historically
+• How school holidays, local events, and peak seasons affect prices on this corridor
+• Whether last-minute deals exist for this route or if it tends to sell out expensive
+• The 72-hour rule: do prices drop 3 days before departure on this route?
+• Red-eye and off-peak timing discounts available for this flight
+
+Deliver a personalized booking timeline: book by [DATE] to avoid price spikes, watch for drops around [DATE].
+
+My details: [ENTER ROUTE, DESIRED TRAVEL DATES, HOW FAR IN ADVANCE YOU ARE PLANNING, AND FLEXIBILITY]"
+```
+
+### N5 — Fare Rule Exploiter
+```
+"You are an airline fare rules expert who knows how to use ticket rules to maximize flexibility and value.
+
+I need to understand the fare rules for the cheapest tickets available for [ROUTE].
+
+Break down:
+• Refundability: under what conditions can I get money back?
+• Change fees: how much does it cost to change dates, and are there free change windows?
+• Name change policy: can the ticket be transferred if I can no longer travel?
+• Fare class upgrades: which fare class gets me lounge access or priority boarding for the least extra cost?
+• Stopovers and open jaws: does this ticket allow a free or cheap stopover in the connecting city?
+• Mileage accrual: which loyalty program benefits from this ticket most?
+• Hidden city ticketing risk: is it applicable here and what are the consequences?
+
+Recommend the specific fare class and booking conditions I should look for when purchasing.
+
+My route and needs: [ENTER ROUTE, TRAVEL DATE, WHETHER YOU NEED FLEXIBILITY, AND YOUR LOYALTY PROGRAM]"
+```
+
+### N6 — Airline vs OTA Comparison
+```
+"You are a consumer travel advocate who knows when to book directly with airlines vs third-party platforms.
+
+I found a flight from [ORIGIN] to [DESTINATION] on [DATE].
+Current prices: [AIRLINE WEBSITE PRICE] direct vs [OTA NAME] at [OTA PRICE].
+
+Compare booking channels:
+• Price difference after all fees: is the OTA actually cheaper when everything is included?
+• Flexibility comparison: which channel offers easier changes, cancellations, and refunds?
+• Customer service in a disruption: who will help me faster if the flight is cancelled?
+• Seat selection and ancillary fees: which channel makes it cheaper to add bags, seats, meals?
+• Loyalty points: does booking via OTA forfeit airline miles or status credits?
+• Payment protection: does one channel offer better credit card protection?
+• The hidden risks of OTA booking: itinerary changes, refund delays, double-booking errors
+
+Final verdict: book direct or via OTA, and exactly where to click to get the best deal.
+
+My situation: [PASTE THE FLIGHT DETAILS AND PRICES YOU FOUND ON EACH PLATFORM]"
+```
+
+### N7 — Price Drop Watch Strategy
+```
+"You are a flight deal monitoring expert who knows how to track prices and buy at the right moment.
+
+I want to monitor prices for [ROUTE] around [DATE RANGE] and buy when the price drops.
+
+Build me a monitoring system:
+• Which price alert tools to use (Google Flights, Kayak, Hopper, Skyscanner) and how to set them up correctly
+• What price threshold to set as my target and why
+• How often prices typically fluctuate for this route in my booking window
+• Signs that a price is about to drop vs about to spike
+• How to avoid alert fatigue: filter for real deals vs normal fluctuations
+• When to stop waiting and just book: the data-driven cut-off point
+• How to use airline newsletter deals and mistake fare alerts for this route
+
+Create a 30-day monitoring plan with weekly check-in actions I should take.
+
+My situation: [ENTER ROUTE, TRAVEL DATE, CURRENT PRICE, BUDGET TARGET, AND HOW FAR OUT YOUR TRAVEL DATE IS]"
+```
+
+---
+
+## CATEGORIA L (EXTENSÃO) — YouTube Simples (@create_daniel2)
+
+> Prompts directos para criar e crescer um canal YouTube. Complementam os prompts avançados de L1-L6.
+
+### L7 — Viral YouTube Video Ideas
+```
+"I want to create a YouTube channel about [insert niche].
+Generate a list of 10 video ideas that could go viral, based on current trends,
+hot topics, and what's working best in my niche right now."
+```
+
+### L8 — Viral YouTube Video Script
+```
+"Write a YouTube video script for my idea on [insert topic].
+Make sure to include a strong hook to grab attention, an interesting story to keep people watching,
+and a persuasive call to action that boosts engagement."
+```
+
+### L9 — YouTube Channel Automation
+```
+"I want to start a faceless YouTube channel in [niche].
+Show me how to use ChatGPT for writing scripts, AI voices for narration, stock footage,
+and editing tools to automate everything and generate passive income."
+```
+
+### L10 — Boost YouTube Video Views (SEO)
+```
+"Review the latest YouTube SEO trends and create a high-ranking video title, description,
+and tags for my video on [insert video topic].
+Make sure it's designed to grab attention and perform well in search results."
+```
+
+### L11 — Irresistible YouTube Video Hook
+```
+"Help me craft a catchy 15-second intro for my YouTube video on [insert video topic].
+Make it attention-grabbing so viewers get hooked right away and want to keep watching."
+```
+
+### L12 — 30-Day YouTube Growth Strategy
+```
+"I'm launching a new YouTube channel about [niche].
+Help me create a 30-day plan with video ideas, an upload schedule, strategies to grow my audience,
+and ways to start monetizing."
+```
+
+### L13 — Repurpose YouTube Content
+```
+"I have a YouTube video about [insert topic].
+Show me how to turn this video into a blog post, Instagram reel, TikTok, and Threads
+to increase my reach and revenue."
+```
+
+---
+
+## CATEGORIA O — Instagram & Theme Pages (@abundancewithchelsea + @wizofai)
+
+> Prompts para criar, crescer e monetizar páginas de Instagram sem rosto (theme pages).
+
+### O1 — Niche Finder
+```
+"List 10 Instagram theme page niches with low competition, high growth potential,
+and strong monetization opportunities."
+```
+
+### O2 — Viral Content Blueprint
+```
+"For [chosen niche], give me 20 viral reel or carousel ideas I can recreate without showing my face."
+```
+
+### O3 — Caption Generator
+```
+"Write a viral-style Instagram caption with a strong hook and CTA for this post: [paste content idea]."
+```
+
+### O4 — Hashtag & Hook Formula
+```
+"Generate 15 high-performing hashtags and 5 scroll-stopping hook texts for my theme page in [niche]."
+```
+
+### O5 — Content Schedule
+```
+"Build me a 30-day content calendar for my theme page, optimized for engagement and growth."
+```
+
+### O6 — Monetization Map
+```
+"List 5 ways to monetize an Instagram theme page in [niche], including affiliates, shoutouts, and digital products."
+```
+
+### O7 — Automation Setup
+```
+"Show me how to batch content, schedule posts, and automate captions so my theme page runs on autopilot."
+```
+
+### O8 — Viral Instagram Content Ideas
+```
+"I want to create a faceless Instagram page about [insert niche].
+Generate a list of 10 content ideas that could go viral, based on current trends,
+hot topics, and what's working best in my niche right now."
+```
+
+### O9 — Viral Instagram Caption (Full)
+```
+"Write an Instagram caption for my post about [insert topic].
+Make sure to include a strong hook to grab attention, an engaging story to keep people reading,
+and a clear call to action that boosts engagement."
+```
+
+### O10 — Instagram Page Automation
+```
+"I want to start a faceless Instagram page in [niche].
+Show me how to use ChatGPT for writing captions, AI tools for creating content,
+and scheduling apps to automate everything and generate consistent cash-flow."
+```
+
+### O11 — Instagram Growth Strategy
+```
+"I'm launching a new faceless Instagram page about [niche].
+Help me create a 30-day plan with content ideas, posting schedule,
+strategies to grow my audience, and ways to start monetizing through promo posts and affiliate links."
+```
+
+### O12 — Instagram Reel Hook
+```
+"Help me craft a catchy 3-second hook for my Instagram reel about [insert topic].
+Make it attention-grabbing so viewers stop scrolling immediately and want to keep watching."
+```
+
+### O13 — Repurpose Content Across Platforms
+```
+"I have an Instagram post about [insert topic].
+Show me how to turn this post into different formats: Instagram reels, Stories, carousels,
+and even adapt it for other platforms to maximize reach."
+```
+
+### O14 — Boost Instagram Engagement
+```
+"Analyze the current Instagram algorithm and create high-performing hashtags, caption structure,
+and posting times for my faceless page in [niche] to maximize reach and engagement."
+```
+
+---
+
+## CATEGORIA P — Produtividade & Objetivos (Google/Gemini + @gurudoprompt)
+
+> Prompts para criar rotinas, alcançar metas e construir hábitos duradouros.
+
+### P1 — Custom Workout Plan
+```
+"I want to run the New York City marathon in 6 months. I recently finished a half marathon in 2 hours,
+and I can train 5 days a week.
+Create a monthly training plan that will help me continue to build my endurance."
+```
+
+### P2 — Declutter Your Home
+```
+"I want to organize and declutter my apartment this month.
+Create a 30-day plan that breaks the process into simple, daily tasks that take no more than 20 minutes each
+and won't require me to purchase any new items."
+```
+
+### P3 — Learn a New Language
+```
+"I'd like to learn basic French.
+Generate a 30-day guided learning plan for these topics and create an interactive multiple-choice quiz
+on the verb conjugations. Please also generate a set of flashcards for the 50 phrases."
+```
+
+### P4 — Advance Your Career (Interview Prep)
+```
+"I have a job interview next week for [role].
+Simulate a live, conversational interview with me, focusing on behavioral questions.
+Second, create a detailed feedback report after I upload my video rehearsal,
+analyzing my speaking pace, body language and use of filler words."
+```
+
+### P5 — Weekly Meal Plan
+```
+"I want to eat healthier. Every Sunday at 9 a.m., please create a 7-day, high-protein and vegetarian-friendly
+dinner plan. I have about 45 minutes to cook each night. Include a grocery list for the week."
+```
+
+### P6 — Better Budget
+```
+"Analyze the uploaded Google Sheet containing my monthly spending for the last quarter
+and identify 3 areas of non-essential spending.
+Suggest practical weekly budgeting rules I can immediately implement to save 15%."
+```
+
+### P7 — Custom Reading List
+```
+"I want to read 12 business books in 2026.
+Schedule a recurring action for the first of every month:
+Suggest a list of 5 non-fiction titles related to advertising and create a sample monthly reading and review schedule."
+```
+
+### P8 — Replace a Bad Habit
+```
+"I want to reduce my phone screen time by 2 hours a week.
+Outline a 'Habit Replacement Plan' that identifies my typical trigger times
+and suggests a positive alternative activity for each."
+```
+
+### P9 — Overcome the Blank Page
+```
+"Give me 7 unique, one-sentence journaling prompts for the week
+that encourage reflection on my goals and progress."
+```
+
+### P10 — Plan for Long-Term Success
+```
+"It's July 1st. I've successfully maintained my resolution to [resolution name] for 6 months.
+Create a 3-part maintenance plan to help me make this a permanent habit
+and set a bigger goal for the rest of 2026."
+```
+
+### P11 — Agenda Antifrágil de Alta Performance (@gurudoprompt)
+```
+"Você é meu Gestor de Tempo. Monte meu dia para render no caos.
+Crie três blocos de foco profundo (50 min) e dois blocos leves (20-30 min) alinhados a {META_DO_DIA}.
+Para cada bloco, entregue: objetivo claro, 3 passos, definição de 'pronto', risco provável e contramedida.
+Insira micro-pausas (5 min) com respiração/alongamento, e um 'Plano B' de 15 min caso tudo desande.
+Inclua: Regra 80/20 (o que eliminar), limites de comunicação (quando e como responder),
+alarme de retorno ao foco e checklist anti-interrupção.
+Gere versão 'intensa' e 'dias turbulentos'.
+Finalize com placar do dia (3 métricas) e vitória mínima que me deixa satisfeito mesmo se o resto falhar."
+```
+
+### P12 — Plano de Estudos 14 Dias com Projeto-Âncora (@gurudoprompt)
+```
+"Seja meu Coach de Aprendizagem para {TEMA}.
+Construa um plano de 14 dias (60-90 min/dia) focado em aprender fazendo.
+Para cada dia, liste: objetivo, conteúdo essencial (links/tipos de fontes), prática ativa com correção,
+quiz rápido e revisão espaçada.
+Defina um projeto-âncora que comprove a habilidade em 2 semanas (escopo, critérios de avaliação, checklist).
+Inclua mapa de competências, erros comuns, como detectar e corrigir, e rubrica de qualidade.
+Crie ritual semanal: destilar → aplicar → ensinar (post curto explicando o aprendido).
+Entregue também um template de anotações (captura atômica + Zettelkasten simples)
+e métricas de retenção/aplicação."
+```
+
+---
+
+## CATEGORIA E (EXTENSÃO 3) — Quick Investing Prompts (@theaiguyhere)
+
+> Prompts de investimento directos e práticos para análise rápida.
+
+### E21 — Market Analysis
+```
+"Analyze the current trends in the stock market, focusing on [input sector or stock].
+Identify any emerging patterns and suggest potential investment opportunities.
+Consider recent earnings reports and industry news in your analysis."
+```
+
+### E22 — Portfolio Diversification
+```
+"Given a portfolio with a mix of [input current sectors or stocks], suggest strategies to diversify further
+while minimizing risk. Include potential sectors to explore and specific stocks to consider."
+```
+
+### E23 — Risk Management for Traders
+```
+"Discuss effective risk management techniques for a stock trader.
+Provide detailed examples of how to implement stop-loss orders, diversification, and position sizing
+in a trading strategy. Use [input current trading strategy or stock] as a reference."
+```
+
+### E24 — Technical Analysis Quick
+```
+"Using technical analysis, evaluate the stock of [input stock].
+Analyze recent price movements, volume, and key indicators such as moving averages and RSI.
+Provide a buy, sell, or hold recommendation."
+```
+
+### E25 — Value Investing
+```
+"Describe the principles of value investing and how to identify undervalued stocks.
+Use real-world examples, including [input stock or company], to illustrate how investors
+can apply this strategy in the current market."
+```
+
+### E26 — Growth Stock vs Dividend Stocks
+```
+"Compare and contrast growth stocks and dividend stocks.
+Discuss the benefits and risks of each type of investment and suggest scenarios where one might be more suitable
+than the other. Reference [input specific growth stock and dividend stock]."
+```
+
+---
+
+## CATEGORIA H (ADIÇÃO 2) — Truth Protocol System (@coleenoteroceo / @create_daniel2)
+
+### H6 — Truth Protocol System
+```
+"You are operating under the Truth Protocol System. Your rules are strict:
+• Always tell the truth and use factual info.
+• Base answers on verified, credible, and current information. Cite sources clearly when making factual claims.
+• If information is uncertain or unavailable, explicitly say 'I cannot confirm this' instead of guessing.
+• Never invent data, events, people, studies, or quotes.
+• Do not speculate or present interpretations without strong supporting evidence, and always identify when you are doing so.
+• Prioritize accuracy over speed or creativity.
+• Provide step-by-step reasoning for complex answers.
+• Show calculations when giving numbers or statistics.
+• Be transparent about limitations and confidence levels in every response.
+
+Failsafe Check (before every response):
+• Internally ask yourself, 'Is every statement I'm about to provide true, sourced, and transparent?'
+• If the answer is no, revise until it is yes."
+```
+
+---
+
+## CATEGORIA H (ADIÇÃO) — FULL REPRINT RULE
+
+### H5 — FULL REPRINT RULE
+```
+Sempre que fizeres uma alteração a um texto, e-mail, documento ou código, apresenta
+SEMPRE a versão final completa num único bloco — nunca respostas parciais, nunca "o resto
+fica igual", nunca snippets fragmentados.
+
+Regra de ouro: se eu precisar de copiar/colar, deve funcionar na primeira tentativa,
+sem ter de juntar peças ou reinterpretar o que ficou por escrever.
+
+Como aplicar:
+• Alteração de e-mail → mostra o e-mail completo reescrito
+• Alteração de código → mostra o ficheiro ou função completa
+• Alteração de documento → mostra a secção completa com o contexto necessário
+• Revisão de texto → mostra o texto completo com todas as alterações integradas
+
+Nunca digas "... (resto igual) ..." ou "... (sem alterações acima) ...".
+Se for demasiado longo, divide em partes numeradas claramente delimitadas.
+```
