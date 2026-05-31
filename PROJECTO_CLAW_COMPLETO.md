@@ -32,7 +32,7 @@
 | v1–v6 | `claw_agent_v6.py` | Arquivado | Versões iniciais |
 | v7.0 | `claw_agent_v7.py` | Parado | Monolítico ~1500 linhas |
 | v7.1 | `claw_agent_v7.py` | Parado | +7 melhorias de pesquisa |
-| **v8.0** | `claw_v8/` | **Activo no VPS** | Modular + SQLite + Filter Attribution |
+| **v8.0** | `claw_v8/` | **Activo no Termux** | Modular + SQLite + Filter Attribution |
 
 ---
 
@@ -144,7 +144,7 @@ SYMBOLS = [
 ### Parâmetros de risco
 
 | Parâmetro | Valor |
-|-----------|-------|
+|-----------| ------|
 | Capital máx bot | 300 USDC |
 | Risco por trade | 5 USDC |
 | Alavancagem | 6× |
@@ -202,7 +202,7 @@ EMA 9/21/99 + RSI + ADX + Supertrend + CMF + MFI + ROC
 ### Thresholds actuais (após ajustes)
 
 | Parâmetro | Valor Original | Valor Actual |
-|-----------|---------------|--------------|
+|-----------|---------------|---------------|
 | ADX mínimo | 25 | **22.5** |
 | STOCH_VETO_SHORT | 5.0 | **2.5** |
 | STOCH_VETO_LONG | 95.0 | 95.0 |
@@ -229,7 +229,7 @@ Ferramenta standalone para análise de compras em spot. Usa apenas APIs pública
 ### Análise por timeframe
 
 | Timeframe | Indicadores |
-|-----------|------------|
+|-----------|-----------|
 | 1W (52 velas) | EMA 9/21, RSI, Supertrend |
 | 1D (180 velas) | EMA 9/21/50/200, RSI, ADX, Supertrend, Volume, DD ATH |
 | 4H (120 velas) | EMA 9/21, RSI |
@@ -260,7 +260,7 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ### Alertas Telegram do scanner
 | Evento | Mensagem |
-|--------|----------|
+|--------| ---------|
 | Nova moeda entra em COMPRAR | 🟢 Alerta imediato com detalhes |
 | Moeda sai de COMPRAR | ⚠️ Sinal invalidado |
 | Todos os dias às 8h UTC | 📊 Resumo (COMPRAR + AGUARDAR) |
@@ -301,7 +301,7 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 **Estratégia recomendada:** DCA em 3-4 parcelas. Não entrar tudo de uma vez.
 
 | Entrada | % do capital |
-|---------|-------------|
+|---------| -------------|
 | Agora ~$1.12 | 25% |
 | Se cair ~$0.90 | 25% |
 | Se cair ~$0.75 | 25% |
@@ -313,7 +313,7 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ### Snapshot 2026-05-03
 | Carteira | Valor |
-|----------|-------|
+|----------| ------|
 | Binance Spot | $220 |
 | Tangem Wallet | $3,749 |
 | Invest Stocks | €882 |
@@ -323,7 +323,7 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ### Snapshot 2026-05-06
 | Carteira | Valor |
-|----------|-------|
+|----------| ------|
 | Tangem Wallet | $3,990 (+6.4%) |
 | Invest Stocks | €866 |
 | Invest Crypto | €271 (PAXG parcialmente vendido) |
@@ -345,7 +345,7 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ### Activos Tangem (2026-05-10)
 | Activo | Qtd | Valor USD |
-|--------|-----|-----------|
+|--------|-----|----------|
 | BTC | 0.03267347 | $2,642 |
 | ETH | 0.44191314 | $1,029 |
 | SOL | 2.75187726 | $258 (staking 5.83% APY) |
@@ -365,7 +365,7 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ### Activos Tangem (2026-05-14)
 | Activo | Qtd | Preço | Valor USD |
-|--------|-----|-------|-----------|
+|--------|-----|-------|----------|
 | BTC | 0.0348942 | $81,522 | $2,845 |
 | ETH | 0.44191314 | $2,304 | $1,018 |
 | SOL | 3.11664982 | $92.87 | $289 (staking 5.83% APY) |
@@ -439,50 +439,40 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ## 9. Infraestrutura e Operações
 
-### Configuração do servidor
-- **VPS:** `178.105.52.219`
-- **OS:** Ubuntu/Debian
-- **Python:** 3.13
-- **Repositório:** `/root/blank-app`
-- **Bot log:** `/root/claw.log`
-- **Scanner log:** `/root/spot.log`
-- **Bot PID:** `/root/claw.pid`
-- **Scanner PID:** `/root/spot.pid`
+### Configuração actual — Termux (Android)
+- **Dispositivo:** Android (Termux), utilizador `u0_a1208`
+- **Python:** unbuffered obrigatório (`python -u`)
+- **Repositório:** `~/blank-app`
+- **Bot log:** `~/claw.log`
+- **Ficheiros bot:** `~/blank-app/claw_v8/`
 
-### Arranque dos processos
+> **Nota:** Bot migrado para Termux após período no VPS. Sem cron disponível no Termux — bot arrancado manualmente.
+
+### Arranque do bot (Termux)
 ```bash
-# Bot principal
-grep -E 'export.*(TELEGRAM|BINANCE)' /root/.bashrc > /tmp/ce && \
-bash -c 'source /tmp/ce; kill $(cat /root/claw.pid) 2>/dev/null; \
-cd /root/blank-app && PYTHONUNBUFFERED=1 nohup python3 claw_v8/main.py \
-> /root/claw.log 2>&1 & echo $! > /root/claw.pid'
-
-# Spot Scanner daemon
-bash -c 'source /tmp/ce; cd /root/blank-app && \
-PYTHONUNBUFFERED=1 nohup python3 claw_v8/spot_scanner.py --daemon --top 100 \
-> /root/spot.log 2>&1 & echo $! > /root/spot.pid'
+pkill -f "python.*main.py"; sleep 2
+cd ~/blank-app && git pull origin main
+cd claw_v8 && python -u main.py > ~/claw.log 2>&1 &
+sleep 3 && tail -20 ~/claw.log
 ```
 
 ### Monitorização
 ```bash
 # Ver log do bot
-ssh root@178.105.52.219 "tail -30 /root/claw.log"
+tail -30 ~/claw.log
 
 # Ver log em tempo real
-ssh root@178.105.52.219 "tail -f /root/claw.log"
-
-# Ver ranking do scanner
-ssh root@178.105.52.219 "grep -A 110 'RANKING' /root/spot.log | tail -110"
+tail -f ~/claw.log
 
 # Ver processos activos
-ssh root@178.105.52.219 "ps aux | grep python | grep -v grep"
+ps aux | grep python | grep -v grep
 
 # Relatório de performance
-ssh root@178.105.52.219 "cd /root/blank-app/claw_v8 && python3 analytics.py"
+cd ~/blank-app && python3 claw_v8/check_results.py
 ```
 
 ### Credenciais
-Guardadas em `~/.bashrc` no VPS e em `/etc/environment` (carregamento automático).
+Guardadas em `~/.bashrc` como variáveis de ambiente. **Nunca mostrar no chat.**
 
 ```bash
 export TELEGRAM_TOKEN="..."
@@ -492,13 +482,13 @@ export BINANCE_API_SECRET="..."
 ```
 
 ### Binance API
-- **Tipo:** Futures USDC (Cross Margin)
-- **Moeda de margem:** BNFCR (Europa)
-- **IP whitelisted:** `178.105.52.219`
+- **Tipo:** Futures USDC-M (Cross Margin)
+- **Moeda de margem:** BNFCR (conta europeia — Binance France Crypto Receipt)
 - **Permissões:** Futures trading (sem levantamentos)
+- **Restrição crítica:** `STOP_MARKET reduceOnly=true` NÃO suportado → usar `closePosition=true`
 
-### Problema histórico de IP
-O bot corria no Termux do telemóvel — o IP mudava sempre que o telemóvel mudava de WiFi/dados móveis, causando bloqueios na Binance. Resolvido ao migrar para o VPS com IP fixo.
+### Histórico de infraestrutura
+O bot correu inicialmente no Termux → migrado para VPS `178.105.52.219` por causa de IP instável (WiFi/dados móveis) → retornou ao Termux. A conta BNFCR tem restrições de API não existentes noutras contas Binance.
 
 ---
 
@@ -533,6 +523,18 @@ O bot corria no Termux do telemóvel — o IP mudava sempre que o telemóvel mud
 | Mai-18 | MAX_DRAWDOWN_PCT | não existia | **25%** | Fecha tudo se PnL aberto > -25% saldo |
 | Mai-18 | Pares dinâmicos | lista estática | **top 20 por volume** | `get_top_futures_symbols()` + filtro 30 dias |
 | Mai-18 | Endpoint ordens stop | `/fapi/v1/algoOrder` | **`/fapi/v1/order`** | Fix erro "algotype" — endpoint errado desde sempre |
+| Mai-23 | ROI_TP_IMEDIATO | não existia | **7.0%** | Fecha imediatamente se ROI alto, sem esperar tempo |
+| Mai-23 | TIME_TP_MIN_MIN | 30 min | **10 min** | Era demasiado conservador — NEAR perdeu +5.58% |
+| Mai-23 | get_margin_ratio() | conta inteira | **só USDC/BNFCR** | USDT-M contaminava o rácio e activava guard errado |
+| Mai-23 | LIQUIDATION_GUARD_PCT | não existia | **50%** | Fecha posições a positivo se conta global > 50% |
+| Mai-23 | Profit lock price | nível actual | **nível anterior** | Binance rejeita stops a < 0.1% do mark price |
+| Mai-28 | SCORE_ALERTA | 4 | **6** | Entradas com score 4 tinham taxa de sucesso baixa |
+| Mai-28 | PRICE_PRECISION | SYMBOL_PRECISION | **PRICE_FILTER tickSize** | Stops rejeitados por Binance por casas decimais erradas |
+| Mai-28 | STAGNADO condição | pnl < 0.5 | **-0.5 ≤ pnl < 1.0** | Fechava posições perdedoras — bug crítico |
+| Mai-28 | get_balance / margin | primeira correspondência | **soma USDC+BNFCR** | Conta BNFCR reportava 0.17 USDC — bug BNFCR (1ª parte) |
+| Mai-30 | get_balance / margin | retornava primeiro match | **soma total USDC+BNFCR** | Fix definitivo BNFCR — elimina margem falsa 526% |
+| Mai-30 | ATR_PERIOD | 14 | **8** | ATR(8) óptimo para scalping 5m — menos lag no SL sizing |
+| Mai-30 | total_trades | só incrementado na abertura | **recalculado no fecho** | Ficava a 0 após restart da DB |
 
 ---
 
@@ -541,34 +543,25 @@ O bot corria no Termux do telemóvel — o IP mudava sempre que o telemóvel mud
 ### Operações diárias
 ```bash
 # Estado do bot
-ssh root@178.105.52.219 "tail -20 /root/claw.log"
+tail -20 ~/claw.log
 
 # Scan spot manual (top 100)
-ssh root@178.105.52.219 "cd /root/blank-app && python3 claw_v8/spot_scanner.py --top 100"
+cd ~/blank-app && python3 claw_v8/spot_scanner.py --top 100
 
 # Scan de uma moeda específica
-ssh root@178.105.52.219 "cd /root/blank-app && python3 claw_v8/spot_scanner.py SUI"
+cd ~/blank-app && python3 claw_v8/spot_scanner.py SUI
 
-# Analytics completo
-ssh root@178.105.52.219 "cd /root/blank-app/claw_v8 && python3 analytics.py"
+# Relatório de performance
+cd ~/blank-app && python3 claw_v8/check_results.py
 ```
 
 ### Git
 ```bash
-# Pull no VPS
-ssh root@178.105.52.219 "cd /root/blank-app && git pull"
-
-# Push de alterações (Termux → VPS)
-cd ~/blank-app && git add -p && git commit -m "mensagem" && git push
-```
-
-### Reiniciar bot após alteração de código
-```bash
-ssh root@178.105.52.219 "cd /root/blank-app && git pull && \
-grep -E 'export.*(TELEGRAM|BINANCE)' /root/.bashrc > /tmp/ce && \
-bash -c 'source /tmp/ce; kill \$(cat /root/claw.pid) 2>/dev/null; \
-PYTHONUNBUFFERED=1 nohup python3 claw_v8/main.py > /root/claw.log 2>&1 & \
-echo \$! > /root/claw.pid' && sleep 3 && tail -5 /root/claw.log"
+# Pull e restart (Termux)
+pkill -f "python.*main.py"; sleep 2
+cd ~/blank-app && git pull origin main
+cd claw_v8 && python -u main.py > ~/claw.log 2>&1 &
+sleep 3 && tail -20 ~/claw.log
 ```
 
 ---
@@ -580,12 +573,12 @@ echo \$! > /root/claw.pid' && sleep 3 && tail -5 /root/claw.log"
 Claude irá automaticamente:
 1. Ler este ficheiro (`PROJECTO_CLAW_COMPLETO.md`) para ter contexto completo
 2. Fazer varrimento na internet (GitHub, Reddit, fóruns algotrading) para benchmarking de melhorias
-3. Correr `check_results.py` no VPS para ver dados novos do bot
+3. Correr `check_results.py` no Termux para ver dados novos do bot
 4. Propor melhorias baseadas nos dados reais + benchmarking
 
 **Comando para relatório do bot:**
 ```bash
-ssh root@178.105.52.219 "cd /root/blank-app && python3 claw_v8/check_results.py"
+cd ~/blank-app && python3 claw_v8/check_results.py
 ```
 
 ---
@@ -629,6 +622,36 @@ Ver ficheiro `SESSAO_2026-05-13.md` para detalhe completo.
 - **Git pull --rebase:** VPS tinha branches divergentes. Solução: `git pull --rebase origin claude/setup-project-structure-3xwuR`
 - **Ideia trailing adaptativo discutida mas não implementada:** callback 0.5% BTC / 1.2% altcoins. Pendente para próxima sessão.
 
+### Sessão 2026-05-23
+Ver ficheiro `SESSAO_2026-05-23.md` para detalhe completo.
+
+**Resumo:** 5 bugs corrigidos + 2 guards novos. Sessão de debugging intensivo após incidente com posição manual ZEC.
+
+- **TIME_TP reformulado:** `ROI_TP_IMEDIATO=7%` (fecha imediatamente) + `TIME_TP_MIN_MIN=10` (era 30). NEAR perdeu saída a +5.58% porque ainda não tinha 30 min.
+- **Profit lock fix:** stop colocado no nível *anterior* ao actual — Binance rejeita stops a < 0.1% do mark price.
+- **Bug ZEC crítico:** bot adoptou posição manual do utilizador como órfã e fechou a -50 USDC de oportunidade. Fix: veto em `abrir_trade()` se símbolo já existe em `posicoes_externas`.
+- **get_margin_ratio() isolado:** guard de margem afectado por posições USDT-M do utilizador. Corrigido para ler só USDC/BNFCR.
+- **Guard de liquidação global:** `LIQUIDATION_GUARD_PCT=50%` → fecha TODAS as posições a positivo (bot + manuais) para evitar liquidação total da conta.
+- **Commits:** `6b06533`, `446a978`
+
+### Sessões 2026-05-28/29
+**Resumo:** Merge do core v8 com melhorias de infra da v8.5 + 3 bug fixes críticos.
+
+- **PRICE_PRECISION fix (bug #9):** `place_stop_market`, `place_take_profit`, `place_trailing_stop` usavam `SYMBOL_PRECISION` (casas decimais da quantidade) para formatar preços → stops rejeitados pela Binance. Corrigido para `PRICE_PRECISION` (tickSize do `PRICE_FILTER`). `get_top_futures_symbols()` actualiza dinamicamente ao arrancar e a cada 24h. — SHA `de19dff`
+- **SCORE_ALERTA 4→6 (bug #10):** score mínimo de entrada 4 era demasiado baixo. Exige agora sinal forte. — SHA `e0003ea`
+- **STAGNADO fix (bug #8):** condição antiga `pnl < 0.5` fechava posições perdedoras (ex: -2 USDC após 68min). Nova condição: `-0.5 ≤ pnl < 1.0`. — SHA `92e1a97`
+- **get_balance() + get_margin_ratio() fix (bug BNFCR — 1ª parte):** passa a ler USDC e BNFCR em vez de só USDC. — SHA `d691f48`
+
+### Sessão 2026-05-30
+Ver ficheiro `SESSAO_2026-05-30.md` para detalhe completo.
+
+**Resumo:** Relatório diário + fix definitivo BNFCR + ATR length + total_trades.
+
+- **Bug BNFCR definitivo:** `get_balance()` e `get_margin_ratio()` reportavam 0.17 USDC e 526% de margem. Causa: conta EU/BNFCR tem capital em BNFCR, dust USDC vinha primeiro na resposta API. Fix: soma total USDC + BNFCR em vez de retornar na primeira correspondência. Spam de 4 alertas "MARGEM CRÍTICA" com rácios de 526%/532%/917%/341% eliminado com cooldown de 300s. — SHA `50eedee`
+- **ATR_PERIOD 14→8:** benchmark confirma ATR(8) óptimo para scalping 5m. Menos lag no sizing de SL/TP.
+- **total_trades fix:** era incrementado só na abertura, não no fecho. Após reset da DB ficava a 0 enquanto wins/losses mostravam valores reais. Fix: recalcular em `_registar_fecho()`. — SHA `5fdb018`
+- **Varrimento internet:** funding rate (0.05%) confirmado correcto; ATR params, score, HTF, risco por trade todos alinhados com benchmarks 2025-2026. Open Interest identificado como próxima melhoria.
+
 ---
 
 ## Notas Técnicas
@@ -640,7 +663,7 @@ Os indicadores mais rápidos analisados são velas de 4H. Varrer a cada 15 minut
 JSON não permite queries. Com SQLite é possível responder: *"qual filtro bloqueou os trades mais rentáveis?"* — informação impossível de extrair do JSON.
 
 ### BNFCR vs USDC
-A Binance Europa usa BNFCR como moeda de margem nos futuros, não USDC. O código aceita ambos em `get_balance()`.
+A Binance Europa usa BNFCR como moeda de margem nos futuros, não USDC. O capital fica em BNFCR mas os `maintMargin` das posições USDC-M aparecem na linha USDC da API. `get_balance()` e `get_margin_ratio()` somam ambos os activos para obter valores correctos.
 
 ### Isolated vs Cross Margin
 Isolated margin não disponível na Binance Europa. O bot usa sempre Cross Margin.
