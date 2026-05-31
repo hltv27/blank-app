@@ -104,12 +104,6 @@ def get_balance() -> float | None:
                 continue
             if isinstance(data, list):
                 break
-            # Debug: mostra todos os assets com saldo (remover após confirmar)
-            for a in data.get("assets", []):
-                w = float(a.get("walletBalance") or "0")
-                m = float(a.get("marginBalance") or "0")
-                if w > 0.001 or m > 0.001:
-                    print(f"[DEBUG] asset={a.get('asset')} wallet={w:.4f} margin={m:.4f}")
             total = 0.0
             for a in data.get("assets", []):
                 if a.get("asset") in ("USDC", "BNFCR"):
