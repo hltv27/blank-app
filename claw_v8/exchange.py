@@ -70,11 +70,13 @@ def _get_retry(url: str, params: dict = None, timeout: int = 10,
 
 def tg(msg: str):
     try:
-        requests.post(
+        r = requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
             json={"chat_id": TELEGRAM_CHAT_ID, "text": msg, "parse_mode": "HTML"},
             timeout=8
         )
+        if not r.ok:
+            print(f"[ERRO] Telegram HTTP {r.status_code}: {r.text[:200]}")
     except Exception as e:
         print(f"[ERRO] Telegram: {e}")
 
