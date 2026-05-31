@@ -1,1 +1,264 @@
-"""\nClaw Agent v8.0 — SQLite Storage\nSubstitui JSON. Regista tudo: trades, filtros, estado, eventos de risco.\n"""\nimport sqlite3\nimport json\nimport time\nfrom datetime import datetime, timezone\nfrom config import DB_FILE\n\n\ndef get_conn() -> sqlite3.Connection:\n    conn = sqlite3.connect(DB_FILE, check_same_thread=False)\n    conn.row_factory = sqlite3.Row\n    return conn\n\n\ndef init_db():\n    """Cria todas as tabelas se não existirem."""\n    conn = get_conn()\n    c = conn.cursor()\n\n    c.executescript("""\n    CREATE TABLE IF NOT EXISTS positions (\n        id            INTEGER PRIMARY KEY AUTOINCREMENT,\n        symbol        TEXT    NOT NULL,\n        direction     TEXT    NOT NULL,\n        entry_price   REAL,\n        sl            REAL,\n        tp            REAL,\n        qty           REAL,\n        qty_inicial   REAL,\n        mode          TEXT,\n        opened_at     REAL,\n        closed_at     REAL,\n        close_reason  TEXT,\n        pnl           REAL,\n        roi           REAL,\n        stop_order_id TEXT,\n        tp_order_id   TEXT,\n        partial_tp_done INTEGER DEFAULT 0,\n        status        TEXT    DEFAULT 'OPEN'\n    );\n\n    CREATE TABLE IF NOT EXISTS filter_events (\n        id             INTEGER PRIMARY KEY AUTOINCREMENT,\n        ts             REAL    NOT NULL,\n        symbol         TEXT    NOT NULL,\n        direction      TEXT    NOT NULL,\n        filter_name    TEXT    NOT NULL,\n        passed         INTEGER NOT NULL,\n        price_at_signal REAL,\n        score          INTEGER,\n        atr_pct        REAL,\n        future_price_15m REAL,\n        future_price_30m REAL,\n        future_price_60m REAL\n    );\n\n    CREATE TABLE IF NOT EXISTS state_transitions (\n        id         INTEGER PRIMARY KEY AUTOINCREMENT,\n        ts         REAL    NOT NULL,\n        symbol     TEXT    NOT NULL,\n        from_state TEXT,\n        to_state   TEXT    NOT NULL,\n        trigger    TEXT,\n        details    TEXT\n    );\n\n    CREATE TABLE IF NOT EXISTS risk_events (\n        id         INTEGER PRIMARY KEY AUTOINCREMENT,\n        ts         REAL    NOT NULL,\n        event_type TEXT    NOT NULL,\n        symbol     TEXT,\n        details    TEXT\n    );\n\n    CREATE TABLE IF NOT EXISTS equity_snapshots (\n        id              INTEGER PRIMARY KEY AUTOINCREMENT,\n        ts              REAL    NOT NULL,\n        balance         REAL,\n        margin_ratio    REAL,\n        open_positions  INTEGER,\n        daily_pnl       REAL\n    );\n\n    CREATE TABLE IF NOT EXISTS bot_state (\n        key        TEXT PRIMARY KEY,\n        value      TEXT,\n        updated_at REAL\n    );\n    """)\n\n    conn.commit()\n    conn.close()\n    print("[v8] SQLite inicializado")\n\n\n# ─────────────────────────────────────────────\n#  BOT STATE (substitui claw_memory_v7.json)\n# ─────────────────────────────────────────────\n\ndef state_get(key: str, default=None):\n    conn = get_conn()\n    row  = conn.execute("SELECT value FROM bot_state WHERE key=?", (key,)).fetchone()\n    conn.close()\n    if row is None:\n        return default\n    try:\n        return json.loads(row["value"])\n    except Exception:\n        return row["value"]\n\n\ndef state_set(key: str, value):\n    conn = get_conn()\n    conn.execute(\n        "INSERT OR REPLACE INTO bot_state(key, value, updated_at) VALUES(?,?,?)",\n        (key, json.dumps(value), time.time())\n    )\n    conn.commit()\n    conn.close()\n\n\ndef load_memory() -> dict:\n    """Carrega estado completo do bot (equivalente ao JSON anterior)."""\n    return {\n        "loss_dia":         state_get("loss_dia",         0.0),\n        "perdas_seguidas":  state_get("perdas_seguidas",  0),\n        "trades_abertos":   state_get("trades_abertos",   {}),\n        "posicoes_externas": state_get("posicoes_externas", {}),\n        "pending_sync":     state_get("pending_sync",     {}),\n        "ultimo_reset":     state_get("ultimo_reset",     ""),\n        "bloqueado_ate":    state_get("bloqueado_ate",    0),\n        "total_trades":     state_get("total_trades",     0),\n        "wins":             state_get("wins",             0),\n        "losses":           state_get("losses",           0),\n        "simbolos_stats":          state_get("simbolos_stats",          {}),\n        "btc_crash_lockout_until": state_get("btc_crash_lockout_until", 0),\n        "emergency_cooldown_until":state_get("emergency_cooldown_until",0),\n        "paused":                  state_get("paused",                  False),\n    }\n\n\ndef save_memory(mem: dict):\n    """Persiste estado completo do bot no SQLite."""\n    for key, value in mem.items():\n        state_set(key, value)\n\n\n# ─────────────────────────────────────────────\n#  POSITIONS\n# ─────────────────────────────────────────────\n\ndef open_position(symbol: str, direction: str, entry_price: float, sl: float,\n                  tp: float, qty: float, mode: str, stop_order_id,\n                  tp_order_id) -> int:\n    conn = get_conn()\n    c    = conn.cursor()\n    c.execute("""\n        INSERT INTO positions\n        (symbol, direction, entry_price, sl, tp, qty, qty_inicial, mode,\n         opened_at, stop_order_id, tp_order_id, status)\n        VALUES (?,?,?,?,?,?,?,?,?,?,?,'OPEN')\n    """, (symbol, direction, entry_price, sl, tp, qty, qty,\n          mode, time.time(), str(stop_order_id), str(tp_order_id)))\n    pos_id = c.lastrowid\n    conn.commit()\n    conn.close()\n    log_state_transition(symbol, None, "OPEN", "ORDER_FILLED",\n                         f"entry={entry_price} sl={sl} tp={tp}")\n    return pos_id\n\n\ndef close_position_db(symbol: str, close_reason: str, pnl: float, roi: float):\n    conn = get_conn()\n    c = conn.cursor()\n    c.execute("""\n        UPDATE positions\n        SET status='CLOSED', closed_at=?, close_reason=?, pnl=?, roi=?\n        WHERE symbol=? AND status='OPEN'\n    """, (time.time(), close_reason, pnl, roi, symbol))\n    if c.rowcount == 0:\n        # Posição foi aberta antes do logging existir — regista só o fecho\n        c.execute("""\n            INSERT INTO positions\n            (symbol, direction, entry_price, pnl, roi, close_reason,\n             opened_at, closed_at, status, mode)\n            VALUES (?, 'UNKNOWN', 0, ?, ?, ?, ?, ?, 'CLOSED', 'LEGACY')\n        """, (symbol, pnl, roi, close_reason, time.time() - 3600, time.time()))\n    conn.commit()\n    conn.close()\n    log_state_transition(symbol, "OPEN", "CLOSED", close_reason,\n                         f"pnl={pnl:.2f} roi={roi:.1f}%")\n\n\ndef update_position_partial_tp(symbol: str, qty_restante: float):\n    conn = get_conn()\n    conn.execute("""\n        UPDATE positions SET qty=?, partial_tp_done=1\n        WHERE symbol=? AND status='OPEN'\n    """, (qty_restante, symbol))\n    conn.commit()\n    conn.close()\n\n\n# ─────────────────────────────────────────────\n#  FILTER EVENTS (attribution)\n# ─────────────────────────────────────────────\n\ndef log_filter_event(symbol: str, direction: str, filter_name: str,\n                     passed: bool, price: float, score: int = 0, atr_pct: float = 0.0):\n    """\n    Regista cada filtro avaliado — passou ou bloqueou.\n    Os future_price_* são preenchidos mais tarde pelo analytics.\n    """\n    conn = get_conn()\n    conn.execute("""\n        INSERT INTO filter_events\n        (ts, symbol, direction, filter_name, passed, price_at_signal, score, atr_pct)\n        VALUES (?,?,?,?,?,?,?,?)\n    """, (time.time(), symbol, direction, filter_name,\n          1 if passed else 0, price, score, atr_pct))\n    conn.commit()\n    conn.close()\n\n\n# ─────────────────────────────────────────────\n#  STATE TRANSITIONS\n# ─────────────────────────────────────────────\n\ndef log_state_transition(symbol: str, from_state, to_state: str,\n                          trigger: str, details: str = ""):\n    conn = get_conn()\n    conn.execute("""\n        INSERT INTO state_transitions (ts, symbol, from_state, to_state, trigger, details)\n        VALUES (?,?,?,?,?,?)\n    """, (time.time(), symbol, from_state, to_state, trigger, details))\n    conn.commit()\n    conn.close()\n\n\n# ─────────────────────────────────────────────\n#  RISK EVENTS\n# ─────────────────────────────────────────────\n\ndef log_risk_event(event_type: str, symbol: str = None, details: str = ""):\n    conn = get_conn()\n    conn.execute("""\n        INSERT INTO risk_events (ts, event_type, symbol, details)\n        VALUES (?,?,?,?)\n    """, (time.time(), event_type, symbol, details))\n    conn.commit()\n    conn.close()\n\n\n# ─────────────────────────────────────────────\n#  EQUITY SNAPSHOTS\n# ─────────────────────────────────────────────\n\ndef log_equity_snapshot(balance: float, margin_ratio: float,\n                         open_positions: int, daily_pnl: float):\n    conn = get_conn()\n    conn.execute("""\n        INSERT INTO equity_snapshots (ts, balance, margin_ratio, open_positions, daily_pnl)\n        VALUES (?,?,?,?,?)\n    """, (time.time(), balance, margin_ratio, open_positions, daily_pnl))\n    conn.commit()\n    conn.close()\n
+"""
+Claw Agent v8.0 — SQLite Storage
+Substitui JSON. Regista tudo: trades, filtros, estado, eventos de risco.
+"""
+import sqlite3
+import json
+import time
+from datetime import datetime, timezone
+from config import DB_FILE
+
+
+def get_conn() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    """Cria todas as tabelas se não existirem."""
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.executescript("""
+    CREATE TABLE IF NOT EXISTS positions (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol        TEXT    NOT NULL,
+        direction     TEXT    NOT NULL,
+        entry_price   REAL,
+        sl            REAL,
+        tp            REAL,
+        qty           REAL,
+        qty_inicial   REAL,
+        mode          TEXT,
+        opened_at     REAL,
+        closed_at     REAL,
+        close_reason  TEXT,
+        pnl           REAL,
+        roi           REAL,
+        stop_order_id TEXT,
+        tp_order_id   TEXT,
+        partial_tp_done INTEGER DEFAULT 0,
+        status        TEXT    DEFAULT 'OPEN'
+    );
+
+    CREATE TABLE IF NOT EXISTS filter_events (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts             REAL    NOT NULL,
+        symbol         TEXT    NOT NULL,
+        direction      TEXT    NOT NULL,
+        filter_name    TEXT    NOT NULL,
+        passed         INTEGER NOT NULL,
+        price_at_signal REAL,
+        score          INTEGER,
+        atr_pct        REAL,
+        future_price_15m REAL,
+        future_price_30m REAL,
+        future_price_60m REAL
+    );
+
+    CREATE TABLE IF NOT EXISTS state_transitions (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts         REAL    NOT NULL,
+        symbol     TEXT    NOT NULL,
+        from_state TEXT,
+        to_state   TEXT    NOT NULL,
+        trigger    TEXT,
+        details    TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS risk_events (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts         REAL    NOT NULL,
+        event_type TEXT    NOT NULL,
+        symbol     TEXT,
+        details    TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS equity_snapshots (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts              REAL    NOT NULL,
+        balance         REAL,
+        margin_ratio    REAL,
+        open_positions  INTEGER,
+        daily_pnl       REAL
+    );
+
+    CREATE TABLE IF NOT EXISTS bot_state (
+        key        TEXT PRIMARY KEY,
+        value      TEXT,
+        updated_at REAL
+    );
+    """)
+
+    conn.commit()
+    conn.close()
+    print("[v8] SQLite inicializado")
+
+
+# ─────────────────────────────────────────────
+#  BOT STATE (substitui claw_memory_v7.json)
+# ─────────────────────────────────────────────
+
+def state_get(key: str, default=None):
+    conn = get_conn()
+    row  = conn.execute("SELECT value FROM bot_state WHERE key=?", (key,)).fetchone()
+    conn.close()
+    if row is None:
+        return default
+    try:
+        return json.loads(row["value"])
+    except Exception:
+        return row["value"]
+
+
+def state_set(key: str, value):
+    conn = get_conn()
+    conn.execute(
+        "INSERT OR REPLACE INTO bot_state(key, value, updated_at) VALUES(?,?,?)",
+        (key, json.dumps(value), time.time())
+    )
+    conn.commit()
+    conn.close()
+
+
+def load_memory() -> dict:
+    """Carrega estado completo do bot (equivalente ao JSON anterior)."""
+    return {
+        "loss_dia":         state_get("loss_dia",         0.0),
+        "perdas_seguidas":  state_get("perdas_seguidas",  0),
+        "trades_abertos":   state_get("trades_abertos",   {}),
+        "posicoes_externas": state_get("posicoes_externas", {}),
+        "pending_sync":     state_get("pending_sync",     {}),
+        "ultimo_reset":     state_get("ultimo_reset",     ""),
+        "bloqueado_ate":    state_get("bloqueado_ate",    0),
+        "total_trades":     state_get("total_trades",     0),
+        "wins":             state_get("wins",             0),
+        "losses":           state_get("losses",           0),
+        "simbolos_stats":          state_get("simbolos_stats",          {}),
+        "btc_crash_lockout_until": state_get("btc_crash_lockout_until", 0),
+        "emergency_cooldown_until":state_get("emergency_cooldown_until",0),
+        "paused":                  state_get("paused",                  False),
+    }
+
+
+def save_memory(mem: dict):
+    """Persiste estado completo do bot no SQLite."""
+    for key, value in mem.items():
+        state_set(key, value)
+
+
+# ─────────────────────────────────────────────
+#  POSITIONS
+# ─────────────────────────────────────────────
+
+def open_position(symbol: str, direction: str, entry_price: float, sl: float,
+                  tp: float, qty: float, mode: str, stop_order_id,
+                  tp_order_id) -> int:
+    conn = get_conn()
+    c    = conn.cursor()
+    c.execute("""
+        INSERT INTO positions
+        (symbol, direction, entry_price, sl, tp, qty, qty_inicial, mode,
+         opened_at, stop_order_id, tp_order_id, status)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,'OPEN')
+    """, (symbol, direction, entry_price, sl, tp, qty, qty,
+          mode, time.time(), str(stop_order_id), str(tp_order_id)))
+    pos_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    log_state_transition(symbol, None, "OPEN", "ORDER_FILLED",
+                         f"entry={entry_price} sl={sl} tp={tp}")
+    return pos_id
+
+
+def close_position_db(symbol: str, close_reason: str, pnl: float, roi: float):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        UPDATE positions
+        SET status='CLOSED', closed_at=?, close_reason=?, pnl=?, roi=?
+        WHERE symbol=? AND status='OPEN'
+    """, (time.time(), close_reason, pnl, roi, symbol))
+    if c.rowcount == 0:
+        c.execute("""
+            INSERT INTO positions
+            (symbol, direction, entry_price, pnl, roi, close_reason,
+             opened_at, closed_at, status, mode)
+            VALUES (?, 'UNKNOWN', 0, ?, ?, ?, ?, ?, 'CLOSED', 'LEGACY')
+        """, (symbol, pnl, roi, close_reason, time.time() - 3600, time.time()))
+    conn.commit()
+    conn.close()
+    log_state_transition(symbol, "OPEN", "CLOSED", close_reason,
+                         f"pnl={pnl:.2f} roi={roi:.1f}%")
+
+
+def update_position_partial_tp(symbol: str, qty_restante: float):
+    conn = get_conn()
+    conn.execute("""
+        UPDATE positions SET qty=?, partial_tp_done=1
+        WHERE symbol=? AND status='OPEN'
+    """, (qty_restante, symbol))
+    conn.commit()
+    conn.close()
+
+
+# ─────────────────────────────────────────────
+#  FILTER EVENTS (attribution)
+# ─────────────────────────────────────────────
+
+def log_filter_event(symbol: str, direction: str, filter_name: str,
+                     passed: bool, price: float, score: int = 0, atr_pct: float = 0.0):
+    conn = get_conn()
+    conn.execute("""
+        INSERT INTO filter_events
+        (ts, symbol, direction, filter_name, passed, price_at_signal, score, atr_pct)
+        VALUES (?,?,?,?,?,?,?,?)
+    """, (time.time(), symbol, direction, filter_name,
+          1 if passed else 0, price, score, atr_pct))
+    conn.commit()
+    conn.close()
+
+
+# ─────────────────────────────────────────────
+#  STATE TRANSITIONS
+# ─────────────────────────────────────────────
+
+def log_state_transition(symbol: str, from_state, to_state: str,
+                          trigger: str, details: str = ""):
+    conn = get_conn()
+    conn.execute("""
+        INSERT INTO state_transitions (ts, symbol, from_state, to_state, trigger, details)
+        VALUES (?,?,?,?,?,?)
+    """, (time.time(), symbol, from_state, to_state, trigger, details))
+    conn.commit()
+    conn.close()
+
+
+# ─────────────────────────────────────────────
+#  RISK EVENTS
+# ─────────────────────────────────────────────
+
+def log_risk_event(event_type: str, symbol: str = None, details: str = ""):
+    conn = get_conn()
+    conn.execute("""
+        INSERT INTO risk_events (ts, event_type, symbol, details)
+        VALUES (?,?,?,?)
+    """, (time.time(), event_type, symbol, details))
+    conn.commit()
+    conn.close()
+
+
+# ─────────────────────────────────────────────
+#  EQUITY SNAPSHOTS
+# ─────────────────────────────────────────────
+
+def log_equity_snapshot(balance: float, margin_ratio: float,
+                         open_positions: int, daily_pnl: float):
+    conn = get_conn()
+    conn.execute("""
+        INSERT INTO equity_snapshots (ts, balance, margin_ratio, open_positions, daily_pnl)
+        VALUES (?,?,?,?,?)
+    """, (time.time(), balance, margin_ratio, open_positions, daily_pnl))
+    conn.commit()
+    conn.close()

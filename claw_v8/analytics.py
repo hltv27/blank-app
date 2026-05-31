@@ -8,10 +8,6 @@ from storage import get_conn, DB_FILE
 
 
 def filter_performance_report() -> str:
-    """
-    Para cada filtro: quantas vezes bloqueou, e de quantas dessas
-    o trade teria ganho/perdido (baseado em future_price_30m).
-    """
     conn = get_conn()
     rows = conn.execute("""
         SELECT
@@ -44,7 +40,6 @@ def filter_performance_report() -> str:
 
 
 def trade_summary() -> str:
-    """Resumo de trades fechados: win rate, PnL total, média por trade."""
     conn = get_conn()
     row  = conn.execute("""
         SELECT
@@ -73,7 +68,6 @@ def trade_summary() -> str:
 
 
 def symbol_performance() -> str:
-    """PnL e win rate por símbolo."""
     conn = get_conn()
     rows = conn.execute("""
         SELECT symbol,
