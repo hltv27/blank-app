@@ -437,6 +437,55 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ---
 
+### Snapshot 2026-06-01
+| Carteira | Moeda | Valor | Δ vs 16 Mai |
+|----------|-------|-------|-------------|
+| Tangem Wallet | USD | $3,726 | -$354 (-8.7%) |
+| Invest (Trading 212) | EUR | €1,465 | +€166 (+12.8%) |
+| Robinhood | EUR | €606 | -€89 (-12.8%) |
+| Binance Futures (bot) | USD | ~$57 USDC | — |
+| **Total aprox.** | | **~€5,420** | — |
+
+*Nota: BTC corrigiu de $77,960 → $71,027 (-8.9%), arrastando toda a Tangem. Invest subiu €166 graças a VWCE e RGTI — diversificação a amortecer a correção cripto. PAXG e ETN quase totalmente vendidos no Robinhood; SMH adicionado.*
+
+### Activos Tangem (2026-06-01)
+| Activo | Qtd | Preço | Valor USD | Δ vs 16 Mai |
+|--------|-----|-------|-----------|-------------|
+| BTC | 0.0348942 | $71,027 | $2,478 | -$242 |
+| ETH | 0.44191314 | $1,968 | $870 | -$91 |
+| SOL | 3.25616997 | $79.68 | $259 | -$9 |
+| XRP | 84.566087 | $1.29 | $109 | -$10 |
+| LINK | 0.96250677 | $8.93 | $9 | — |
+| DOT | 1.00 | $1.13 | $1 | — |
+| **Total** | | | **$3,726** | **-$354** |
+
+### Invest — Trading 212 (2026-06-01)
+| Ticker | Qtd | Valor EUR | Var |
+|--------|-----|-----------|-----|
+| VWCE (Vanguard FTSE All-World) | 3.695 | €605.66 | +3.35% |
+| CEG (Constellation Energy) | 0.954 | €223.10 | -6.30% |
+| RGTI (Rigetti Computing) | 9.142 | €198.37 | +11.32% |
+| FTNT (Fortinet) | 0.923 | €114.79 | +24.26% |
+| DXYZ (Destiny Tech100) | 3.360 | €141.56 | -5.48% |
+| CMP (Compass Minerals) | 3.353 | €93.97 | +10.05% |
+| LEU (Centrus Energy) | 0.552 | €87.17 | -13.89% |
+| **Total** | | **€1,464.62** | **+€51 mês passado (+3.9%)** |
+
+*Vendidos vs Mai-16: PLTR, HRS, HO (Thales), Kongsberg. Adicionados: DXYZ, mais VWCE (+1.85 unid.), mais RGTI (+0.7 unid.), mais FTNT (+0.18 unid.).*
+
+### Robinhood (2026-06-01)
+| Activo | Qtd | Preço | Valor aprox. |
+|--------|-----|-------|-------------|
+| ANET (Arista Networks) | 2.11288 | $169.62 | ~€317 |
+| SMH (VanEck Semiconductor ETF) | 0.52006 | $608.28 | ~€281 |
+| ETN (Eaton) | 0.00567 | $400.92 | ~€2 |
+| Buying power | — | — | €12.59 |
+| **Total** | | | **€605.97** |
+
+*Principais mudanças vs Mai-16: PAXG liquidado, ETN quase totalmente vendido (0.45→0.006), SMH adicionado como nova posição principal.*
+
+---
+
 ## 9. Infraestrutura e Operações
 
 ### Configuração actual — Termux (Android)

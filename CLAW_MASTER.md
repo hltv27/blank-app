@@ -374,115 +374,22 @@ sqlite3 ~/blank-app/claw_v8/claw_v8.db \
 
 ## 11. Portfolio — Histórico
 
-### Evolução do Portfolio
+> Histórico detalhado (posição a posição) em `PROJECTO_CLAW_COMPLETO.md` secção 8.
 
-| Data | Tangem | Invest | Robinhood | Binance | Total aprox. | Δ |
-|------|--------|--------|-----------|---------|--------------|---|
-| 2026-05-03 | $3,749 | €882 + €718 crypto | — | $220 | **~€5,219** | base |
-| 2026-05-10 | $4,064 | €1,303 + €569 ETF | — | €770 | **~€6,189** | +18.6% |
-| 2026-05-14 | $4,290 | €1,323 | €491+€221 | — | **~€6,601** | +26.5% |
-| 2026-05-16 | $4,080 | €1,299 | €695 | — | **~€6,393** | +22.5% |
-| 2026-06-01 | $3,726 | €1,465 | €606 | ~$57 | **~€5,420** | +3.9% |
+| Data | Tangem | Invest | Robinhood | Binance | Total aprox. |
+|------|--------|--------|-----------|---------|--------------|
+| 2026-05-03 | $3,749 | €1,600 | — | $220 | **~€5,219** |
+| 2026-05-10 | $4,064 | €1,887 | — | €770 | **~€6,189** |
+| 2026-05-14 | $4,290 | €1,323 | €712 | — | **~€6,601** |
+| 2026-05-16 | $4,080 | €1,299 | €695 | — | **~€6,393** |
+| 2026-05-23 | — | — | — | ~296 USDC | +23.56 USDC PnL |
+| **2026-06-01** | **$3,726** | **€1,465** | **€606** | **~$57** | **~€5,420** |
 
-> Pico máximo: €6,601 a 2026-05-14. Correção de Jun explicada por BTC -8.9% ($77,960→$71,027).
-> Invest subiu €166 (+12.8%) vs Mai-16 apesar da correção cripto — diversificação a funcionar.
-
----
-
-### Snapshot 2026-05-03
-| Carteira | Valor |
-|----------|-------|
-| Binance Spot | $220 |
-| Tangem Wallet | $3,749 |
-| Invest Stocks | €882 |
-| Invest Crypto | €718 |
-| **Total aprox.** | **€5,219** |
-
-### Snapshot 2026-05-10
-| Carteira | Valor |
-|----------|-------|
-| Tangem Wallet | $4,064 |
-| Invest Stocks | €1,303 |
-| Invest Crypto | €15 |
-| Invest ETF USD | €569 |
-| Nova Carteira Crypto | ~$95 |
-| Binance EUR | €770 |
-| **Total aprox.** | **€6,189** |
-
-### Snapshot 2026-05-14
-| Carteira | Valor |
-|----------|-------|
-| Tangem Wallet | $4,290 |
-| Invest Stocks | €1,323 |
-| Bux ETF/Stocks | €491 |
-| Bux Crypto (PAXG) | €221 |
-| **Total aprox.** | **€6,601** |
-
-### Snapshot 2026-05-16
-| Carteira | Valor | Δ |
-|----------|-------|---|
-| Tangem Wallet | $4,080 | -4.9% |
-| Invest Stocks | €1,299 | -1.8% |
-| Robinhood (ANET+ETN+PAXG) | €695 | -2.4% |
-| **Total aprox.** | **€6,393** | **-3.2%** |
-
-### Activos Tangem (2026-05-16)
-| Activo | Qtd | Preço | Valor |
-|--------|-----|-------|-------|
-| BTC | 0.0348942 | $77,960 | $2,720 |
-| ETH | 0.44191314 | $2,176 | $961 |
-| SOL | 3.11745595 | $86.05 | $268 |
-| XRP | 84.566087 | $1.41 | $119 |
-
-### Bot Binance Futures (2026-05-23)
-- Saldo: ~296 USDC
-- PnL sessão: +23.56 USDC
+*Pico: €6,601 a 14-Mai. Correção Jun: BTC $77,960→$71,027 (-8.9%). Invest subiu €166 (+12.8%) — diversificação a funcionar.*
 
 ---
 
-### Snapshot 2026-06-01
-| Carteira | Valor | Δ vs Mai-16 |
-|----------|-------|-------------|
-| Tangem Wallet | $3,726 | -8.7% |
-| Invest (Trading 212) | €1,465 | +12.8% |
-| Robinhood | €606 | -12.8% |
-| Binance Futures (bot) | ~$57 USDC | — |
-| **Total aprox.** | **~€5,420** | **-15.2%** |
-
-> Nota: queda principal explicada pela correcção do BTC ($77,960 → $71,027, -8.9%) e das altcoins na Tangem.
-
-#### Activos Tangem (2026-06-01)
-| Activo | Qtd | Preço | Valor |
-|--------|-----|-------|-------|
-| BTC | 0.0348942 | $71,027 | $2,478 |
-| ETH | 0.44191314 | $1,968 | $870 |
-| SOL | 3.25616997 | $79.68 | $259 |
-| XRP | 84.566087 | $1.29 | $109 |
-| LINK | 0.96250677 | $8.93 | $9 |
-| DOT | 1.00 | $1.13 | $1 |
-| **Total** | | | **$3,726** |
-
-#### Invest — Trading 212 (2026-06-01) — Total €1,465
-| Activo | Qtd | Valor | P&L |
-|--------|-----|-------|-----|
-| VWCE (Vanguard FTSE All-World) | 3.695 | €606 | +€20 (+3.4%) |
-| CEG (Constellation Energy) | 0.954 | €223 | -€15 (-6.3%) |
-| RGTI (Rigetti Computing) | 9.142 | €198 | +€20 (+11.3%) |
-| FTNT (Fortinet) | 0.923 | €115 | +€22 (+24.3%) |
-| DXYZ (Destiny Tech100) | 3.360 | €142 | -€8 (-5.5%) |
-| CMP (Compass Minerals) | 3.353 | €94 | +€9 (+10.1%) |
-| LEU (Centrus Energy) | 0.552 | €87 | -€14 (-13.9%) |
-| Mês passado | | +€51,42 | +3.9% |
-
-#### Robinhood (2026-06-01) — Total €606
-| Activo | Qtd |
-|--------|-----|
-| ANET (Arista Networks) | 2.11288 |
-| SMH (VanEck Semiconductor ETF) | 0.52006 |
-| ETN (Eaton Corporation) | 0.00567 |
-| Buying power | €12,59 |
-
-
+## 12. Comandos Úteis
 
 ### Monitorização
 ```bash
