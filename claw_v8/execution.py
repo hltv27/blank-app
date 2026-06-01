@@ -331,7 +331,9 @@ def gerir_posicoes(mem: dict):
             return
 
     # Salvaguarda de margem — só fecha posições do bot
-    ratio = get_margin_ratio()
+    # Usa ratio global (USDT-M + USDC-M) para evitar falsos positivos quando há
+    # posições USDT-M que inflam o maintMargin do asset BNFCR
+    ratio = get_margin_ratio_global()
     if ratio is not None and ratio >= MARGIN_RATIO_MAX:
         if posicoes_all is None:
             posicoes_all = get_positions() or {}
