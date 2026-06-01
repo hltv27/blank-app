@@ -99,10 +99,6 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     if not fear_greed_ok(symbol, direction, price):
         return
 
-    # ── BB Squeeze ───────────────────────────────────────────────────────
-    if not bb_squeeze_ok(symbol, direction, closes, volumes, price):
-        return
-
     # ── CVD ──────────────────────────────────────────────────────────────
     if not cvd_ok(symbol, direction, closes, volumes, taker_buy_vols, price):
         return

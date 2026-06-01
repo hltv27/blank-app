@@ -60,11 +60,11 @@ MAX_SHORTS_ALT      = 3
 # ─────────────────────────────────────────────
 ADX_TREND_MIN       = 22.5   # ADX mínimo (fallback / detect_market_mode)
 ADX_TREND_MIN_MAJOR = 22.5   # BTC, ETH, BNB — tendências mais limpas
-ADX_TREND_MIN_ALT   = 30.0   # alts — mais ruído; exige tendência mais forte
-EMA_SLOPE_MIN   = 0.0008 # slope mínimo da EMA99 para confirmar tendência
+ADX_TREND_MIN_ALT   = 25.0   # era 30 — alts com ADX 25+ já têm tendência suficiente
+EMA_SLOPE_MIN   = 0.0005 # era 0.0008 — slope mínimo da EMA99 (0.05% em 5 velas)
 
-RSI_OVERSOLD    = 42.0
-RSI_OVERBOUGHT  = 58.0
+RSI_OVERSOLD    = 45.0   # era 42 — dá +3 LONG com RSI < 45 (mais comum)
+RSI_OVERBOUGHT  = 55.0   # era 58 — dá +3 SHORT com RSI > 55 (mais comum)
 STOCH_VETO_LONG = 95.0
 STOCH_VETO_SHORT= 2.5
 SCORE_ALERTA    = 6

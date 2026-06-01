@@ -73,7 +73,7 @@ def run():
             time.sleep(120)
             if time.time() - _heartbeat[0] > 300:
                 if not _alerted[0]:
-                    tg("🚨 <b>WATCHDOG</b> — loop principal inativo há 5min!\nVerifica o bot no Termux.")
+                    tg("🚨 <b>WATCHDOG</b> — loop principal inativo há 5min!\nVerifica o bot no VPS.")
                     print("[WATCHDOG] loop principal parado há 5min")
                     _alerted[0] = True
             else:
