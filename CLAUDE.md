@@ -4,17 +4,34 @@
 Bot de trading automático para Binance Futures USDC-M (perpétuos).
 - Capital: ~240 USDC | Alavancagem: 6x | Margem: Cross
 - Conta europeia **BNFCR** (Binance France Crypto Receipt) — tem restrições de API
-- Corre em **Termux (Android)** — sem cron, sem /root/, utilizador u0_a1208
-- Ficheiros em `~/blank-app/claw_v8/`
+- Corre no **VPS** `178.105.52.219` — IP fixo whitelisted na Binance
+- Ficheiros em `/root/blank-app/claw_v8/` | Log: `/root/claw.log`
+- Auto-deploy activo: `auto_deploy.sh` detecta commits em `main` e reinicia o bot
 
-## Como arrancar o bot
+## Como aceder ao VPS
 ```bash
-pkill -f "python.*main.py"; sleep 2
-cd ~/blank-app && git pull origin main
-cd claw_v8 && python -u main.py > ~/claw.log 2>&1 &
-sleep 3 && tail -20 ~/claw.log
+ssh root@178.105.52.219
 ```
-> **Nota**: usar `python -u` (unbuffered) — sem isso o log fica vazio com nohup.
+
+## Como arrancar o bot (no VPS)
+```bash
+cd /root/blank-app && git pull origin main
+pkill -f "python.*main.py"; sleep 2
+cd /root/blank-app/claw_v8
+PYTHONUNBUFFERED=1 nohup python3 main.py > /root/claw.log 2>&1 &
+echo $! > /root/claw.pid
+sleep 3 && tail -20 /root/claw.log
+```
+
+## Monitorizar log em tempo real
+```bash
+ssh root@178.105.52.219 "tail -f /root/claw.log"
+```
+
+## Kill switch de emergência
+```bash
+ssh root@178.105.52.219 "touch /root/blank-app/claw_v8/KILL_SWITCH"
+```
 
 ## Branches
 - **Desenvolvimento**: `claude/setup-project-structure-3xwuR`
@@ -22,7 +39,7 @@ sleep 3 && tail -20 ~/claw.log
 - NUNCA fazer push para main sem confirmar com o utilizador
 
 ## Credenciais
-**NUNCA mostrar no chat.** Estão em `~/.bashrc` como variáveis de ambiente:
+**NUNCA mostrar no chat.** Estão em `~/.bashrc` e `/etc/environment` no VPS:
 `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`, `BINANCE_API_KEY`, `BINANCE_API_SECRET`
 
 ---
@@ -165,6 +182,11 @@ TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
 - **Causa**: `SCORE_ALERTA = 4` permitia entradas com apenas 4/10+ indicadores a confirmar
 - **Fix**: `SCORE_ALERTA = 6` — exige sinal forte antes de abrir qualquer trade
 - **GitHub**: SHA e0003ea
+
+### 11. MARGEM CRÍTICA falso positivo — cross-collateral USDT-M (`execution.py`)
+- **Causa**: guard de margem usava `get_margin_ratio()` que soma `maintMargin` do asset BNFCR; quando existe posição USDT-M com cross-collateral (ex: BTCUSDT 150x), o `maintMargin` do BNFCR inclui os requisitos dessa posição → rácio aparece 244-360% em vez dos verdadeiros 18%
+- **Fix**: guard usa agora `get_margin_ratio_global()` que lê `totalMaintMargin / totalMarginBalance` da conta inteira — valor correcto independentemente de posições USDT-M
+- **GitHub**: SHA 0487fd0
 
 ---
 
