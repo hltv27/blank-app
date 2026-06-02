@@ -94,8 +94,9 @@ MFI_PERIOD = 10
 ROC_PERIOD = 10
 CVD_PERIOD = 20
 
-ATR_SL_MULT_MIN     = 1.2      # mercado calmo → SL mais apertado
-ATR_SL_MULT_MAX     = 1.8      # mercado volátil → SL mais largo
+ATR_SL_MULT_MIN     = 1.8      # era 1.2 — SL mínimo mais largo
+ATR_SL_MULT_MAX     = 2.5      # era 1.8 — mercado volátil → SL ainda mais largo
+SL_MIN_PCT          = 0.005    # SL nunca a menos de 0.5% da entrada (Binance rejeita <0.1%)
 ATR_VOL_SCALE_PCT   = 0.003    # ATR/price acima disto → reduz qty
 TAKER_RATIO_MIN     = 0.52     # taker buy ratio mínimo para LONG
 

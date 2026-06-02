@@ -768,6 +768,12 @@ def gerir_posicoes(mem: dict):
         hit_sl = (side == "LONG" and price <= sl) or (side == "SHORT" and price >= sl)
         hit_tp = (side == "LONG" and price >= tp) or (side == "SHORT" and price <= tp)
 
+        # Grace period: software SL não dispara nos primeiros 3 minutos
+        # Evita que SL calculado com ATR pequeno feche imediatamente após abertura
+        if hit_sl and elapsed < 180:
+            print(f"[SL_GRACE] {symbol}: SL hit em {elapsed:.0f}s — aguarda 3min antes de fechar via software")
+            hit_sl = False
+
         if hit_sl or hit_tp:
             if not _fechar_com_retry(symbol, pos["qty"], side):
                 tg(f"⚠️ <b>CLOSE FALHOU</b> — {symbol}\nSL/TP hit mas close recusado — retry ciclo seguinte")

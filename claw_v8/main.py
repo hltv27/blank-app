@@ -446,6 +446,10 @@ def run():
                 if len(mem.get("trades_abertos", {})) >= MAX_TRADES_ABERTOS:
                     print(f"[{hora}] Limite {MAX_TRADES_ABERTOS} trades — scan parado")
                     break
+                # Máx 1 nova posição por ciclo de scan — evita abrir 5 posições correlacionadas ao mesmo tempo
+                if len(mem.get("trades_abertos", {})) > len(posicoes_reais):
+                    print(f"[{hora}] 1 trade aberto neste ciclo — próximo scan em 5min")
+                    break
 
         except KeyboardInterrupt:
             tg("⛔ Claw Agent v8.0 parado manualmente.")
