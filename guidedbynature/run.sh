@@ -17,5 +17,3 @@ playwright install chromium 2>/dev/null || pkg install chromium -y 2>/dev/null |
 
 # 5. Correr o crawler
 python guidedbynature_crawler.py
-git pull origin main
-bash guidedbynature/run.sh
