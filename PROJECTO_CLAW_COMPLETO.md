@@ -486,6 +486,49 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ---
 
+### Snapshot 2026-06-03
+| Carteira | Moeda | Valor | Δ vs 01 Jun |
+|----------|-------|-------|-------------|
+| Tangem Wallet | USD | $3,415 | -$311 (-8.3%) |
+| Invest (Trading 212) | EUR | €1,473 | +€8 (+0.6%) |
+| Robinhood (ANET) | EUR | €335 | +€18 (+5.7%) |
+| Binance Futures (bot) | USD | ~$154 USDC | — |
+| **Total aprox.** | | **~€5,088** | — |
+
+*Nota: BTC caiu de $71,027 → $65,244 (-8.1%), ETH -8.5%, SOL -10.1%. Tangem sofreu nova corrida descendente. Trading 212 estável graças a FTNT (+14.98%) e VWCE (+2.29%). Portfólio Trading 212 reorganizado: DXYZ, CMP, LEU removidos; VWCE reforçado (3.695→5.327), SMH migrado do Robinhood, RGTI reduzido (9.142→4.271).*
+
+### Activos Tangem (2026-06-03)
+| Activo | Qtd | Preço | Valor USD | Δ vs 01 Jun |
+|--------|-----|-------|-----------|-------------|
+| BTC | 0.0348942 | $65,244 | $2,277 | -$201 |
+| ETH | 0.44191314 | $1,798 | $795 | -$75 |
+| SOL | 3.25711846 | $71.72 | $234 (APY 5.74%) | -$25 |
+| XRP | 84.566087 | $1.20 | $102 | -$7 |
+| LINK | 0.96250677 | $8.19 | $8 | -$1 |
+| DOT | 1.00 | $1.09 | $1 | — |
+| **Total** | | | **$3,415** | **-$311** |
+
+### Invest — Trading 212 (2026-06-03)
+| Ticker | Qtd | Valor EUR | Var dia |
+|--------|-----|-----------|---------|
+| VWCE (Vanguard FTSE All-World) | 5.32660687 | €874.31 | +2.29% |
+| CEG (Constellation Energy) | 0.95436341 | €220.07 | -7.58% |
+| FTNT (Fortinet) | 1.45056673 | €183.19 | +14.98% |
+| SMH (VanEck Semiconductor ETF) | 1.05989092 | €107.84 | +0.89% |
+| RGTI (Rigetti Computing) | 4.27129751 | €87.98 | +5.67% |
+| **Total** | | **€1,473.39** | |
+
+*Mudanças vs Jun-01: DXYZ, CMP, LEU vendidos. VWCE reforçado (+1.63 unid.), FTNT reforçado (+0.53 unid.), SMH migrado do Robinhood (+0.54 unid.), RGTI reduzido (-4.87 unid.).*
+
+### Robinhood (2026-06-03)
+| Activo | Qtd | Preço | Valor EUR | Retorno Total |
+|--------|-----|-------|-----------|---------------|
+| ANET (Arista Networks) | 2.23166 | $173.85 | €334.61 | +€54.20 (+19.33%) |
+
+*Custo médio ANET: €125.65/acção. SMH migrado para Trading 212.*
+
+---
+
 ## 9. Infraestrutura e Operações
 
 ### Configuração actual — Termux (Android)
