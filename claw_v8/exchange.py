@@ -279,30 +279,30 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 
 
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
-    """STOP_MARKET com closePosition=true via /fapi/v1/order (endpoint regular).
-    A conta EU/BNFCR não suporta STOP_MARKET no endpoint algoOrder — usa o endpoint
-    de ordens standard com closePosition=true em vez de reduceOnly=true."""
+    """STOP_MARKET via /fapi/v1/algoOrder com closePosition=true.
+    Binance rejeita STOP_MARKET no endpoint regular para contas BNFCR — usa algoOrder."""
     try:
         decimals = PRICE_PRECISION.get(symbol, 2)
         params = {
             "symbol":        symbol,
             "side":          side,
-            "type":          "STOP_MARKET",
+            "orderType":     "STOP_MARKET",
+            "algoType":      "CONDITIONAL",
             "stopPrice":     f"{stop_price:.{decimals}f}",
             "closePosition": "true",
         }
         for attempt in range(3):
             signed = _sign(params)
             r = requests.post(
-                f"{BASE_URL}/fapi/v1/order",
+                f"{BASE_URL}/fapi/v1/algoOrder",
                 params=signed, headers=_headers(), timeout=10
             )
             data = r.json()
             if _is_timestamp_error(data):
                 sync_time()
                 continue
-            if "orderId" in data:
-                return data["orderId"]
+            if "algoId" in data:
+                return data["algoId"]
             print(f"[AVISO] stop_market {symbol}: {data.get('msg', data)}")
             break
     except Exception as e:
@@ -311,28 +311,29 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
 
 
 def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
+    """TAKE_PROFIT_MARKET via /fapi/v1/order com closePosition=true.
+    O algoOrder rejeita com 'type missing' para TAKE_PROFIT_MARKET — usa endpoint regular."""
     try:
         decimals = PRICE_PRECISION.get(symbol, 2)
         params = {
             "symbol":        symbol,
             "side":          side,
-            "orderType":     "TAKE_PROFIT_MARKET",
-            "algoType":      "CONDITIONAL",
+            "type":          "TAKE_PROFIT_MARKET",
             "stopPrice":     f"{tp_price:.{decimals}f}",
             "closePosition": "true",
         }
         r = requests.post(
-            f"{BASE_URL}/fapi/v1/algoOrder",
+            f"{BASE_URL}/fapi/v1/order",
             params=_sign(params), headers=_headers(), timeout=10
         )
         data = r.json()
         if _is_timestamp_error(data):
             sync_time()
-            r = requests.post(f"{BASE_URL}/fapi/v1/algoOrder",
+            r = requests.post(f"{BASE_URL}/fapi/v1/order",
                               params=_sign(params), headers=_headers(), timeout=10)
             data = r.json()
-        if "algoId" in data:
-            return data["algoId"]
+        if "orderId" in data:
+            return data["orderId"]
         print(f"[AVISO] take_profit {symbol}: {data.get('msg', data)}")
     except Exception as e:
         print(f"[ERRO] place_take_profit {symbol}: {e}")
