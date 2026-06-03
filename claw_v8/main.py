@@ -87,14 +87,23 @@ def _relatorio_diario(mem: dict):
             "versao": "v8.0",
         }
 
-        # Escreve status.json
-        status_path = os.path.join(os.path.dirname(__file__), "status.json")
+        # Escreve status.json (último dia — para Claude ler rapidamente)
+        base_path = os.path.dirname(__file__)
+        status_path = os.path.join(base_path, "status.json")
         with open(status_path, "w", encoding="utf-8") as f:
             json.dump(status, f, indent=2, ensure_ascii=False)
 
-        # Git push
-        repo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        subprocess.run(["git", "-C", repo_path, "add", "claw_v8/status.json"],
+        # Append status_history.jsonl (histórico completo, nunca sobrescreve)
+        history_path = os.path.join(base_path, "status_history.jsonl")
+        with open(history_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(status, ensure_ascii=False) + "\n")
+
+        # Git pull + push (evita conflitos se houve outro commit entretanto)
+        repo_path = os.path.abspath(os.path.join(base_path, ".."))
+        subprocess.run(["git", "-C", repo_path, "pull", "--rebase", "origin", "main"],
+                       capture_output=True, timeout=60)
+        subprocess.run(["git", "-C", repo_path, "add",
+                        "claw_v8/status.json", "claw_v8/status_history.jsonl"],
                        capture_output=True, timeout=30)
         subprocess.run(["git", "-C", repo_path, "commit", "-m", f"status: {data_hoje}"],
                        capture_output=True, timeout=30)
@@ -187,7 +196,9 @@ def run():
     ultimo_minuto_scan  = -1
     ultima_sync_hora    = -1
     ultimo_resumo_hora  = -1
-    ultimo_relatorio_dia = -1
+    # Carrega do SQLite — sobrevive a restarts (não perde dias)
+    from storage import state_get, state_set
+    ultimo_relatorio_dia = state_get("ultimo_relatorio_dia", -1)
 
     while True:
         try:
@@ -201,9 +212,10 @@ def run():
                 sync_time()
                 ultima_sync_hora = now_utc.hour
 
-            # Relatório diário às 23:00 UTC
+            # Relatório diário às 23:00 UTC — persiste no SQLite para sobreviver a restarts
             if now_utc.hour == 23 and now_utc.day != ultimo_relatorio_dia:
                 ultimo_relatorio_dia = now_utc.day
+                state_set("ultimo_relatorio_dia", ultimo_relatorio_dia)
                 _relatorio_diario(mem)
 
             # Actualiza lista de pares a cada 24h

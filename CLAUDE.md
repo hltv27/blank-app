@@ -12,6 +12,9 @@ Usar `mcp__github__get_file_contents` com `{"owner":"hltv27","repo":"blank-app",
 O ficheiro é actualizado automaticamente pelo bot às 23:00 UTC com o relatório do dia.
 Se `ts == 0` o bot ainda não enviou o primeiro relatório.
 
+Para análise histórica (vários dias), ler `claw_v8/status_history.jsonl` — uma linha JSON por dia, nunca sobrescrito.
+O `ultimo_relatorio_dia` é persistido no SQLite — restarts não perdem dias nem disparam duplicados.
+
 ## O que é este projecto
 Bot de trading automático para Binance Futures USDC-M (perpétuos).
 - Capital: ~240 USDC | Alavancagem: 6x | Margem: Cross
