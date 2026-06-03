@@ -1,5 +1,0 @@
-git pull origin main
-cd guidedbynature
-pip install playwright openpyxl beautifulsoup4
-playwright install chromium
-python guidedbynature_crawler.py
