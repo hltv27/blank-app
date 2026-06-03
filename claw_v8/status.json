@@ -1,0 +1,15 @@
+{
+  "data": "2026-06-03",
+  "ts": 0,
+  "saldo": 0,
+  "pnl_dia": 0,
+  "trades": {"total": 0, "wins": 0, "losses": 0, "wr_pct": 0},
+  "abertos": [],
+  "melhor": null,
+  "pior": null,
+  "circuit_breaker": false,
+  "cb_motivo": "",
+  "wins_total": 0,
+  "losses_total": 0,
+  "versao": "v8.0"
+}

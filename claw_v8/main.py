@@ -10,6 +10,8 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
+import json
+import subprocess
 import time
 import threading
 from datetime import datetime, timezone
@@ -29,6 +31,97 @@ from execution import abrir_trade, gerir_posicoes
 from storage import init_db, load_memory, save_memory, log_state_transition
 from analytics import print_full_report
 from telegram_handler import process_commands
+
+
+def _relatorio_diario(mem: dict):
+    """Relatório diário às 23:00 UTC → Telegram + status.json + git push."""
+    try:
+        from storage import get_conn
+        data_hoje = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        # Stats do dia via SQLite
+        conn = get_conn()
+        rows = conn.execute(
+            "SELECT pnl, direction FROM positions WHERE status='CLOSED' AND date(closed_at,'unixepoch') = ?",
+            (data_hoje,)
+        ).fetchall()
+        conn.close()
+
+        pnl_dia   = round(sum(r["pnl"] for r in rows if r["pnl"] is not None), 2)
+        wins_dia  = sum(1 for r in rows if (r["pnl"] or 0) > 0)
+        losses_dia = sum(1 for r in rows if (r["pnl"] or 0) <= 0)
+        total_dia  = len(rows)
+        wr_dia     = round(wins_dia / total_dia * 100, 1) if total_dia > 0 else 0.0
+        melhor     = max(rows, key=lambda r: r["pnl"] or 0, default=None)
+        pior       = min(rows, key=lambda r: r["pnl"] or 0, default=None)
+
+        saldo = get_balance() or 0
+
+        # Posições abertas com ROI actual
+        abertos = []
+        for sym, t in mem.get("trades_abertos", {}).items():
+            preco = get_price(sym)
+            roi = 0.0
+            if preco and t.get("entry", 0) > 0:
+                roi = ((preco - t["entry"]) / t["entry"] * 100
+                       if t["direction"] == "LONG"
+                       else (t["entry"] - preco) / t["entry"] * 100)
+            abertos.append({"symbol": sym, "side": t["direction"],
+                            "entry": t.get("entry", 0), "roi_pct": round(roi, 2)})
+
+        cb_activo, cb_motivo = circuit_breaker_activo(mem)
+        status = {
+            "data":    data_hoje,
+            "ts":      int(time.time()),
+            "saldo":   round(saldo, 2),
+            "pnl_dia": pnl_dia,
+            "trades":  {"total": total_dia, "wins": wins_dia,
+                        "losses": losses_dia, "wr_pct": wr_dia},
+            "abertos": abertos,
+            "melhor":  {"symbol": melhor["symbol"] if hasattr(melhor, '__getitem__') else "", "pnl": round(melhor["pnl"] or 0, 2)} if melhor else None,
+            "pior":    {"symbol": pior["symbol"] if hasattr(pior, '__getitem__') else "", "pnl": round(pior["pnl"] or 0, 2)} if pior else None,
+            "circuit_breaker": cb_activo,
+            "cb_motivo": cb_motivo if cb_activo else "",
+            "wins_total":   mem.get("wins", 0),
+            "losses_total": mem.get("losses", 0),
+            "versao": "v8.0",
+        }
+
+        # Escreve status.json
+        status_path = os.path.join(os.path.dirname(__file__), "status.json")
+        with open(status_path, "w", encoding="utf-8") as f:
+            json.dump(status, f, indent=2, ensure_ascii=False)
+
+        # Git push
+        repo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        subprocess.run(["git", "-C", repo_path, "add", "claw_v8/status.json"],
+                       capture_output=True, timeout=30)
+        subprocess.run(["git", "-C", repo_path, "commit", "-m", f"status: {data_hoje}"],
+                       capture_output=True, timeout=30)
+        r = subprocess.run(["git", "-C", repo_path, "push", "origin", "main"],
+                           capture_output=True, timeout=60)
+        push_ok = r.returncode == 0
+
+        # Telegram
+        pos_txt    = ", ".join(f"{p['symbol'].replace('USDC','')} {p['roi_pct']:+.1f}%" for p in abertos) or "Nenhuma"
+        melhor_txt = f"{melhor['symbol'].replace('USDC','')} +{melhor['pnl']:.2f}" if melhor else "n/a"
+        pior_txt   = f"{pior['symbol'].replace('USDC','')} {pior['pnl']:.2f}" if pior else "n/a"
+        cb_txt     = f" | ⛔ CB: {cb_motivo}" if cb_activo else ""
+        push_txt   = "📁 GitHub ✅" if push_ok else "📁 push ⚠️"
+
+        tg(
+            f"📊 <b>Relatório {data_hoje}</b>\n"
+            f"💰 Saldo: <b>{saldo:.2f} USDC</b> | P&amp;L dia: <b>{pnl_dia:+.2f} USDC</b>\n"
+            f"📈 Trades: {total_dia} ({wins_dia}W/{losses_dia}L) WR {wr_dia:.0f}%\n"
+            f"🔓 Abertos: {pos_txt}\n"
+            f"⭐ {melhor_txt}  💀 {pior_txt}{cb_txt}\n"
+            f"{push_txt}"
+        )
+        print(f"[v8] Relatório diário {data_hoje} — push {'OK' if push_ok else 'FALHOU'}")
+
+    except Exception as e:
+        print(f"[ERRO] relatorio_diario: {e}")
+        tg(f"⚠️ Relatório diário falhou: {e}")
 
 
 def _validate_credentials():
@@ -94,6 +187,7 @@ def run():
     ultimo_minuto_scan  = -1
     ultima_sync_hora    = -1
     ultimo_resumo_hora  = -1
+    ultimo_relatorio_dia = -1
 
     while True:
         try:
@@ -106,6 +200,11 @@ def run():
             if now_utc.hour != ultima_sync_hora:
                 sync_time()
                 ultima_sync_hora = now_utc.hour
+
+            # Relatório diário às 23:00 UTC
+            if now_utc.hour == 23 and now_utc.day != ultimo_relatorio_dia:
+                ultimo_relatorio_dia = now_utc.day
+                _relatorio_diario(mem)
 
             # Actualiza lista de pares a cada 24h
             if time.time() - ultima_actualizacao_symbols > 86400:

@@ -1,5 +1,17 @@
 # Claw Agent v8 — Contexto para Claude
 
+## Estado do Bot — LER NO INÍCIO DE CADA SESSÃO
+
+**Antes de qualquer conversa sobre o bot, ler sempre:**
+
+```
+hltv27/blank-app → claw_v8/status.json (branch: main)
+```
+
+Usar `mcp__github__get_file_contents` com `{"owner":"hltv27","repo":"blank-app","path":"claw_v8/status.json"}`.
+O ficheiro é actualizado automaticamente pelo bot às 23:00 UTC com o relatório do dia.
+Se `ts == 0` o bot ainda não enviou o primeiro relatório.
+
 ## O que é este projecto
 Bot de trading automático para Binance Futures USDC-M (perpétuos).
 - Capital: ~240 USDC | Alavancagem: 6x | Margem: Cross
@@ -195,7 +207,7 @@ TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
 1. `reduceOnly=true` não funciona nesta conta → usar sempre `closePosition=true`
 2. Só pode haver **um** STOP_MARKET closePosition por símbolo de cada vez
 3. `_fechar_com_retry` — 3 tentativas antes de registar fecho (evita posições órfãs)
-4. `place_stop_market` usa `/fapi/v1/order` (endpoint regular), NÃO `/fapi/v1/algoOrder`
+4. `place_stop_market` usa `/fapi/v1/algoOrder` (orderType+algoId) — Binance rejeitou o endpoint regular para contas BNFCR (SHA ef11229)
 5. `get_balance` usa `/fapi/v2/account` assets[].marginBalance com fallback totalMarginBalance
 6. Nunca mostrar credenciais no chat
 7. NUNCA push para main sem confirmar com o utilizador
