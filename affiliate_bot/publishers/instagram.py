@@ -15,30 +15,20 @@ def _get_client():
         return _client
 
     from instagrapi import Client
-    from instagrapi.exceptions import LoginRequired, BadPassword, TwoFactorRequired
 
     cl = Client()
     cl.delay_range = [2, 5]
 
     if _SESSION.exists():
-        try:
-            cl.load_settings(_SESSION)
-            cl.login(Config.INSTAGRAM_USERNAME, Config.INSTAGRAM_PASSWORD)
-            logger.info("Instagram: resumed cached session @%s", Config.INSTAGRAM_USERNAME)
-            _client = cl
-            return _client
-        except (LoginRequired, BadPassword):
-            logger.warning("Instagram: cached session expired, logging in fresh")
-        except Exception as e:
-            logger.warning("Instagram: session load error: %s", e)
+        cl.load_settings(_SESSION)
+        logger.info("Instagram: loaded session from file")
+        _client = cl
+        return _client
 
-    cl = Client()
-    cl.delay_range = [2, 5]
-    cl.login(Config.INSTAGRAM_USERNAME, Config.INSTAGRAM_PASSWORD)
-    cl.dump_settings(_SESSION)
-    logger.info("Instagram: fresh login @%s", Config.INSTAGRAM_USERNAME)
-    _client = cl
-    return _client
+    raise RuntimeError(
+        f"Instagram session file not found: {_SESSION}. "
+        "Run the login script on a PC to generate it."
+    )
 
 
 def publish(product: dict, caption: str, image_path: str) -> bool:
