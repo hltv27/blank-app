@@ -26,6 +26,10 @@ class Config:
     INSTAGRAM_USERNAME = os.getenv("INSTAGRAM_USERNAME", "")
     INSTAGRAM_PASSWORD = os.getenv("INSTAGRAM_PASSWORD", "")
 
+    # Facebook
+    FACEBOOK_PAGE_ID = os.getenv("FACEBOOK_PAGE_ID", "")
+    FACEBOOK_PAGE_TOKEN = os.getenv("FACEBOOK_PAGE_TOKEN", "")
+
     # TikTok
     TIKTOK_CLIENT_KEY = os.getenv("TIKTOK_CLIENT_KEY", "")
     TIKTOK_CLIENT_SECRET = os.getenv("TIKTOK_CLIENT_SECRET", "")

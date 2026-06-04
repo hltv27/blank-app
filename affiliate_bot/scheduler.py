@@ -73,6 +73,9 @@ def run_post_cycle(platform: str, niche_key: str, niche_config: dict) -> bool:
         elif platform == "tiktok":
             success = publishers.tiktok.publish(product, caption, str(image_path))
 
+        elif platform == "facebook":
+            success = publishers.facebook.publish(product, caption, str(image_path))
+
     except Exception as e:
         logger.error("Publish error [%s/%s]: %s", platform, niche_key, e)
         record_post(product["product_id"], platform, status="error", error=str(e))
@@ -95,6 +98,7 @@ def build_daily_schedule(niches: dict, schedule_config: dict) -> list[dict]:
     platforms = [
         ("telegram",  schedule_config["posts_per_day_telegram"]),
         ("instagram", schedule_config["posts_per_day_instagram"]),
+        ("facebook",  schedule_config.get("posts_per_day_facebook", 4)),
         ("tiktok",    schedule_config["posts_per_day_tiktok"]),
     ]
 
@@ -133,6 +137,8 @@ def _active_platforms() -> list[str]:
     platforms = ["telegram"]
     if Config.INSTAGRAM_USERNAME and Config.INSTAGRAM_PASSWORD:
         platforms.append("instagram")
+    if Config.FACEBOOK_PAGE_ID and Config.FACEBOOK_PAGE_TOKEN:
+        platforms.append("facebook")
     if Config.TIKTOK_ACCESS_TOKEN:
         platforms.append("tiktok")
     return platforms
