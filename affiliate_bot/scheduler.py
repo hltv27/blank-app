@@ -3,7 +3,10 @@ import random
 from pathlib import Path
 
 from affiliate_bot.config import Config
-from affiliate_bot.database import init_db, was_posted, save_product, record_post, get_stats
+from affiliate_bot.database import (
+    init_db, was_posted, save_product, record_post, get_stats,
+    get_cached_products, mark_cache_refreshed,
+)
 from affiliate_bot.fetchers.aliexpress import get_products_for_niche
 from affiliate_bot.generators.content import generate_post_text
 from affiliate_bot.generators.image import create_product_card
@@ -13,10 +16,32 @@ logger = logging.getLogger(__name__)
 
 
 
+def refresh_product_cache(niches: dict):
+    """Fetch fresh products from API for all niches and store in DB. Runs once daily."""
+    logger.info("Refreshing product cache for %d niches", len(niches))
+    for niche_key, niche_cfg in niches.items():
+        try:
+            products = get_products_for_niche(niche_key, niche_cfg, limit=20)
+            for p in products:
+                save_product(p)
+            mark_cache_refreshed(niche_key)
+            logger.info("Cache refreshed: %s — %d products", niche_key, len(products))
+        except Exception as e:
+            logger.error("Cache refresh error for %s: %s", niche_key, e)
+
+
 def run_post_cycle(platform: str, niche_key: str, niche_config: dict) -> bool:
     logger.info("Starting post cycle: platform=%s niche=%s", platform, niche_key)
 
-    products = get_products_for_niche(niche_key, niche_config, limit=10)
+    # Use cached products from DB — only call API if cache is stale
+    products = get_cached_products(niche_key, max_age_hours=12)
+    if not products:
+        logger.info("Cache empty/stale for %s — fetching from API", niche_key)
+        products = get_products_for_niche(niche_key, niche_config, limit=20)
+        for p in products:
+            save_product(p)
+        mark_cache_refreshed(niche_key)
+
     if not products:
         logger.warning("No products found for niche %s", niche_key)
         return False
@@ -134,6 +159,14 @@ def _start_with_apscheduler(niches: dict, schedule_cfg: dict):
             max_instances=1,
         )
         logger.debug("Scheduled: %s/%s at %02d:%02d UTC", job["platform"], job["niche"], job["hour"], job["minute"])
+
+    # Daily product cache refresh at 06:00 UTC (before posts start at 07:00)
+    scheduler.add_job(
+        refresh_product_cache,
+        CronTrigger(hour=6, minute=0),
+        args=[niches],
+        id="cache_refresh",
+    )
 
     # Daily stats log at midnight
     scheduler.add_job(

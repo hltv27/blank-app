@@ -62,6 +62,11 @@ def init_db():
                 created_at TEXT DEFAULT (datetime('now'))
             );
 
+            CREATE TABLE IF NOT EXISTS product_cache (
+                niche TEXT PRIMARY KEY,
+                fetched_at TEXT NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS idx_posts_product_platform
                 ON posts(product_id, platform);
             CREATE INDEX IF NOT EXISTS idx_posts_posted_at
@@ -106,6 +111,29 @@ def record_post(product_id: str, platform: str, status: str = "success", error: 
         conn.execute(
             "INSERT INTO posts (product_id, platform, status, error_message) VALUES (?, ?, ?, ?)",
             (product_id, platform, status, error)
+        )
+
+
+def get_cached_products(niche: str, max_age_hours: int = 12) -> list[dict]:
+    since = (datetime.utcnow() - timedelta(hours=max_age_hours)).isoformat()
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT fetched_at FROM product_cache WHERE niche=?", (niche,)
+        ).fetchone()
+        if not row or row["fetched_at"] < since:
+            return []
+        rows = conn.execute(
+            "SELECT * FROM products WHERE niche=? ORDER BY discount_percent DESC, orders DESC LIMIT 20",
+            (niche,)
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def mark_cache_refreshed(niche: str):
+    with get_db() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO product_cache (niche, fetched_at) VALUES (?, datetime('now'))",
+            (niche,)
         )
 
 
