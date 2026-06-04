@@ -120,8 +120,12 @@ def get_products_for_niche(niche_key: str, niche_config: dict, limit: int = 5) -
         if len(all_products) >= limit * 2:
             break
 
-    all_products.sort(
-        key=lambda p: (p.get("discount_percent", 0) * 0.4 + min(p.get("orders", 0) / 1000, 50) * 0.6),
-        reverse=True,
-    )
+    def _score(p: dict) -> float:
+        discount = p.get("discount_percent", 0)
+        orders = min(p.get("orders", 0) / 500, 50)
+        rating = (p.get("rating", 4.0) - 4.0) * 5
+        flash_bonus = 30 if discount >= 50 else (15 if discount >= 30 else 0)
+        return discount * 0.6 + orders * 0.3 + rating * 0.1 + flash_bonus
+
+    all_products.sort(key=_score, reverse=True)
     return all_products[:limit]
