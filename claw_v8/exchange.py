@@ -89,8 +89,10 @@ def get_public_ip() -> str:
 
 
 def get_balance() -> float | None:
-    """Saldo do activo USDC/BNFCR (conta USDC-M) via /fapi/v2/account.
-    Soma USDC + BNFCR — conta EU/BNFCR mantém capital em BNFCR, não USDC."""
+    """Saldo USDC/BNFCR via /fapi/v2/account.
+    Tenta marginBalance, walletBalance, crossWalletBalance, availableBalance.
+    Fallback: totalMarginBalance da conta."""
+    _FIELDS = ("marginBalance", "walletBalance", "crossWalletBalance", "availableBalance")
     for attempt in range(2):
         try:
             r = requests.get(
@@ -105,17 +107,24 @@ def get_balance() -> float | None:
             if isinstance(data, list):
                 break
             total = 0.0
+            debug = {}
             for a in data.get("assets", []):
-                if a.get("asset") in ("USDC", "BNFCR"):
-                    # Binance devolve valores como strings ("0.00000000" é truthy em Python)
-                    # → converter para float ANTES de usar or, senão "0.00000000" engana o fallback
-                    margin = float(a.get("marginBalance") or "0")
-                    wallet = float(a.get("walletBalance") or "0")
-                    mb = margin or wallet
-                    total += mb
+                name = a.get("asset")
+                if name in ("USDC", "BNFCR"):
+                    debug[name] = {f: a.get(f) for f in _FIELDS}
+                    for field in _FIELDS:
+                        val = float(a.get(field) or "0")
+                        if val > 0:
+                            total = max(total, val)
+                            break
             if total > 0:
                 return round(total, 4)
-            print(f"[AVISO] get_balance: USDC/BNFCR não encontrado — assets: {[a.get('asset') for a in data.get('assets', [])]}")
+            # Fallback: totalMarginBalance ao nível da conta
+            tmb = float(data.get("totalMarginBalance") or "0")
+            if tmb > 0:
+                print(f"[AVISO] get_balance: usando totalMarginBalance={tmb:.4f}")
+                return round(tmb, 4)
+            print(f"[AVISO] get_balance: saldo 0 — campos USDC/BNFCR: {debug}")
         except Exception as e:
             print(f"[ERRO] get_balance: {e}")
             break
