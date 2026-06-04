@@ -1,4 +1,5 @@
 import logging
+import time
 import requests
 
 from affiliate_bot.config import Config
@@ -106,7 +107,9 @@ def get_products_for_niche(niche_key: str, niche_config: dict, limit: int = 5) -
     all_products = []
     keywords = niche_config.get("keywords", [])[:3]
 
-    for keyword in keywords:
+    for i, keyword in enumerate(keywords):
+        if i > 0:
+            time.sleep(2)
         found = search_products(
             keyword=keyword,
             niche=niche_key,
