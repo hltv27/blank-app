@@ -70,6 +70,11 @@ STOCH_VETO_SHORT= 2.5
 SCORE_ALERTA    = 6
 SCORE_FORTE     = 6
 
+# Markov regime detection
+MARKOV_LOOKBACK = 100   # candles for transition matrix
+MARKOV_MIN_PROB = 0.55  # min P(bullish/bearish next) to generate a signal
+MARKOV_SCORE    = 2     # score points added when regime confirms direction
+
 ATR_MIN_PCT     = 0.0008
 BB_PERIOD       = 20
 BB_STD          = 2.0

@@ -16,6 +16,7 @@ from indicators import (
     ema, rsi, atr, stoch_rsi, adx, supertrend,
     bollinger_bands, volume_ok, cmf_val, mfi_val, roc_val
 )
+from markov import markov_regime_signal
 
 
 def detect_market_mode(closes: list, atr_val: float) -> str:
@@ -118,15 +119,28 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list,
     elif roc_v < -0.3:
         score_short += 1
 
+    # Markov regime: +2 when the transition matrix predicts regime persistence
+    mkv_dir, mkv_pts, mkv_detail = markov_regime_signal(closes, highs, lows)
+    if mkv_dir == "LONG":
+        score_long  += mkv_pts
+    elif mkv_dir == "SHORT":
+        score_short += mkv_pts
+
     if score_long >= SCORE_ALERTA and price > ema99[-1]:
         strength = "FORTE" if score_long >= SCORE_FORTE else "ALERTA"
-        return "LONG", score_long, f"RSI {rsi_val:.1f} SR {sr_val:.1f} Score {score_long} [{strength}]"
+        return "LONG", score_long, (
+            f"RSI {rsi_val:.1f} SR {sr_val:.1f} Score {score_long} [{strength}] | {mkv_detail}"
+        )
 
     if score_short >= SCORE_ALERTA and price < ema99[-1]:
         strength = "FORTE" if score_short >= SCORE_FORTE else "ALERTA"
-        return "SHORT", score_short, f"RSI {rsi_val:.1f} SR {sr_val:.1f} Score {score_short} [{strength}]"
+        return "SHORT", score_short, (
+            f"RSI {rsi_val:.1f} SR {sr_val:.1f} Score {score_short} [{strength}] | {mkv_detail}"
+        )
 
-    return None, max(score_long, score_short), f"SEM_SINAL RSI {rsi_val:.1f} SR {sr_val:.1f}"
+    return None, max(score_long, score_short), (
+        f"SEM_SINAL RSI {rsi_val:.1f} SR {sr_val:.1f} | {mkv_detail}"
+    )
 
 
 def calc_sl_tp(direction: str, price: float, atr_val: float, mode: str,
