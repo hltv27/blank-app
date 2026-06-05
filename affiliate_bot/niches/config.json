@@ -1,0 +1,52 @@
+{
+  "niches": {
+    "tech_gadgets": {
+      "name": "Tech & Gadgets",
+      "emoji": "📱",
+      "keywords": ["smartphone accessories", "wireless earbuds", "smartwatch", "power bank", "led lights", "usb hub", "mechanical keyboard", "webcam", "gaming mouse", "phone case"],
+      "hashtags": ["#techgadgets", "#gadgets", "#tech", "#electronics", "#smarthome", "#gadgetlover", "#techreview", "#musthave", "#deals", "#technology"],
+      "posting_times": ["08:00", "12:00", "18:00", "21:00"],
+      "min_rating": 4.5,
+      "min_orders": 500
+    },
+    "home_smart": {
+      "name": "Casa & Vida Inteligente",
+      "emoji": "🏠",
+      "keywords": ["home organization", "storage solution", "smart plug", "robot vacuum", "air purifier", "led strip", "kitchen gadget", "bathroom organizer", "desk organizer", "plant pot"],
+      "hashtags": ["#homedecor", "#homeorganization", "#smarthome", "#homegadgets", "#interiordesign", "#homehacks", "#organization", "#homeaccessories", "#livingroom", "#kitchen"],
+      "posting_times": ["09:00", "13:00", "19:00", "22:00"],
+      "min_rating": 4.4,
+      "min_orders": 300
+    },
+    "fitness_health": {
+      "name": "Fitness & Saúde",
+      "emoji": "💪",
+      "keywords": ["resistance bands", "yoga mat", "fitness tracker", "jump rope", "massage gun", "protein shaker", "gym gloves", "ab wheel", "pull up bar", "foam roller"],
+      "hashtags": ["#fitness", "#workout", "#gym", "#health", "#fitnessmotivation", "#exercise", "#fitlife", "#bodybuilding", "#training", "#wellness"],
+      "posting_times": ["07:00", "12:00", "17:00", "20:00"],
+      "min_rating": 4.5,
+      "min_orders": 400
+    },
+    "fashion_accessories": {
+      "name": "Moda & Acessórios",
+      "emoji": "👗",
+      "keywords": ["watch", "sunglasses", "bracelet", "necklace", "backpack", "wallet", "belt", "ring", "earrings", "handbag"],
+      "hashtags": ["#fashion", "#style", "#accessories", "#jewelry", "#ootd", "#fashionista", "#trendy", "#outfit", "#accessories", "#styleinspo"],
+      "posting_times": ["10:00", "14:00", "19:00", "22:00"],
+      "min_rating": 4.3,
+      "min_orders": 200
+    }
+  },
+  "schedule": {
+    "posts_per_day_telegram": 8,
+    "posts_per_day_instagram": 4,
+    "posts_per_day_tiktok": 3,
+    "min_interval_minutes": 30
+  },
+  "content": {
+    "max_title_length": 80,
+    "max_description_length": 200,
+    "currency_symbol": "€",
+    "discount_highlight_threshold": 20
+  }
+}
