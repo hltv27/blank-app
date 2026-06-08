@@ -205,6 +205,74 @@ TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
 
 ---
 
+---
+
+## Affiliate Bot — Contexto
+
+Bot de afiliados AliExpress que publica automaticamente em Telegram, Instagram e Facebook.
+
+### Localização
+- Código: `/root/affiliate-bot/` no VPS `178.105.52.219`
+- Branch de desenvolvimento: `claude/affiliate-bot-automation-5rsFF`
+- Serviço systemd: `affiliatebot.service`
+- Ficheiro principal: `bot.py` → chama `affiliate_bot/scheduler.py`
+
+### Comandos úteis no VPS
+```bash
+systemctl status affiliatebot          # ver estado
+systemctl restart affiliatebot         # reiniciar
+journalctl -u affiliatebot -n 50 --no-pager  # ver logs
+cd /root/affiliate-bot && git pull origin claude/affiliate-bot-automation-5rsFF
+```
+
+### Plataformas activas
+| Plataforma | Posts/dia | Notas |
+|---|---|---|
+| Telegram | 8 | Canal @TopDealsGadgetss |
+| Instagram | 4 | Conta @hugo.deals — sessão em `/root/affiliate-bot/instagram_session.json` |
+| Facebook | 4 | Página "Top Deals Gadget" (ID: 1189959324190844) |
+
+### Configuração (.env em `/root/affiliate-bot/.env`)
+- `RAPIDAPI_KEY` — AliExpress DataHub (RapidAPI)
+- `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHANNEL_ID`
+- `INSTAGRAM_USERNAME` + `INSTAGRAM_PASSWORD`
+- `FACEBOOK_PAGE_ID=1189959324190844`
+- `FACEBOOK_PAGE_TOKEN` — **expira a 3 de Agosto de 2026** — renovar no Graph API Explorer
+
+### Como renovar o token Facebook (daqui a 60 dias)
+1. Ir a developers.facebook.com/tools/explorer
+2. Seleccionar app TopDealsBot
+3. Adicionar permissão `pages_manage_posts` e gerar token
+4. Chamar `me/accounts` para obter o Page Access Token
+5. No servidor: `sed -i 's/FACEBOOK_PAGE_TOKEN=.*/FACEBOOK_PAGE_TOKEN=NOVO_TOKEN/' /root/affiliate-bot/.env`
+6. `systemctl restart affiliatebot`
+
+### Como renovar a sessão Instagram (se expirar)
+1. No PC: abrir Chrome, fazer login em instagram.com
+2. F12 → Application → Cookies → copiar valor de `sessionid`
+3. Criar `ig_login.py` com `cl.login_by_sessionid("SESSIONID")` e correr
+4. `scp instagram_session.json root@178.105.52.219:/root/affiliate-bot/instagram_session.json`
+
+### Arquitectura
+```
+affiliate_bot/
+  config.py          — variáveis de ambiente
+  scheduler.py       — APScheduler, build_daily_schedule, run_post_cycle
+  database.py        — SQLite (produtos, posts, cache)
+  fetchers/
+    aliexpress.py    — RapidAPI DataHub, search + scoring
+  generators/
+    content.py       — Claude Haiku (opcional) ou fallback
+    image.py         — Pillow, card 1080x1080
+  publishers/
+    telegram.py      — Bot API
+    instagram.py     — instagrapi (session file)
+    facebook.py      — Graph API v19.0
+  niches/config.json — 4 nichos: tech, home, fitness, fashion
+```
+
+---
+
 ## Regras importantes que NÃO mudar
 
 1. `reduceOnly=true` não funciona nesta conta → usar sempre `closePosition=true`
