@@ -55,11 +55,11 @@ _SKIP = [
 ]
 
 _CONTENT_HINTS = re.compile(
-    r"/(\d{4,}|[a-z0-9-]{10,})/?$"
+    r"/(\d{2,}|[a-z0-9-]{5,})/?$"            # ID numérico (2+ dígitos) ou slug médio
     r"|/(?:poi|event|tour|lugar|local|artigo|noticia|posto|alojamento|restaurante"
-    r"|gastronomia|municipio|parish|agenda|percurso|rota|trail|hiking"
+    r"|gastronomia|municipio|parish|agenda|percurso|rota|trail|hiking|pages"
     r"|accommodation|restaurant|attraction|place|point-of-interest"
-    r"|ficha|detalhe|detail|item|page|post|entry)/",
+    r"|ficha|detalhe|detail|item|page|post|entry|news|product|service)/",
     re.I
 )
 
@@ -93,7 +93,10 @@ def _is_skip(url: str) -> bool:
 def _is_content_page(url: str) -> bool:
     path = urlparse(url).path
     depth = len([p for p in path.split("/") if p])
-    return depth >= 2 and bool(_CONTENT_HINTS.search(path))
+    # depth 1 só se tiver ID/slug; depth >= 2 sempre aceite
+    if depth == 0:
+        return False
+    return bool(_CONTENT_HINTS.search(path)) or depth >= 2
 
 
 def _get(url: str, retries: int = 3) -> str | None:
@@ -207,6 +210,11 @@ def _extract_data(url: str, html: str) -> dict:
         if not row.get("nome"):
             row["nome"] = row["h1"]
 
+    if not row.get("nome"):
+        h2 = soup.find("h2")
+        if h2:
+            row["nome"] = h2.get_text(" ", strip=True)
+
     title = soup.find("title")
     if title and not row.get("nome"):
         row["nome"] = title.get_text(strip=True).split("|")[0].strip()
@@ -313,11 +321,10 @@ def crawl_all() -> list[dict]:
 
         if _is_content_page(norm):
             row = _extract_data(norm, html)
-            if row.get("nome") or row.get("h1") or row.get("descricao"):
-                content_pages.append(row)
-                if len(content_pages) % 100 == 0:
-                    print(f"  [Items] {len(content_pages)} páginas de conteúdo extraídas")
-                    save_excel(content_pages, OUTPUT.replace(".xlsx", f"_parcial_{len(content_pages)}.xlsx"))
+            content_pages.append(row)
+            if len(content_pages) % 100 == 0:
+                print(f"  [Items] {len(content_pages)} páginas extraídas")
+                save_excel(content_pages, OUTPUT.replace(".xlsx", f"_parcial_{len(content_pages)}.xlsx"))
 
         soup = BeautifulSoup(html, "html.parser")
         for a in soup.find_all("a", href=True):
