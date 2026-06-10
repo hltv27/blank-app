@@ -84,6 +84,8 @@ def _is_content_page(url: str) -> bool:
 
 
 def _make_driver() -> webdriver.Chrome:
+    import os, shutil
+
     opts = Options()
     opts.add_argument("--headless")
     opts.add_argument("--no-sandbox")
@@ -95,25 +97,41 @@ def _make_driver() -> webdriver.Chrome:
         "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
     )
-    # Caminhos comuns do chromium no Termux e Linux
-    for path in [
+
+    # Localizar binário do chromium
+    chromium_candidates = [
         "/data/data/com.termux/files/usr/bin/chromium-browser",
         "/data/data/com.termux/files/usr/bin/chromium",
         "/usr/bin/chromium-browser",
         "/usr/bin/chromium",
         "/usr/bin/google-chrome",
-    ]:
-        try:
-            opts.binary_location = path
-            svc = Service()   # usa o chromedriver no PATH
-            driver = webdriver.Chrome(service=svc, options=opts)
-            print(f"[Browser] Chromium em {path}")
-            return driver
-        except Exception:
-            continue
-    # Último recurso: deixa o selenium encontrar sozinho
-    opts.binary_location = ""
-    return webdriver.Chrome(options=opts)
+        shutil.which("chromium-browser") or "",
+        shutil.which("chromium") or "",
+    ]
+    chromium_bin = next((p for p in chromium_candidates if p and os.path.exists(p)), None)
+    if chromium_bin:
+        opts.binary_location = chromium_bin
+        print(f"[Browser] Chromium: {chromium_bin}")
+
+    # Localizar chromedriver — OBRIGATÓRIO em Android/aarch64
+    # (selenium-manager não suporta esta plataforma)
+    driver_candidates = [
+        "/data/data/com.termux/files/usr/bin/chromedriver",
+        "/usr/bin/chromedriver",
+        "/usr/local/bin/chromedriver",
+        shutil.which("chromedriver") or "",
+    ]
+    driver_bin = next((p for p in driver_candidates if p and os.path.exists(p)), None)
+    if not driver_bin:
+        raise RuntimeError(
+            "chromedriver não encontrado.\n"
+            "Instala com: pkg install chromium\n"
+            "(o chromedriver vem incluído no mesmo pacote)"
+        )
+    print(f"[Browser] chromedriver: {driver_bin}")
+
+    svc = Service(executable_path=driver_bin)
+    return webdriver.Chrome(service=svc, options=opts)
 
 
 def _get_html(driver: webdriver.Chrome, url: str, wait: float = 1.5) -> str | None:
