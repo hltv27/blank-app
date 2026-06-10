@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Crawler — douroetamega.pt  (versão requests, sem Playwright)
-Duas fases — igual ao guidedbynature:
-  Fase 1: Descoberta — percorre todas as secções/categorias + paginação
-  Fase 2: Extracção  — visita cada página de item e extrai dados
+Crawler — douroetamega.pt  (requests, duas fases)
+Fase 1: BFS — segue todos os links internos e recolhe URLs de items
+Fase 2: Extracção — visita cada URL e extrai dados estruturados
+
+(As páginas de listagem são renderizadas por JS como no guidedbynature,
+por isso usamos BFS em vez de paginar categorias directamente.)
 
 Instalar:
     pip install cloudscraper openpyxl beautifulsoup4
-    (fallback: pip install requests openpyxl beautifulsoup4)
 
 Correr:
     python douroetamega_crawler_requests.py
@@ -26,7 +27,7 @@ try:
 except ImportError:
     import requests
     _session = requests.Session()
-    print("[HTTP] requests (sem cloudscraper)")
+    print("[HTTP] requests")
 
 _session.headers.update({
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -42,67 +43,73 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
-BASE_URL = "https://www.douroetamega.pt"
-OUTPUT   = "douroetamega_dados.xlsx"
-DELAY    = 0.8
-
-# Regex que identifica URLs de items (não listagens)
-# Padrões observados: /secao/slug-longo/, /pages/ID/, /sec/sub/slug/
-_ITEM_RE = re.compile(
-    r'href=["\']('
-    r'/[a-z][a-z0-9-]*/\d+/'                     # /section/123/
-    r'|/pages/\d+/'                               # /pages/730/
-    r'|/[a-z][a-z0-9-]*/[a-z0-9][a-z0-9-]{4,}/'  # /section/slug-com-5+chars/
-    r'|/[a-z][a-z0-9-]*/[a-z0-9-]+/[a-z0-9-]+/'  # /sec/sub/slug/
-    r')["\']',
-    re.I
-)
+BASE_URL  = "https://www.douroetamega.pt"
+OUTPUT    = "douroetamega_dados.xlsx"
+DELAY_BFS = 0.5   # delay entre páginas na fase de descoberta
+DELAY_EXT = 0.8   # delay entre páginas na fase de extracção
+MAX_BFS   = 15000  # limite de segurança BFS
 
 # Extensões/paths a ignorar
-_SKIP_EXT = (".pdf",".jpg",".jpeg",".png",".gif",".svg",".webp",
-             ".zip",".rar",".doc",".docx",".xls",".xlsx",
-             ".mp3",".mp4",".avi",".mov",".woff",".woff2",".css",".js")
+_SKIP_EXT  = (".pdf",".jpg",".jpeg",".png",".gif",".svg",".webp",
+              ".zip",".rar",".doc",".docx",".xls",".xlsx",
+              ".mp3",".mp4",".avi",".mov",".woff",".woff2",".css",".js",".ico")
 _SKIP_PATH = ("/wp-admin/","/wp-login","/feed/","/xmlrpc",
-              "/cart/","/checkout/","/my-account/",
-              "/search/","/tag/","/author/")
+              "/cart/","/checkout/","/my-account/","/search/","/tag/","/author/")
 
 
 def _is_skip(url: str) -> bool:
     low = url.lower()
     return (any(low.endswith(e) for e in _SKIP_EXT) or
             any(p in low for p in _SKIP_PATH) or
-            low.startswith("mailto:") or low.startswith("tel:") or
-            low.startswith("javascript:") or "#" in low)
-
-
-def _is_internal(url: str) -> bool:
-    try:
-        p = urlparse(url)
-        if not p.netloc:
-            return True
-        return p.netloc.replace("www.", "") == "douroetamega.pt"
-    except Exception:
-        return False
+            low.startswith(("mailto:","tel:","javascript:")) or
+            "#" in low)
 
 
 def _norm(url: str) -> str:
-    """Normaliza URL: remove fragment, garante trailing slash."""
+    """Normaliza URL: strip fragment, trailing slash, verifica domínio."""
     try:
         p = urlparse(url.split("#")[0])
     except Exception:
         return ""
     if p.scheme not in ("", "http", "https"):
         return ""
-    netloc = p.netloc or ""
-    if netloc and netloc.replace("www.", "") != "douroetamega.pt":
+    netloc = (p.netloc or "").replace("www.", "")
+    if netloc and netloc != "douroetamega.pt":
         return ""
     path = p.path or "/"
-    if "." in path.split("/")[-1]:   # ficheiro com extensão
+    # Ignora caminhos com extensão de ficheiro
+    last = path.split("/")[-1]
+    if "." in last and not last.startswith("."):
         return ""
     if not path.endswith("/"):
         path += "/"
-    qs = ("?" + p.query) if p.query else ""
+    # Preserva paginação (?page=N, ?p=N)
+    qs = ""
+    if p.query:
+        m = re.search(r"(?:page|p)=(\d+)", p.query)
+        if m and int(m.group(1)) > 1:
+            qs = f"?{p.query}"
     return f"{BASE_URL}{path}{qs}"
+
+
+def _is_content_page(url: str) -> bool:
+    """
+    Identifica páginas de item (não homepage nem secções de topo).
+    Profundidade >= 2 com pelo menos um segmento longo ou numérico.
+    Exemplos que devem passar:
+      /atualidade/agenda/evento/workshop-azulejo/   (depth 4)
+      /pages/730/                                   (depth 2, numérico)
+      /associacao/mensagem-do-presidente/           (depth 2, slug longo)
+    """
+    path = urlparse(url).path
+    parts = [p for p in path.split("/") if p]
+    if len(parts) < 2:
+        return False
+    # Pelo menos um segmento numérico ou slug com 5+ chars
+    return any(
+        p.isdigit() or len(p) >= 5
+        for p in parts
+    )
 
 
 def _get(url: str, retries: int = 3) -> str | None:
@@ -120,139 +127,55 @@ def _get(url: str, retries: int = 3) -> str | None:
     return None
 
 
-# ── FASE 1: Descoberta ────────────────────────────────────────────────────────
-
-def _discover_sections(html: str) -> list[str]:
-    """Extrai URLs de secções/categorias da homepage e da nav."""
-    soup = BeautifulSoup(html, "html.parser")
-    sections = []
-    seen = set()
-
-    # Nav principal, menus, rodapé
-    for a in soup.find_all("a", href=True):
-        href = a["href"].strip()
-        if not href or _is_skip(href):
-            continue
-        full = _norm(urljoin(BASE_URL, href))
-        if not full or full == BASE_URL + "/":
-            continue
-        path = urlparse(full).path
-        depth = len([p for p in path.split("/") if p])
-        # Secções de topo (profundidade 1) ou sub-categorias (profundidade 2)
-        if 1 <= depth <= 2 and full not in seen:
-            seen.add(full)
-            sections.append(full)
-
-    return sections
-
-
-def _paginate(section_url: str) -> list[str]:
-    """
-    Para uma secção/categoria, percorre todas as páginas de listagem
-    e recolhe URLs de items usando _ITEM_RE.
-    Suporta ?page=N, ?p=N, /page/N/.
-    """
-    found: set[str] = set()
-
-    for pg in range(1, 300):  # até 300 páginas por secção
-        if pg == 1:
-            url = section_url
-        else:
-            # Tenta os padrões de paginação mais comuns
-            url = section_url.rstrip("/") + f"/?page={pg}"
-
-        html = _get(url)
-        if not html:
-            break
-
-        before = len(found)
-        for m in _ITEM_RE.finditer(html):
-            item_path = m.group(1)
-            if _is_skip(item_path):
-                continue
-            full = _norm(BASE_URL + item_path)
-            if full:
-                found.add(full)
-
-        new_count = len(found) - before
-
-        # Também segue links "próximo / next / ›" explícitos
-        soup = BeautifulSoup(html, "html.parser")
-        next_found = False
-        for a in soup.find_all("a", href=True):
-            text = a.get_text(" ", strip=True).lower()
-            if any(t in text for t in ["próxima", "seguinte", "next", "›", "»", "mais"]):
-                href = _norm(urljoin(url, a["href"]))
-                if href and href != url:
-                    next_found = True
-                    break
-
-        if pg > 1 and new_count == 0 and not next_found:
-            break  # última página
-
-    return list(found)
-
+# ── FASE 1: BFS — Descoberta de URLs ─────────────────────────────────────────
 
 def discover_urls() -> list[str]:
     """
-    Fase 1 — Descobre todos os URLs de items do site.
-    1. Lê homepage → extrai secções
-    2. Para cada secção → pagina e extrai items
-    3. BFS de profundidade limitada para apanhar sub-secções
+    BFS completo: segue todos os links internos.
+    Recolhe apenas URLs que passam em _is_content_page().
+    As páginas de listagem são JS-rendered (sem links no HTML estático),
+    por isso o BFS parte da navegação que liga directamente aos items.
     """
-    print("[Fase 1] A descobrir secções a partir da homepage…")
-    html_home = _get(BASE_URL + "/")
-    if not html_home:
-        print("  [ERRO] Não conseguiu aceder à homepage.")
-        return []
+    queue   = deque([BASE_URL + "/"])
+    visited: set[str] = set()
+    content: set[str] = set()
+    nav_count = 0
 
-    sections = _discover_sections(html_home)
-    print(f"  {len(sections)} secções encontradas na nav")
+    print(f"  A iniciar BFS em {BASE_URL}")
 
-    # BFS para também explorar sub-secções (profundidade 2)
-    visited_sections: set[str] = {BASE_URL + "/"}
-    queue = deque(sections)
-    all_sections: list[str] = []
-
-    while queue:
-        sec = queue.popleft()
-        if sec in visited_sections:
+    while queue and nav_count < MAX_BFS:
+        url  = queue.popleft()
+        norm = _norm(url)
+        if not norm or norm in visited or _is_skip(norm):
             continue
-        visited_sections.add(sec)
-        all_sections.append(sec)
+        visited.add(norm)
+        nav_count += 1
 
-        # Explorar sub-secções desta secção
-        html = _get(sec)
+        if nav_count % 100 == 0 or nav_count <= 5:
+            print(f"  [BFS {nav_count:5}] {norm.replace(BASE_URL,'')}  |  items: {len(content)}")
+
+        html = _get(norm)
         if not html:
             continue
-        time.sleep(0.3)
-        sub = _discover_sections(html)
-        for s in sub:
-            if s not in visited_sections:
-                path = urlparse(s).path
-                depth = len([p for p in path.split("/") if p])
-                if depth <= 3:  # não vai fundo demais
-                    queue.append(s)
 
-    print(f"  {len(all_sections)} secções/sub-secções a percorrer\n")
+        if _is_content_page(norm):
+            content.add(norm)
 
-    # Para cada secção, paginar e recolher items
-    all_urls: set[str] = set()
-    for i, sec in enumerate(all_sections, 1):
-        items = _paginate(sec)
-        if items:
-            print(f"  [{i:3}/{len(all_sections)}] {sec.split(BASE_URL)[-1]}  →  {len(items)} items")
-            all_urls.update(items)
-        time.sleep(DELAY)
+        # Seguir todos os links internos
+        soup = BeautifulSoup(html, "html.parser")
+        for a in soup.find_all("a", href=True):
+            href = a["href"].strip()
+            if not href or _is_skip(href):
+                continue
+            full  = urljoin(norm, href)
+            norm2 = _norm(full)
+            if norm2 and norm2 not in visited:
+                queue.append(norm2)
 
-    # Também apanha items directamente ligados da homepage
-    for m in _ITEM_RE.finditer(html_home):
-        full = _norm(BASE_URL + m.group(1))
-        if full:
-            all_urls.add(full)
+        time.sleep(DELAY_BFS)
 
-    print(f"\n[Fase 1] {len(all_urls)} URLs únicos descobertos\n")
-    return sorted(all_urls)
+    print(f"\n  BFS: {nav_count} páginas visitadas | {len(content)} URLs de items")
+    return sorted(content)
 
 
 # ── FASE 2: Extracção ─────────────────────────────────────────────────────────
@@ -263,15 +186,16 @@ def extract_page(url: str, html: str) -> dict:
     row: dict = {"url": url}
 
     # Info do URL
-    parts = url.rstrip("/").split("/")
     path_parts = [p for p in urlparse(url).path.split("/") if p]
-    row["id"]        = parts[-1] if parts[-1].isdigit() else ""
-    row["slug"]      = parts[-1] if not parts[-1].isdigit() else (parts[-2] if len(parts) >= 2 else "")
-    row["secao"]     = path_parts[0] if path_parts else ""
-    row["categoria"] = path_parts[1] if len(path_parts) >= 2 else ""
-    row["profundidade"] = str(len(path_parts))
+    last       = path_parts[-1] if path_parts else ""
+    row["id"]          = last if last.isdigit() else ""
+    row["slug"]        = last if not last.isdigit() else (path_parts[-2] if len(path_parts) >= 2 else "")
+    row["secao"]       = path_parts[0] if path_parts else ""
+    row["categoria"]   = path_parts[1] if len(path_parts) >= 2 else ""
+    row["subcategoria"]= path_parts[2] if len(path_parts) >= 3 else ""
+    row["profundidade"]= str(len(path_parts))
 
-    # JSON-LD (mais fiável)
+    # JSON-LD (dados estruturados — mais fiáveis)
     for script in soup.find_all("script", type="application/ld+json"):
         try:
             data = json.loads(script.string or "")
@@ -315,7 +239,7 @@ def extract_page(url: str, html: str) -> dict:
             continue
         if prop == "og:title" and not row.get("nome"):
             row["nome"] = val
-        elif prop in ("og:description", "description") and not row.get("descricao"):
+        elif prop in ("og:description","description") and not row.get("descricao"):
             row["descricao"] = val
         elif prop == "og:image":
             row["og_image"] = val
@@ -325,7 +249,7 @@ def extract_page(url: str, html: str) -> dict:
             row["data_publicacao"] = val
         elif prop == "article:modified_time":
             row["data_modificacao"] = val
-        elif prop in ("keywords",):
+        elif prop == "keywords":
             row["keywords"] = val
 
     # H1 → nome
@@ -346,45 +270,40 @@ def extract_page(url: str, html: str) -> dict:
     if title and not row.get("nome"):
         row["nome"] = title.get_text(strip=True).split("|")[0].split("–")[0].strip()
 
-    # Pares label → valor  (dl/dt/dd, tabelas th/td, campos de ficha)
+    # Pares label → valor  (dl/dt/dd, tabelas, campos de ficha)
     pares: list[tuple] = []
     for dl in soup.find_all("dl"):
-        dts = dl.find_all("dt")
-        dds = dl.find_all("dd")
-        for dt, dd in zip(dts, dds):
+        for dt, dd in zip(dl.find_all("dt"), dl.find_all("dd")):
             t1 = dt.get_text(" ", strip=True)
             t2 = dd.get_text(" ", strip=True)
             if t1 and t2 and t1 != t2:
                 pares.append((t1, t2))
     for tr in soup.find_all("tr"):
-        ths = tr.find_all("th")
-        tds = tr.find_all("td")
-        for th, td in zip(ths, tds):
+        for th, td in zip(tr.find_all("th"), tr.find_all("td")):
             t1 = th.get_text(" ", strip=True)
             t2 = td.get_text(" ", strip=True)
             if t1 and t2 and t1 != t2:
                 pares.append((t1, t2))
-    # Elementos com classes de campo
     for el in soup.find_all(class_=re.compile(
             r"field|detail|info|meta|attr|prop|label|ficha|dado", re.I)):
-        lbl = el.find(["label","strong","b","dt","th","span","h4","h5"],
-                      class_=re.compile(r"label|key|title|name|campo", re.I))
-        val_el = el.find(["span","p","div","dd","td"],
-                         class_=re.compile(r"value|content|data|text|body|valor", re.I))
-        if lbl and val_el:
+        lbl   = el.find(["label","strong","b","dt","th","span","h4","h5"],
+                        class_=re.compile(r"label|key|title|name|campo", re.I))
+        val_e = el.find(["span","p","div","dd","td"],
+                        class_=re.compile(r"value|content|data|text|body|valor", re.I))
+        if lbl and val_e:
             t1 = lbl.get_text(" ", strip=True)
-            t2 = val_el.get_text(" ", strip=True)
+            t2 = val_e.get_text(" ", strip=True)
             if t1 and t2 and t1 != t2:
                 pares.append((t1, t2))
 
-    # Detectar campos comuns por label normalizado
+    # Mapeamento de sinónimos de labels para colunas fixas
     _label_map = {
         "municipio": ["município","municipio","concelho"],
         "morada":    ["morada","endereço","address","localização"],
-        "telefone":  ["telefone","telef.","tel","contacto telefónico"],
-        "email":     ["e-mail","email","correio electrónico"],
-        "horario":   ["horário","horario","horas de funcionamento","horários"],
-        "website":   ["website","site","página web","url"],
+        "telefone":  ["telefone","telef","tel ","contacto telefónico"],
+        "email":     ["e-mail","email","correio"],
+        "horario":   ["horário","horario","horas de funcionamento"],
+        "website":   ["website","site","página web"],
         "preco":     ["preço","preço/pessoa","entrada","admissão","bilhete"],
         "latitude":  ["latitude","lat"],
         "longitude": ["longitude","lon","lng"],
@@ -407,15 +326,15 @@ def extract_page(url: str, html: str) -> dict:
     imgs = []
     for img in soup.find_all("img", src=True):
         src = img["src"]
-        if any(x in src.lower() for x in ["/upload", "/media", "/photo", "/image",
-                                            "/content", "/assets", "/files", "/img",
-                                            "/fotos", "/galeria", "/gallery"]):
+        if any(x in src.lower() for x in ["/upload","/media","/photo","/image",
+                                            "/content","/assets","/files","/img",
+                                            "/fotos","/galeria","/gallery"]):
             full = urljoin(BASE_URL, src)
             if full not in imgs:
                 imgs.append(full)
     row["imagens"] = " | ".join(imgs[:10])
 
-    # Descrição longa (fallback do corpo da página)
+    # Descrição longa (fallback corpo da página)
     if not row.get("descricao"):
         for tag in soup.find_all(["p","div"],
                                   class_=re.compile(
@@ -446,11 +365,11 @@ def extract_page(url: str, html: str) -> dict:
                 sociais.append(href)
     row["redes_sociais"] = " | ".join(sociais)
 
-    # Município (regex no texto)
-    raw = soup.get_text(" ")
+    # Município via regex no texto corrido
+    raw_text = soup.get_text(" ")
     for pat in [r"munic[íi]pio[:\s]+([A-ZÀ-Úa-zà-ú][^\n<.,]{2,40})",
                 r"concelho[:\s]+([A-ZÀ-Úa-zà-ú][^\n<.,]{2,40})"]:
-        m = re.search(pat, raw, re.I)
+        m = re.search(pat, raw_text, re.I)
         if m and not row.get("municipio"):
             row["municipio"] = m.group(1).strip()
 
@@ -460,7 +379,7 @@ def extract_page(url: str, html: str) -> dict:
 # ── Excel ─────────────────────────────────────────────────────────────────────
 
 _COLS_PRIORITY = [
-    "id", "nome", "h1", "secao", "categoria", "slug", "tipo",
+    "id", "nome", "h1", "secao", "categoria", "subcategoria", "slug", "tipo",
     "descricao", "municipio", "morada", "localidade", "regiao", "pais",
     "latitude", "longitude", "telefone", "email", "website",
     "preco", "horario",
@@ -552,20 +471,20 @@ def save_excel(dados, output=OUTPUT):
 
 def main():
     print("=" * 60)
-    print("  douroetamega.pt — Crawler v2 (requests, duas fases)")
+    print("  douroetamega.pt — Crawler v3 (BFS + extracção)")
     print("=" * 60)
 
-    # ── Fase 1: descoberta ────────────────────────────────────────────────────
-    print("\n[Fase 1] A descobrir todos os URLs de items…\n")
+    # ── Fase 1: BFS ──────────────────────────────────────────────────────────
+    print("\n[Fase 1] BFS — a descobrir todos os URLs de items…\n")
     urls = discover_urls()
 
     if not urls:
-        print("[Aviso] Nenhum URL descoberto. Verifica a ligação à internet.")
+        print("[Aviso] Nenhum URL descoberto.")
         return
 
-    # ── Fase 2: extracção ─────────────────────────────────────────────────────
+    # ── Fase 2: Extracção ────────────────────────────────────────────────────
     total = len(urls)
-    print(f"[Fase 2] A extrair dados de {total} items…\n")
+    print(f"\n[Fase 2] A extrair dados de {total} items…\n")
     dados = []
 
     for i, url in enumerate(urls, 1):
@@ -578,12 +497,12 @@ def main():
             row = extract_page(url, html)
             dados.append(row)
 
-        # Guarda parcialmente a cada 200 items
-        if i % 200 == 0 and dados:
+        # Guarda parcialmente a cada 300 items
+        if i % 300 == 0 and dados:
             save_excel(dados, OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"))
-            print(f"  [Parcial] {i} guardado")
+            print(f"  [Parcial] {i} items guardados")
 
-        time.sleep(DELAY)
+        time.sleep(DELAY_EXT)
 
     save_excel(dados)
 
