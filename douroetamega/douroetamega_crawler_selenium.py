@@ -268,7 +268,12 @@ def discover_urls(driver: webdriver.Chrome) -> list[str]:
             short = norm.replace(TURISMO_URL, "[T]").replace(ABOBOREIRA_URL, "[A]")
             print(f"  [BFS {nav_count:5}] {short[:70]}  |  items: {len(items)}")
 
-        html = _get_html_bfs(driver, norm)
+        # Páginas de listagem precisam de scroll para activar lazy loading.
+        # Páginas de item não precisam — são mais rápidas.
+        if _is_item_page(norm):
+            html = _get_html(driver, norm, wait=1.5)
+        else:
+            html = _get_html_bfs(driver, norm)
         if not html:
             continue
 
