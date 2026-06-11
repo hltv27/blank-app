@@ -226,6 +226,23 @@ def _get_html(driver: webdriver.Chrome, url: str, wait: float = 1.5) -> str | No
         return None
 
 
+def _get_html_bfs(driver: webdriver.Chrome, url: str) -> str | None:
+    """Versão para BFS: espera mais e faz scroll para activar lazy loading."""
+    try:
+        driver.get(url)
+        time.sleep(2.5)
+        # Scroll até ao fundo para activar lazy loading de items
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+        time.sleep(1.5)
+        # Segundo scroll para carregar mais items (se houver paginação por scroll)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+        time.sleep(1.0)
+        return driver.page_source
+    except (TimeoutException, WebDriverException) as e:
+        print(f"  [ERRO] {url}: {e}")
+        return None
+
+
 # ── FASE 1: BFS ───────────────────────────────────────────────────────────────
 
 def discover_urls(driver: webdriver.Chrome) -> list[str]:
@@ -251,7 +268,7 @@ def discover_urls(driver: webdriver.Chrome) -> list[str]:
             short = norm.replace(TURISMO_URL, "[T]").replace(ABOBOREIRA_URL, "[A]")
             print(f"  [BFS {nav_count:5}] {short[:70]}  |  items: {len(items)}")
 
-        html = _get_html(driver, norm, wait=1.5)
+        html = _get_html_bfs(driver, norm)
         if not html:
             continue
 
@@ -260,6 +277,7 @@ def discover_urls(driver: webdriver.Chrome) -> list[str]:
 
         soup = BeautifulSoup(html, "html.parser")
 
+        new_links = 0
         for a in soup.find_all("a", href=True):
             href = a["href"].strip()
             if not href or _is_skip(href):
@@ -268,6 +286,7 @@ def discover_urls(driver: webdriver.Chrome) -> list[str]:
             norm2 = _norm(full, base_for_relative=norm)
             if norm2 and norm2 not in visited:
                 queue.append(norm2)
+                new_links += 1
 
         for el in soup.find_all(attrs={"data-href": True}):
             href = el["data-href"].strip()
@@ -275,8 +294,15 @@ def discover_urls(driver: webdriver.Chrome) -> list[str]:
             norm2 = _norm(full, base_for_relative=norm)
             if norm2 and norm2 not in visited and not _is_skip(norm2):
                 queue.append(norm2)
+                new_links += 1
 
-        time.sleep(DELAY)
+        # Debug: nas primeiras 10 páginas mostra quantos links internos encontrou
+        if nav_count <= 10:
+            item_links = [urljoin(norm, a["href"]) for a in soup.find_all("a", href=True)
+                          if _is_item_page(a["href"])]
+            print(f"    → {new_links} novos links | {len(item_links)} links de item")
+            for lnk in item_links[:3]:
+                print(f"       {lnk}")
 
     print(f"\n  BFS: {nav_count} páginas | {len(items)} items")
     return sorted(items)
