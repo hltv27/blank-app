@@ -451,56 +451,84 @@ def save_excel(dados, output=OUTPUT):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+URLS_FILE = "douroetamega_urls.txt"
+
+
+def _phase2_requests(urls: list[str]) -> list[dict]:
+    """Fase 2 com requests — sem browser, sem crashes de RAM."""
+    try:
+        import cloudscraper
+        sess = cloudscraper.create_scraper()
+    except ImportError:
+        import requests
+        sess = requests.Session()
+    sess.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+        "Accept-Language": "pt-PT,pt;q=0.9",
+    })
+
+    total = len(urls)
+    dados = []
+    for i, url in enumerate(urls, 1):
+        if i <= 10 or i % 50 == 0:
+            slug = url.rstrip("/").split("/")[-1] or url.rstrip("/").split("/")[-2]
+            print(f"  [{i:5}/{total}] {slug}")
+        try:
+            r = sess.get(url, timeout=20)
+            if r.ok:
+                row = extract_page(url, r.text)
+                dados.append(row)
+        except Exception as e:
+            print(f"  [ERRO] {url}: {e}")
+
+        if i % 300 == 0 and dados:
+            save_excel(dados, OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"))
+            print(f"  [Parcial] {i} items guardados")
+
+        time.sleep(0.5)
+    return dados
+
+
 def main():
+    import os
     print("=" * 60)
-    print("  douroetamega.pt — Crawler (Selenium)")
+    print("  douroetamega.pt — Crawler (Selenium BFS + requests extracção)")
     print("=" * 60)
 
-    print("\n[Browser] A iniciar Chromium…")
-    driver = _make_driver()
+    # ── Fase 1: BFS com browser (ou reutiliza URLs guardados) ────────────────
+    if os.path.exists(URLS_FILE):
+        with open(URLS_FILE) as f:
+            urls = [l.strip() for l in f if l.strip()]
+        print(f"\n[Fase 1] Reutilizando {len(urls)} URLs de {URLS_FILE} (apaga o ficheiro para re-fazer o BFS)\n")
+    else:
+        print("\n[Browser] A iniciar Chromium para BFS…")
+        driver = _make_driver()
+        try:
+            driver.get(BASE_URL + "/")
+            time.sleep(2)
+            print(f"[Session] {BASE_URL} acessível\n")
+        except Exception as e:
+            print(f"[Session] Aviso: {e}\n")
 
-    # Warm-up
-    try:
-        driver.get(BASE_URL + "/")
-        time.sleep(2)
-        print(f"[Session] {BASE_URL} acessível\n")
-    except Exception as e:
-        print(f"[Session] Aviso: {e}\n")
-
-    try:
-        # ── Fase 1 ───────────────────────────────────────────────────────────
         print("[Fase 1] BFS — a descobrir todos os URLs…\n")
-        urls = discover_urls(driver)
+        try:
+            urls = discover_urls(driver)
+        finally:
+            driver.quit()
 
         if not urls:
             print("[Aviso] Nenhum URL descoberto.")
-            driver.quit()
             return
 
-        # ── Fase 2 ───────────────────────────────────────────────────────────
-        total = len(urls)
-        print(f"\n[Fase 2] A extrair dados de {total} items…\n")
-        dados = []
+        # Guarda URLs para não repetir o BFS se interrompido
+        with open(URLS_FILE, "w") as f:
+            f.write("\n".join(urls))
+        print(f"  URLs guardados em {URLS_FILE}\n")
 
-        for i, url in enumerate(urls, 1):
-            if i <= 10 or i % 50 == 0:
-                slug = url.rstrip("/").split("/")[-1] or url.rstrip("/").split("/")[-2]
-                print(f"  [{i:5}/{total}] {slug}")
-
-            html = _get_html(driver, url, wait=1.0)
-            if html:
-                row = extract_page(url, html)
-                dados.append(row)
-
-            if i % 300 == 0 and dados:
-                save_excel(dados, OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"))
-                print(f"  [Parcial] {i} items guardados")
-
-            time.sleep(DELAY)
-
-    finally:
-        driver.quit()
-
+    # ── Fase 2: Extracção com requests (sem browser → sem crashes) ───────────
+    print(f"[Fase 2] A extrair dados de {len(urls)} items com requests…\n")
+    dados = _phase2_requests(urls)
     save_excel(dados)
 
 
