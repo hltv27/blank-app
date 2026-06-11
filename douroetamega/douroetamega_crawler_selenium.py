@@ -40,7 +40,10 @@ _SKIP_EXT  = (".pdf",".jpg",".jpeg",".png",".gif",".svg",".webp",
               ".zip",".rar",".doc",".docx",".xls",".xlsx",
               ".mp3",".mp4",".avi",".mov",".woff",".woff2",".css",".js",".ico")
 _SKIP_PATH = ("/wp-admin/","/wp-login","/feed/","/xmlrpc",
-              "/cart/","/checkout/","/my-account/")
+              "/cart/","/checkout/","/my-account/",
+              "/admin/","/manager/","/cms/","/backend/",
+              "/login","/logout","/register","/api/",
+              "/search/","/tag/","/author/")
 
 
 def _is_skip(url: str) -> bool:
@@ -238,6 +241,15 @@ def extract_page(url: str, html: str) -> dict:
             row["data_inicio"]   = str(data.get("startDate", ""))
             row["data_fim"]      = str(data.get("endDate", ""))
             row["local_evento"]  = str(data.get("location", ""))
+            # Campos de percurso/trail
+            for src_key, dst_key in [
+                ("distance","distancia"), ("length","distancia"),
+                ("elevation","elevacao"), ("ascent","elevacao"),
+                ("difficulty","dificuldade"),
+                ("duration","duracao"), ("estimatedTime","duracao"),
+            ]:
+                if data.get(src_key) and not row.get(dst_key):
+                    row[dst_key] = str(data[src_key])
             break
         except Exception:
             pass
@@ -292,15 +304,21 @@ def extract_page(url: str, html: str) -> dict:
                 pares.append((t1, t2))
 
     _label_map = {
-        "municipio": ["município","municipio","concelho"],
-        "morada":    ["morada","endereço","address","localização"],
-        "telefone":  ["telefone","telef","tel ","contacto"],
-        "email":     ["e-mail","email","correio"],
-        "horario":   ["horário","horario","horas"],
-        "website":   ["website","site","página web"],
-        "preco":     ["preço","entrada","admissão","bilhete"],
-        "latitude":  ["latitude","lat"],
-        "longitude": ["longitude","lon","lng"],
+        "municipio":   ["município","municipio","concelho"],
+        "morada":      ["morada","endereço","address","localização"],
+        "telefone":    ["telefone","telef","tel ","contacto"],
+        "email":       ["e-mail","email","correio"],
+        "horario":     ["horário","horario","horas","schedule"],
+        "website":     ["website","site","página web"],
+        "preco":       ["preço","entrada","admissão","bilhete"],
+        "latitude":    ["latitude","lat"],
+        "longitude":   ["longitude","lon","lng"],
+        "distancia":   ["distância","distancia","distance","comprimento","length","km","percurso"],
+        "elevacao":    ["elevação","elevacao","desnível","desnivel","altitude","cota","asc","desc"],
+        "dificuldade": ["dificuldade","difficulty","nível","nivel","grau"],
+        "duracao":     ["duração","duracao","duration","tempo","time"],
+        "acessos":     ["acesso","acessos","como chegar","chegada"],
+        "classificacao":["classificação","classificacao","rating","categoria de percurso"],
     }
     for lbl_raw, val_raw in pares:
         lbl_norm = lbl_raw.lower().strip()
@@ -334,10 +352,22 @@ def extract_page(url: str, html: str) -> dict:
     row["imagens"] = " | ".join(imgs[:15])
 
     if not row.get("descricao"):
-        for tag in soup.find_all(["p","div"],
+        # Tenta primeiro parágrafos dentro de containers de conteúdo
+        for tag in soup.find_all(["div","article","section"],
                                   class_=re.compile(
                                       r"desc|content|body|text|intro|summary"
-                                      r"|about|corpo|conteudo|article", re.I)):
+                                      r"|about|corpo|conteudo|article|detail"
+                                      r"|ficha|info|main", re.I)):
+            txt = tag.get_text(" ", strip=True)
+            if len(txt) > 120:
+                row["descricao"] = txt[:3000]
+                break
+    if not row.get("descricao"):
+        # Fallback: primeiro <p> longo fora de nav/header/footer
+        for tag in soup.find_all("p"):
+            parent = tag.parent
+            if parent and parent.name in ("nav","header","footer"):
+                continue
             txt = tag.get_text(" ", strip=True)
             if len(txt) > 80:
                 row["descricao"] = txt[:3000]
@@ -368,6 +398,28 @@ def extract_page(url: str, html: str) -> dict:
         if m and not row.get("municipio"):
             row["municipio"] = m.group(1).strip()
 
+    # Padrões de percurso — distância e desnível no texto plano
+    if not row.get("distancia"):
+        m = re.search(r"(\d+(?:[.,]\d+)?\s*km)", raw_text, re.I)
+        if m:
+            row["distancia"] = m.group(1).strip()
+    if not row.get("elevacao"):
+        m = re.search(r"desnível\s*[:\s]+(\d+\s*m)", raw_text, re.I)
+        if not m:
+            m = re.search(r"(\d+)\s*m\s*(?:de\s+)?desnível", raw_text, re.I)
+        if m:
+            row["elevacao"] = m.group(1).strip() + " m"
+    if not row.get("dificuldade"):
+        m = re.search(r"dificuldade[:\s]+([^\n.,;]{3,30})", raw_text, re.I)
+        if m:
+            row["dificuldade"] = m.group(1).strip()
+    if not row.get("duracao"):
+        m = re.search(r"dura[çc][aã]o[:\s]+([\dhHmM: ]+)", raw_text, re.I)
+        if not m:
+            m = re.search(r"(\d+h\d*(?:min)?|\d+\s*hora[s]?)", raw_text, re.I)
+        if m:
+            row["duracao"] = m.group(1).strip()
+
     return row
 
 
@@ -378,6 +430,7 @@ _COLS_PRIORITY = [
     "descricao", "municipio", "morada", "localidade", "regiao", "pais",
     "latitude", "longitude", "telefone", "email", "website",
     "preco", "horario",
+    "distancia", "elevacao", "dificuldade", "duracao", "classificacao", "acessos",
     "data_inicio", "data_fim", "local_evento",
     "data_publicacao", "data_modificacao", "keywords",
     "imagem_jsonld", "og_image", "og_tipo",
@@ -508,8 +561,12 @@ def main():
     # ── Fase 1: BFS com browser (ou reutiliza URLs guardados) ────────────────
     if os.path.exists(URLS_FILE):
         with open(URLS_FILE) as f:
-            urls = [l.strip() for l in f if l.strip()]
-        print(f"\n[Fase 1] Reutilizando {len(urls)} URLs de {URLS_FILE} (apaga o ficheiro para re-fazer o BFS)\n")
+            raw = [l.strip() for l in f if l.strip()]
+        urls = [u for u in raw if not _is_skip(u)]
+        skipped = len(raw) - len(urls)
+        print(f"\n[Fase 1] Reutilizando {len(urls)} URLs de {URLS_FILE}"
+              f"{f' ({skipped} filtrados)' if skipped else ''}"
+              f"  (apaga o ficheiro para re-fazer o BFS)\n")
     else:
         print("\n[Browser] A iniciar Chromium para BFS…")
         driver = _make_driver()
