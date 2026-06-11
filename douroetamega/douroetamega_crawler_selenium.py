@@ -530,10 +530,13 @@ def main():
         print(f"  URLs guardados em {URLS_FILE}\n")
 
     # ── Fase 2: Extracção com Selenium em batches de 50 ─────────────────────
-    # Reinicia o browser a cada 50 páginas para libertar RAM e evitar crashes
     print(f"[Fase 2] A extrair dados de {len(urls)} items (Selenium, batches de 50)…\n")
     dados = _phase2_selenium(urls, batch_size=50)
     save_excel(dados)
+
+    # ── Fase 3: Download de fotos ─────────────────────────────────────────────
+    from douroetamega_crawler_requests import download_fotos
+    download_fotos(dados)
 
 
 if __name__ == "__main__":
