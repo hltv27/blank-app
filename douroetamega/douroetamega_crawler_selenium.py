@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Crawler — turismo.douroetamega.pt  (Selenium + Chromium)
-O conteúdo (POIs, percursos, alojamento, restaurantes, eventos) está no
-subdomínio turismo.douroetamega.pt — NÃO em www.douroetamega.pt.
+Crawler — turismo.douroetamega.pt + aboboreira.douroetamega.pt  (Selenium)
+O conteúdo turístico está em dois subdomínios:
+  • turismo.douroetamega.pt  — POIs, alojamento, restaurantes, percursos, eventos
+  • aboboreira.douroetamega.pt — Serra da Aboboreira (trilhos, megalíticos, fauna)
 
 Instalar:
     pkg install chromium          ← instala chromium + chromedriver
@@ -29,55 +30,72 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import TimeoutException, WebDriverException
 
-# ── Domínio e configuração ────────────────────────────────────────────────────
+# ── Domínios e configuração ───────────────────────────────────────────────────
 
-BASE_URL  = "https://turismo.douroetamega.pt"
+TURISMO_URL    = "https://turismo.douroetamega.pt"
+ABOBOREIRA_URL = "https://aboboreira.douroetamega.pt"
+BASE_URL       = TURISMO_URL   # usado apenas como fallback em _norm
+
 OUTPUT    = "douroetamega_dados.xlsx"
 DELAY     = 0.8
 MAX_PAGES = 20000
 
+# Subdomínios aceites pelo crawler
+_VALID_HOSTS = {
+    "turismo.douroetamega.pt",
+    "aboboreira.douroetamega.pt",
+}
+
 # Pontos de entrada: todas as categorias e sub-categorias conhecidas.
 # O BFS segue os links a partir daqui para descobrir todos os items.
 CATEGORIAS = [
-    "/",
-    "/o-que-ver",
-    "/o-que-ver/patrimonio",
-    "/o-que-ver/postos-de-turismo",
-    "/o-que-ver/miradouros-e-vistas",
-    "/o-que-ver/espacos-verdes",
-    "/o-que-fazer",
-    "/o-que-fazer/cultura-e-arte",
-    "/o-que-fazer/museus",
-    "/o-que-fazer/artesanato",
-    "/o-que-fazer/comercializacao",
-    "/o-que-fazer/animacao-cultural-recreativa-e-de-lazer",
-    "/o-que-fazer/agentes-culturais",
-    "/o-que-fazer/congressos-e-exposicoes",
-    "/o-que-fazer/desporto-e-lazer",
-    "/o-que-fazer/empresas-de-animacao-turistica",
-    "/o-que-fazer/aldeias-de-portugal",
-    "/o-que-fazer/rota-do-romanico",
-    "/o-que-fazer/rotas-e-percursos",
-    "/o-que-fazer/rotas-e-percursos/percursos-pedestres",
-    "/o-que-fazer/rotas-e-percursos/btt",
-    "/o-que-fazer/rotas-e-percursos/roteiros-baixo-tamega",
-    "/o-que-fazer/rotas-e-percursos/outros-roteiros",
-    "/o-que-fazer/rotas-e-percursos/serra-da-aboboreira",
-    "/o-que-fazer/escapadinhas",
-    "/o-que-fazer/verde-sentido",
-    "/o-que-fazer/caves",
-    "/onde-dormir",
-    "/onde-dormir/turismo-rural",
-    "/onde-dormir/turismo-de-habitacao",
-    "/onde-dormir/alojamento-local",
-    "/onde-dormir/albergues-abrigos-e-pousadas",
-    "/onde-dormir/parques-de-campismo",
-    "/onde-dormir/hoteis",
-    "/onde-comer",
-    "/agenda",
-    "/agenda/eventos",
-    "/rss-feed",
-    "/pages/856",   # Aldeias de Portugal
+    # ── turismo.douroetamega.pt ──────────────────────────────────────────
+    TURISMO_URL + "/",
+    TURISMO_URL + "/o-que-ver",
+    TURISMO_URL + "/o-que-ver/patrimonio",
+    TURISMO_URL + "/o-que-ver/postos-de-turismo",
+    TURISMO_URL + "/o-que-ver/miradouros-e-vistas",
+    TURISMO_URL + "/o-que-ver/espacos-verdes",
+    TURISMO_URL + "/o-que-fazer",
+    TURISMO_URL + "/o-que-fazer/cultura-e-arte",
+    TURISMO_URL + "/o-que-fazer/museus",
+    TURISMO_URL + "/o-que-fazer/artesanato",
+    TURISMO_URL + "/o-que-fazer/comercializacao",
+    TURISMO_URL + "/o-que-fazer/animacao-cultural-recreativa-e-de-lazer",
+    TURISMO_URL + "/o-que-fazer/agentes-culturais",
+    TURISMO_URL + "/o-que-fazer/congressos-e-exposicoes",
+    TURISMO_URL + "/o-que-fazer/desporto-e-lazer",
+    TURISMO_URL + "/o-que-fazer/empresas-de-animacao-turistica",
+    TURISMO_URL + "/o-que-fazer/aldeias-de-portugal",
+    TURISMO_URL + "/o-que-fazer/rota-do-romanico",
+    TURISMO_URL + "/o-que-fazer/rotas-e-percursos",
+    TURISMO_URL + "/o-que-fazer/rotas-e-percursos/percursos-pedestres",
+    TURISMO_URL + "/o-que-fazer/rotas-e-percursos/btt",
+    TURISMO_URL + "/o-que-fazer/rotas-e-percursos/roteiros-baixo-tamega",
+    TURISMO_URL + "/o-que-fazer/rotas-e-percursos/outros-roteiros",
+    TURISMO_URL + "/o-que-fazer/rotas-e-percursos/serra-da-aboboreira",
+    TURISMO_URL + "/o-que-fazer/escapadinhas",
+    TURISMO_URL + "/o-que-fazer/verde-sentido",
+    TURISMO_URL + "/o-que-fazer/caves",
+    TURISMO_URL + "/onde-dormir",
+    TURISMO_URL + "/onde-dormir/turismo-rural",
+    TURISMO_URL + "/onde-dormir/turismo-de-habitacao",
+    TURISMO_URL + "/onde-dormir/alojamento-local",
+    TURISMO_URL + "/onde-dormir/albergues-abrigos-e-pousadas",
+    TURISMO_URL + "/onde-dormir/parques-de-campismo",
+    TURISMO_URL + "/onde-dormir/hoteis",
+    TURISMO_URL + "/onde-comer",
+    TURISMO_URL + "/agenda",
+    TURISMO_URL + "/agenda/eventos",
+    TURISMO_URL + "/rss-feed",
+    TURISMO_URL + "/pages/856",   # Aldeias de Portugal
+    # ── aboboreira.douroetamega.pt ──────────────────────────────────────
+    ABOBOREIRA_URL + "/",
+    ABOBOREIRA_URL + "/serra-da-aboboreira",
+    ABOBOREIRA_URL + "/rotas-e-percursos",
+    ABOBOREIRA_URL + "/paisagem-protegida-regional",
+    ABOBOREIRA_URL + "/galeria",
+    ABOBOREIRA_URL + "/pages/1008",   # lista de percursos/POIs
 ]
 
 # Extensões/paths a ignorar no BFS
@@ -108,9 +126,9 @@ def _is_skip(url: str) -> bool:
             "#" in low)
 
 
-def _norm(url: str) -> str:
-    """Normaliza URL para o domínio turismo.douroetamega.pt.
-    Preserva geo_article_id nos query params (páginas antigas do CMS).
+def _norm(url: str, base_for_relative: str = TURISMO_URL) -> str:
+    """Normaliza URL preservando o subdomínio (turismo ou aboboreira).
+    Preserva geo_article_id e page= nos query params.
     """
     try:
         p = urlparse(url.split("#")[0])
@@ -119,8 +137,11 @@ def _norm(url: str) -> str:
     if p.scheme not in ("", "http", "https"):
         return ""
     netloc = (p.netloc or "").lower()
-    # Aceita qualquer subdomínio de douroetamega.pt mas normaliza para turismo
-    if netloc and "douroetamega.pt" not in netloc:
+    # URLs relativas: usa o domínio da página actual
+    if not netloc:
+        netloc = urlparse(base_for_relative).netloc.lower()
+    # Aceita apenas os dois subdomínios conhecidos
+    if netloc not in _VALID_HOSTS:
         return ""
     path = p.path or "/"
     last = path.split("/")[-1]
@@ -133,12 +154,15 @@ def _norm(url: str) -> str:
     qs = ""
     if p.query:
         if "geo_article_id=" in p.query:
-            qs = f"?{p.query}"
+            # Preserva só o geo_article_id, ignora parâmetros de paginação extra
+            m = re.search(r"geo_article_id=(\d+)", p.query)
+            if m:
+                qs = f"?geo_article_id={m.group(1)}"
         else:
             m = re.search(r"(?:page|p)=(\d+)", p.query)
             if m and int(m.group(1)) > 1:
-                qs = f"?{p.query}"
-    return f"{BASE_URL}{path}{qs}"
+                qs = f"?page={m.group(1)}"
+    return f"https://{netloc}{path}{qs}"
 
 
 def _is_item_page(url: str) -> bool:
@@ -205,63 +229,56 @@ def _get_html(driver: webdriver.Chrome, url: str, wait: float = 1.5) -> str | No
 # ── FASE 1: BFS ───────────────────────────────────────────────────────────────
 
 def discover_urls(driver: webdriver.Chrome) -> list[str]:
-    """BFS a partir de todas as CATEGORIAS conhecidas.
+    """BFS a partir de todas as CATEGORIAS conhecidas (turismo + aboboreira).
     Segue links internos e identifica páginas de items pelo padrão geo_artigo/percurso.
     """
-    # Inicializa queue com todas as categorias conhecidas
-    queue: deque[str] = deque()
-    for cat in CATEGORIAS:
-        queue.append(BASE_URL + cat)
-
+    queue: deque[str] = deque(CATEGORIAS)
     visited: set[str] = set()
     items:   set[str] = set()
     nav_count = 0
 
-    print(f"  BFS a partir de {len(CATEGORIAS)} categorias em {BASE_URL}")
+    print(f"  BFS a partir de {len(CATEGORIAS)} categorias ({TURISMO_URL} + {ABOBOREIRA_URL})")
 
     while queue and nav_count < MAX_PAGES:
         url  = queue.popleft()
-        norm = _norm(url)
+        norm = _norm(url, base_for_relative=url)
         if not norm or norm in visited or _is_skip(norm):
             continue
         visited.add(norm)
         nav_count += 1
 
         if nav_count % 50 == 0 or nav_count <= 5:
-            slug = norm.replace(BASE_URL, "")
-            print(f"  [BFS {nav_count:5}] {slug[:70]}  |  items: {len(items)}")
+            short = norm.replace(TURISMO_URL, "[T]").replace(ABOBOREIRA_URL, "[A]")
+            print(f"  [BFS {nav_count:5}] {short[:70]}  |  items: {len(items)}")
 
         html = _get_html(driver, norm, wait=1.5)
         if not html:
             continue
 
-        # Identifica páginas de item pelo padrão da URL
         if _is_item_page(norm):
             items.add(norm)
 
         soup = BeautifulSoup(html, "html.parser")
 
-        # Segue todos os links <a href>
         for a in soup.find_all("a", href=True):
             href = a["href"].strip()
             if not href or _is_skip(href):
                 continue
             full  = urljoin(norm, href)
-            norm2 = _norm(full)
+            norm2 = _norm(full, base_for_relative=norm)
             if norm2 and norm2 not in visited:
                 queue.append(norm2)
 
-        # Também procura links em data-href e onclick (SPAs comuns)
         for el in soup.find_all(attrs={"data-href": True}):
             href = el["data-href"].strip()
             full  = urljoin(norm, href)
-            norm2 = _norm(full)
+            norm2 = _norm(full, base_for_relative=norm)
             if norm2 and norm2 not in visited and not _is_skip(norm2):
                 queue.append(norm2)
 
         time.sleep(DELAY)
 
-    print(f"\n  BFS: {nav_count} páginas visitadas | {len(items)} items encontrados")
+    print(f"\n  BFS: {nav_count} páginas | {len(items)} items")
     return sorted(items)
 
 
@@ -269,10 +286,14 @@ def discover_urls(driver: webdriver.Chrome) -> list[str]:
 
 def extract_page(url: str, html: str) -> dict:
     soup = BeautifulSoup(html, "html.parser")
-    row: dict = {"url": url}
+    parsed_url = urlparse(url)
+    row: dict = {
+        "url":     url,
+        "dominio": parsed_url.netloc,
+    }
 
     # Estrutura de path para secao/categoria/etc
-    path_parts = [p for p in urlparse(url).path.split("/") if p]
+    path_parts = [p for p in parsed_url.path.split("/") if p]
     # Identifica posição do geo_artigo/percurso/evento no path
     _item_markers = {"geo_artigo", "percurso", "evento"}
     marker_idx = next(
@@ -531,7 +552,7 @@ def extract_page(url: str, html: str) -> dict:
 # ── Excel ─────────────────────────────────────────────────────────────────────
 
 _COLS_PRIORITY = [
-    "id", "nome", "h1", "secao", "categoria", "subcategoria", "slug", "tipo",
+    "id", "nome", "h1", "dominio", "secao", "categoria", "subcategoria", "slug", "tipo",
     "descricao", "municipio", "morada", "localidade", "regiao", "pais",
     "latitude", "longitude", "telefone", "email", "website",
     "preco", "horario", "capacidade",
@@ -656,7 +677,7 @@ def _phase2_selenium(urls: list[str], batch_size: int = 50) -> list[dict]:
 
 def main():
     print("=" * 60)
-    print("  turismo.douroetamega.pt — Crawler Selenium")
+    print("  douroetamega.pt — Crawler Selenium (turismo + aboboreira)")
     print("=" * 60)
 
     # ── Fase 1: BFS (ou reutiliza cache) ─────────────────────────────────────
