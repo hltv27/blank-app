@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Crawler — douroetamega.pt  (Selenium + Chromium)
-Funciona em ARM 32-bit / Termux onde Playwright não instala.
+Crawler — turismo.douroetamega.pt  (Selenium + Chromium)
+O conteúdo (POIs, percursos, alojamento, restaurantes, eventos) está no
+subdomínio turismo.douroetamega.pt — NÃO em www.douroetamega.pt.
 
 Instalar:
     pkg install chromium          ← instala chromium + chromedriver
@@ -9,15 +10,15 @@ Instalar:
 
 Correr:
     python douroetamega_crawler_selenium.py
-
-Saída: douroetamega_dados.xlsx  (Dados | Presença | Resumo)
 """
 
 import json
+import os
 import re
+import shutil
 import time
 from collections import Counter, deque
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, parse_qs
 
 from bs4 import BeautifulSoup
 from openpyxl import Workbook
@@ -26,16 +27,60 @@ from openpyxl.utils import get_column_letter
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException, WebDriverException
 
-BASE_URL  = "https://www.douroetamega.pt"
-OUTPUT    = "douroetamega_dados.xlsx"
-DELAY     = 0.8    # segundos entre páginas
-MAX_PAGES = 15000  # limite de segurança
+# ── Domínio e configuração ────────────────────────────────────────────────────
 
+BASE_URL  = "https://turismo.douroetamega.pt"
+OUTPUT    = "douroetamega_dados.xlsx"
+DELAY     = 0.8
+MAX_PAGES = 20000
+
+# Pontos de entrada: todas as categorias e sub-categorias conhecidas.
+# O BFS segue os links a partir daqui para descobrir todos os items.
+CATEGORIAS = [
+    "/",
+    "/o-que-ver",
+    "/o-que-ver/patrimonio",
+    "/o-que-ver/postos-de-turismo",
+    "/o-que-ver/miradouros-e-vistas",
+    "/o-que-ver/espacos-verdes",
+    "/o-que-fazer",
+    "/o-que-fazer/cultura-e-arte",
+    "/o-que-fazer/museus",
+    "/o-que-fazer/artesanato",
+    "/o-que-fazer/comercializacao",
+    "/o-que-fazer/animacao-cultural-recreativa-e-de-lazer",
+    "/o-que-fazer/agentes-culturais",
+    "/o-que-fazer/congressos-e-exposicoes",
+    "/o-que-fazer/desporto-e-lazer",
+    "/o-que-fazer/empresas-de-animacao-turistica",
+    "/o-que-fazer/aldeias-de-portugal",
+    "/o-que-fazer/rota-do-romanico",
+    "/o-que-fazer/rotas-e-percursos",
+    "/o-que-fazer/rotas-e-percursos/percursos-pedestres",
+    "/o-que-fazer/rotas-e-percursos/btt",
+    "/o-que-fazer/rotas-e-percursos/roteiros-baixo-tamega",
+    "/o-que-fazer/rotas-e-percursos/outros-roteiros",
+    "/o-que-fazer/rotas-e-percursos/serra-da-aboboreira",
+    "/o-que-fazer/escapadinhas",
+    "/o-que-fazer/verde-sentido",
+    "/o-que-fazer/caves",
+    "/onde-dormir",
+    "/onde-dormir/turismo-rural",
+    "/onde-dormir/turismo-de-habitacao",
+    "/onde-dormir/alojamento-local",
+    "/onde-dormir/albergues-abrigos-e-pousadas",
+    "/onde-dormir/parques-de-campismo",
+    "/onde-dormir/hoteis",
+    "/onde-comer",
+    "/agenda",
+    "/agenda/eventos",
+    "/rss-feed",
+    "/pages/856",   # Aldeias de Portugal
+]
+
+# Extensões/paths a ignorar no BFS
 _SKIP_EXT  = (".pdf",".jpg",".jpeg",".png",".gif",".svg",".webp",
               ".zip",".rar",".doc",".docx",".xls",".xlsx",
               ".mp3",".mp4",".avi",".mov",".woff",".woff2",".css",".js",".ico")
@@ -43,52 +88,66 @@ _SKIP_PATH = ("/wp-admin/","/wp-login","/feed/","/xmlrpc",
               "/cart/","/checkout/","/my-account/",
               "/admin/","/manager/","/cms/","/backend/",
               "/login","/logout","/register","/api/",
-              "/search/","/tag/","/author/")
+              "/search/","/tag/","/author/",
+              "/ficha-tecnica","/acessibilidade","/contactos","/politica")
+
+# Regex para reconhecer páginas de item (POI, percurso, evento, alojamento…)
+_ITEM_RE = re.compile(
+    r'/geo_artigo(?:-\d+)?/[^/\?]+|'   # /geo_artigo/slug  ou /geo_artigo-49/slug
+    r'/percurso/[^/\?]+|'               # /percurso/slug
+    r'/evento/[^/\?]+|'                 # /evento/slug
+    r'[?&]geo_article_id=\d+'           # ?geo_article_id=1234
+)
 
 
 def _is_skip(url: str) -> bool:
     low = url.lower()
     return (any(low.endswith(e) for e in _SKIP_EXT) or
             any(p in low for p in _SKIP_PATH) or
-            low.startswith(("mailto:","tel:","javascript:")) or
+            low.startswith(("mailto:", "tel:", "javascript:")) or
             "#" in low)
 
 
 def _norm(url: str) -> str:
+    """Normaliza URL para o domínio turismo.douroetamega.pt.
+    Preserva geo_article_id nos query params (páginas antigas do CMS).
+    """
     try:
         p = urlparse(url.split("#")[0])
     except Exception:
         return ""
     if p.scheme not in ("", "http", "https"):
         return ""
-    netloc = (p.netloc or "").replace("www.", "")
-    if netloc and netloc != "douroetamega.pt":
+    netloc = (p.netloc or "").lower()
+    # Aceita qualquer subdomínio de douroetamega.pt mas normaliza para turismo
+    if netloc and "douroetamega.pt" not in netloc:
         return ""
     path = p.path or "/"
     last = path.split("/")[-1]
+    # Rejeita paths com extensões de ficheiro
     if "." in last and not last.startswith("."):
         return ""
     if not path.endswith("/"):
         path += "/"
+    # Preserva geo_article_id (páginas antigas) e page= (paginação)
     qs = ""
     if p.query:
-        m = re.search(r"(?:page|p)=(\d+)", p.query)
-        if m and int(m.group(1)) > 1:
+        if "geo_article_id=" in p.query:
             qs = f"?{p.query}"
+        else:
+            m = re.search(r"(?:page|p)=(\d+)", p.query)
+            if m and int(m.group(1)) > 1:
+                qs = f"?{p.query}"
     return f"{BASE_URL}{path}{qs}"
 
 
-def _is_content_page(url: str) -> bool:
-    path  = urlparse(url).path
-    parts = [p for p in path.split("/") if p]
-    if len(parts) < 2:
-        return False
-    return any(p.isdigit() or len(p) >= 5 for p in parts)
+def _is_item_page(url: str) -> bool:
+    return bool(_ITEM_RE.search(url))
 
+
+# ── Selenium ──────────────────────────────────────────────────────────────────
 
 def _make_driver() -> webdriver.Chrome:
-    import os, shutil
-
     opts = Options()
     opts.add_argument("--headless")
     opts.add_argument("--no-sandbox")
@@ -101,7 +160,6 @@ def _make_driver() -> webdriver.Chrome:
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
     )
 
-    # Localizar binário do chromium
     chromium_candidates = [
         "/data/data/com.termux/files/usr/bin/chromium-browser",
         "/data/data/com.termux/files/usr/bin/chromium",
@@ -116,8 +174,6 @@ def _make_driver() -> webdriver.Chrome:
         opts.binary_location = chromium_bin
         print(f"[Browser] Chromium: {chromium_bin}")
 
-    # Localizar chromedriver — OBRIGATÓRIO em Android/aarch64
-    # (selenium-manager não suporta esta plataforma)
     driver_candidates = [
         "/data/data/com.termux/files/usr/bin/chromedriver",
         "/usr/bin/chromedriver",
@@ -128,8 +184,7 @@ def _make_driver() -> webdriver.Chrome:
     if not driver_bin:
         raise RuntimeError(
             "chromedriver não encontrado.\n"
-            "Instala com: pkg install chromium\n"
-            "(o chromedriver vem incluído no mesmo pacote)"
+            "Instala com: pkg install chromium"
         )
     print(f"[Browser] chromedriver: {driver_bin}")
 
@@ -147,18 +202,22 @@ def _get_html(driver: webdriver.Chrome, url: str, wait: float = 1.5) -> str | No
         return None
 
 
-# ── FASE 1: BFS com browser real ─────────────────────────────────────────────
+# ── FASE 1: BFS ───────────────────────────────────────────────────────────────
 
 def discover_urls(driver: webdriver.Chrome) -> list[str]:
+    """BFS a partir de todas as CATEGORIAS conhecidas.
+    Segue links internos e identifica páginas de items pelo padrão geo_artigo/percurso.
     """
-    BFS: browser executa JavaScript → links de items aparecem no DOM.
-    """
-    queue   = deque([BASE_URL + "/"])
+    # Inicializa queue com todas as categorias conhecidas
+    queue: deque[str] = deque()
+    for cat in CATEGORIAS:
+        queue.append(BASE_URL + cat)
+
     visited: set[str] = set()
-    content: set[str] = set()
+    items:   set[str] = set()
     nav_count = 0
 
-    print(f"  BFS a partir de {BASE_URL}")
+    print(f"  BFS a partir de {len(CATEGORIAS)} categorias em {BASE_URL}")
 
     while queue and nav_count < MAX_PAGES:
         url  = queue.popleft()
@@ -169,16 +228,20 @@ def discover_urls(driver: webdriver.Chrome) -> list[str]:
         nav_count += 1
 
         if nav_count % 50 == 0 or nav_count <= 5:
-            print(f"  [BFS {nav_count:5}] {norm.replace(BASE_URL,'')}  |  items: {len(content)}")
+            slug = norm.replace(BASE_URL, "")
+            print(f"  [BFS {nav_count:5}] {slug[:70]}  |  items: {len(items)}")
 
-        html = _get_html(driver, norm, wait=1.2)
+        html = _get_html(driver, norm, wait=1.5)
         if not html:
             continue
 
-        if _is_content_page(norm):
-            content.add(norm)
+        # Identifica páginas de item pelo padrão da URL
+        if _is_item_page(norm):
+            items.add(norm)
 
         soup = BeautifulSoup(html, "html.parser")
+
+        # Segue todos os links <a href>
         for a in soup.find_all("a", href=True):
             href = a["href"].strip()
             if not href or _is_skip(href):
@@ -188,10 +251,18 @@ def discover_urls(driver: webdriver.Chrome) -> list[str]:
             if norm2 and norm2 not in visited:
                 queue.append(norm2)
 
+        # Também procura links em data-href e onclick (SPAs comuns)
+        for el in soup.find_all(attrs={"data-href": True}):
+            href = el["data-href"].strip()
+            full  = urljoin(norm, href)
+            norm2 = _norm(full)
+            if norm2 and norm2 not in visited and not _is_skip(norm2):
+                queue.append(norm2)
+
         time.sleep(DELAY)
 
-    print(f"\n  BFS: {nav_count} páginas | {len(content)} items")
-    return sorted(content)
+    print(f"\n  BFS: {nav_count} páginas visitadas | {len(items)} items encontrados")
+    return sorted(items)
 
 
 # ── FASE 2: Extracção ─────────────────────────────────────────────────────────
@@ -200,13 +271,27 @@ def extract_page(url: str, html: str) -> dict:
     soup = BeautifulSoup(html, "html.parser")
     row: dict = {"url": url}
 
+    # Estrutura de path para secao/categoria/etc
     path_parts = [p for p in urlparse(url).path.split("/") if p]
-    last = path_parts[-1] if path_parts else ""
-    row["id"]           = last if last.isdigit() else ""
-    row["slug"]         = last if not last.isdigit() else (path_parts[-2] if len(path_parts) >= 2 else "")
+    # Identifica posição do geo_artigo/percurso/evento no path
+    _item_markers = {"geo_artigo", "percurso", "evento"}
+    marker_idx = next(
+        (i for i, p in enumerate(path_parts) if p.startswith("geo_artigo") or p in _item_markers),
+        len(path_parts)
+    )
     row["secao"]        = path_parts[0] if path_parts else ""
     row["categoria"]    = path_parts[1] if len(path_parts) >= 2 else ""
-    row["subcategoria"] = path_parts[2] if len(path_parts) >= 3 else ""
+    row["subcategoria"] = path_parts[2] if len(path_parts) >= 3 and marker_idx > 2 else ""
+    last = path_parts[-1] if path_parts else ""
+    row["slug"]         = last if not last.isdigit() else (path_parts[-2] if len(path_parts) >= 2 else "")
+    row["id"]           = ""
+    # Para geo_artigo-49/slug o número é o id da categoria, não do item
+    # Para ?geo_article_id=N o N é o id do item
+    qs = urlparse(url).query
+    if qs:
+        m = re.search(r"geo_article_id=(\d+)", qs)
+        if m:
+            row["id"] = m.group(1)
     row["profundidade"] = str(len(path_parts))
 
     # JSON-LD
@@ -262,7 +347,7 @@ def extract_page(url: str, html: str) -> dict:
             continue
         if prop == "og:title" and not row.get("nome"):
             row["nome"] = val
-        elif prop in ("og:description","description") and not row.get("descricao"):
+        elif prop in ("og:description", "description") and not row.get("descricao"):
             row["descricao"] = val
         elif prop == "og:image":
             row["og_image"] = val
@@ -275,6 +360,7 @@ def extract_page(url: str, html: str) -> dict:
         elif prop == "keywords":
             row["keywords"] = val
 
+    # Título H1/H2
     h1 = soup.find("h1")
     if h1:
         row["h1"] = h1.get_text(" ", strip=True)
@@ -288,7 +374,7 @@ def extract_page(url: str, html: str) -> dict:
     if title and not row.get("nome"):
         row["nome"] = title.get_text(strip=True).split("|")[0].split("–")[0].strip()
 
-    # dl/dt/dd + tabelas + campos
+    # dl/dt/dd + tabelas — campos estruturados do CMS
     pares: list[tuple] = []
     for dl in soup.find_all("dl"):
         for dt, dd in zip(dl.find_all("dt"), dl.find_all("dd")):
@@ -302,23 +388,32 @@ def extract_page(url: str, html: str) -> dict:
             t2 = td.get_text(" ", strip=True)
             if t1 and t2 and t1 != t2:
                 pares.append((t1, t2))
+    # Também procura pares label:valor em spans/divs do CMS
+    for el in soup.find_all(class_=re.compile(r"field|label|info|detalhe|detail", re.I)):
+        txt = el.get_text(" ", strip=True)
+        if ":" in txt:
+            parts = txt.split(":", 1)
+            if len(parts) == 2 and parts[0] and parts[1]:
+                pares.append((parts[0].strip(), parts[1].strip()))
 
     _label_map = {
-        "municipio":   ["município","municipio","concelho"],
-        "morada":      ["morada","endereço","address","localização"],
-        "telefone":    ["telefone","telef","tel ","contacto"],
-        "email":       ["e-mail","email","correio"],
-        "horario":     ["horário","horario","horas","schedule"],
-        "website":     ["website","site","página web"],
-        "preco":       ["preço","entrada","admissão","bilhete"],
-        "latitude":    ["latitude","lat"],
-        "longitude":   ["longitude","lon","lng"],
-        "distancia":   ["distância","distancia","distance","comprimento","length","km","percurso"],
-        "elevacao":    ["elevação","elevacao","desnível","desnivel","altitude","cota","asc","desc"],
-        "dificuldade": ["dificuldade","difficulty","nível","nivel","grau"],
-        "duracao":     ["duração","duracao","duration","tempo","time"],
-        "acessos":     ["acesso","acessos","como chegar","chegada"],
-        "classificacao":["classificação","classificacao","rating","categoria de percurso"],
+        "municipio":     ["município","municipio","concelho"],
+        "morada":        ["morada","endereço","address","localização"],
+        "telefone":      ["telefone","telef","tel.","contacto telefónico"],
+        "email":         ["e-mail","email","correio"],
+        "horario":       ["horário","horario","horas","horários","schedule","funcionamento"],
+        "website":       ["website","site","página web","página oficial"],
+        "preco":         ["preço","preços","entrada","admissão","bilhete","custo"],
+        "latitude":      ["latitude","lat"],
+        "longitude":     ["longitude","lon","lng"],
+        "distancia":     ["distância","distancia","distance","comprimento","length","extensão"],
+        "elevacao":      ["elevação","elevacao","desnível","desnivel","altitude máx","cota máxima"],
+        "dificuldade":   ["dificuldade","difficulty","nível de dificuldade","grau"],
+        "duracao":       ["duração","duracao","duration","tempo estimado","tempo médio"],
+        "acessos":       ["acesso","acessos","como chegar","chegada","transporte"],
+        "classificacao": ["classificação","classificacao","tipo de percurso","tipologia"],
+        "capacidade":    ["capacidade","lugares","camas","quartos"],
+        "municipio":     ["município","municipio","concelho","localidade"],
     }
     for lbl_raw, val_raw in pares:
         lbl_norm = lbl_raw.lower().strip()
@@ -334,9 +429,10 @@ def extract_page(url: str, html: str) -> dict:
             if key not in row:
                 row[key] = val_raw
 
-    _JUNK = ("googlelogo","sunny.png","weather","spinner","loading",
-             "placeholder","logo","icon","favicon","avatar","maps.gstatic",
-             "maps.googleapis","gstatic.com","googleapis.com")
+    # Imagens — apenas do domínio douroetamega.pt
+    _JUNK = ("googlelogo", "sunny.png", "weather", "spinner", "loading",
+             "placeholder", "favicon", "maps.gstatic", "gstatic.com",
+             "googleapis.com", "icon-", "/icons/", "/logo")
     imgs = []
     for img in soup.find_all("img", src=True):
         src = img["src"].strip()
@@ -349,30 +445,34 @@ def extract_page(url: str, html: str) -> dict:
             continue
         if full not in imgs:
             imgs.append(full)
-    row["imagens"] = " | ".join(imgs[:15])
+    row["imagens"] = " | ".join(imgs[:20])
 
+    # Descrição — evita apanhar texto de menus/nav
     if not row.get("descricao"):
-        # Tenta primeiro parágrafos dentro de containers de conteúdo
         for tag in soup.find_all(["div","article","section"],
                                   class_=re.compile(
                                       r"desc|content|body|text|intro|summary"
                                       r"|about|corpo|conteudo|article|detail"
-                                      r"|ficha|info|main", re.I)):
+                                      r"|ficha|info|main|detalhe", re.I)):
+            # Exclui containers de navegação
+            cls = " ".join(tag.get("class", []))
+            if re.search(r"nav|menu|sidebar|header|footer|bread", cls, re.I):
+                continue
             txt = tag.get_text(" ", strip=True)
             if len(txt) > 120:
                 row["descricao"] = txt[:3000]
                 break
     if not row.get("descricao"):
-        # Fallback: primeiro <p> longo fora de nav/header/footer
         for tag in soup.find_all("p"):
             parent = tag.parent
-            if parent and parent.name in ("nav","header","footer"):
+            if parent and parent.name in ("nav", "header", "footer"):
                 continue
             txt = tag.get_text(" ", strip=True)
             if len(txt) > 80:
                 row["descricao"] = txt[:3000]
                 break
 
+    # Tags / badges
     tags = []
     for el in soup.find_all(class_=re.compile(
             r"\btag\b|\bbadge\b|\bchip\b|\bcategory\b|\bcategoria\b", re.I)):
@@ -381,6 +481,7 @@ def extract_page(url: str, html: str) -> dict:
             tags.append(t)
     row["tags"] = " | ".join(dict.fromkeys(tags))
 
+    # Redes sociais
     sociais = []
     for a in soup.find_all("a", href=True):
         href = a["href"]
@@ -391,28 +492,32 @@ def extract_page(url: str, html: str) -> dict:
                 sociais.append(href)
     row["redes_sociais"] = " | ".join(sociais)
 
+    # Regex no texto plano para campos de percurso/local
     raw_text = soup.get_text(" ")
-    for pat in [r"munic[íi]pio[:\s]+([A-ZÀ-Úa-zà-ú][^\n<.,]{2,40})",
-                r"concelho[:\s]+([A-ZÀ-Úa-zà-ú][^\n<.,]{2,40})"]:
+
+    for pat in [r"munic[íi]pio[:\s]+([A-ZÀ-Úa-zà-ú][^\n.,;]{2,40})",
+                r"concelho[:\s]+([A-ZÀ-Úa-zà-ú][^\n.,;]{2,40})"]:
         m = re.search(pat, raw_text, re.I)
         if m and not row.get("municipio"):
             row["municipio"] = m.group(1).strip()
 
-    # Padrões de percurso — distância e desnível no texto plano
     if not row.get("distancia"):
         m = re.search(r"(\d+(?:[.,]\d+)?\s*km)", raw_text, re.I)
         if m:
             row["distancia"] = m.group(1).strip()
+
     if not row.get("elevacao"):
         m = re.search(r"desnível\s*[:\s]+(\d+\s*m)", raw_text, re.I)
         if not m:
             m = re.search(r"(\d+)\s*m\s*(?:de\s+)?desnível", raw_text, re.I)
         if m:
             row["elevacao"] = m.group(1).strip() + " m"
+
     if not row.get("dificuldade"):
         m = re.search(r"dificuldade[:\s]+([^\n.,;]{3,30})", raw_text, re.I)
         if m:
             row["dificuldade"] = m.group(1).strip()
+
     if not row.get("duracao"):
         m = re.search(r"dura[çc][aã]o[:\s]+([\dhHmM: ]+)", raw_text, re.I)
         if not m:
@@ -429,7 +534,7 @@ _COLS_PRIORITY = [
     "id", "nome", "h1", "secao", "categoria", "subcategoria", "slug", "tipo",
     "descricao", "municipio", "morada", "localidade", "regiao", "pais",
     "latitude", "longitude", "telefone", "email", "website",
-    "preco", "horario",
+    "preco", "horario", "capacidade",
     "distancia", "elevacao", "dificuldade", "duracao", "classificacao", "acessos",
     "data_inicio", "data_fim", "local_evento",
     "data_publicacao", "data_modificacao", "keywords",
@@ -514,10 +619,7 @@ URLS_FILE = "douroetamega_urls.txt"
 
 
 def _phase2_selenium(urls: list[str], batch_size: int = 50) -> list[dict]:
-    """
-    Fase 2 com Selenium — executa JS para obter conteúdo completo.
-    Reinicia o browser a cada batch_size páginas para evitar crashes de RAM.
-    """
+    """Extracção com Selenium. Reinicia browser a cada batch para evitar OOM."""
     total = len(urls)
     dados = []
 
@@ -530,17 +632,17 @@ def _phase2_selenium(urls: list[str], batch_size: int = 50) -> list[dict]:
             for j, url in enumerate(batch, 1):
                 i = batch_start + j
                 if i <= 10 or i % 50 == 0:
-                    slug = url.rstrip("/").split("/")[-1] or url.rstrip("/").split("/")[-2]
-                    print(f"  [{i:5}/{total}] {slug}")
+                    slug = url.replace(BASE_URL, "").rstrip("/").split("/")[-1]
+                    print(f"  [{i:5}/{total}] {slug[:60]}")
 
-                html = _get_html(driver, url, wait=1.2)
+                html = _get_html(driver, url, wait=1.5)
                 if html:
                     row = extract_page(url, html)
                     dados.append(row)
 
                 if i % 200 == 0 and dados:
                     save_excel(dados, OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"))
-                    print(f"  [Parcial] {i} items guardados")
+                    print(f"  [Parcial] guardados {i} items")
 
                 time.sleep(DELAY)
         finally:
@@ -553,53 +655,55 @@ def _phase2_selenium(urls: list[str], batch_size: int = 50) -> list[dict]:
 
 
 def main():
-    import os
     print("=" * 60)
-    print("  douroetamega.pt — Crawler (Selenium BFS + requests extracção)")
+    print("  turismo.douroetamega.pt — Crawler Selenium")
     print("=" * 60)
 
-    # ── Fase 1: BFS com browser (ou reutiliza URLs guardados) ────────────────
+    # ── Fase 1: BFS (ou reutiliza cache) ─────────────────────────────────────
     if os.path.exists(URLS_FILE):
         with open(URLS_FILE) as f:
             raw = [l.strip() for l in f if l.strip()]
-        urls = [u for u in raw if not _is_skip(u)]
+        urls = [u for u in raw if not _is_skip(u) and _is_item_page(u)]
         skipped = len(raw) - len(urls)
-        print(f"\n[Fase 1] Reutilizando {len(urls)} URLs de {URLS_FILE}"
-              f"{f' ({skipped} filtrados)' if skipped else ''}"
+        print(f"\n[Fase 1] {len(urls)} URLs de {URLS_FILE}"
+              f"{f'  ({skipped} filtrados)' if skipped else ''}"
               f"  (apaga o ficheiro para re-fazer o BFS)\n")
     else:
-        print("\n[Browser] A iniciar Chromium para BFS…")
+        print(f"\n[Fase 1] BFS em {BASE_URL}…\n")
         driver = _make_driver()
         try:
             driver.get(BASE_URL + "/")
             time.sleep(2)
-            print(f"[Session] {BASE_URL} acessível\n")
+            print(f"[Session] {BASE_URL} OK\n")
         except Exception as e:
             print(f"[Session] Aviso: {e}\n")
 
-        print("[Fase 1] BFS — a descobrir todos os URLs…\n")
         try:
             urls = discover_urls(driver)
         finally:
             driver.quit()
 
         if not urls:
-            print("[Aviso] Nenhum URL descoberto.")
+            print("[Aviso] Nenhum URL descoberto. Verifica se o browser consegue aceder ao site.")
             return
 
-        # Guarda URLs para não repetir o BFS se interrompido
         with open(URLS_FILE, "w") as f:
             f.write("\n".join(urls))
         print(f"  URLs guardados em {URLS_FILE}\n")
 
-    # ── Fase 2: Extracção com Selenium em batches de 50 ─────────────────────
-    print(f"[Fase 2] A extrair dados de {len(urls)} items (Selenium, batches de 50)…\n")
+    # ── Fase 2: Extracção Selenium ────────────────────────────────────────────
+    print(f"[Fase 2] A extrair dados de {len(urls)} items (batches de 50)…\n")
     dados = _phase2_selenium(urls, batch_size=50)
     save_excel(dados)
 
     # ── Fase 3: Download de fotos ─────────────────────────────────────────────
-    from douroetamega_crawler_requests import download_fotos
-    download_fotos(dados)
+    try:
+        from download_fotos import main as download_fotos_main
+        print("\n[Fase 3] A descarregar fotos…")
+        download_fotos_main()
+    except Exception as e:
+        print(f"\n[Fase 3] Fotos: {e}")
+        print("  Podes descarregar as fotos manualmente: python download_fotos.py")
 
 
 if __name__ == "__main__":
