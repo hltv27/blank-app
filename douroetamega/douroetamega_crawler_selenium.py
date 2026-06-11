@@ -454,39 +454,42 @@ def save_excel(dados, output=OUTPUT):
 URLS_FILE = "douroetamega_urls.txt"
 
 
-def _phase2_requests(urls: list[str]) -> list[dict]:
-    """Fase 2 com requests — sem browser, sem crashes de RAM."""
-    try:
-        import cloudscraper
-        sess = cloudscraper.create_scraper()
-    except ImportError:
-        import requests
-        sess = requests.Session()
-    sess.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                      "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
-        "Accept-Language": "pt-PT,pt;q=0.9",
-    })
-
+def _phase2_selenium(urls: list[str], batch_size: int = 50) -> list[dict]:
+    """
+    Fase 2 com Selenium — executa JS para obter conteúdo completo.
+    Reinicia o browser a cada batch_size páginas para evitar crashes de RAM.
+    """
     total = len(urls)
     dados = []
-    for i, url in enumerate(urls, 1):
-        if i <= 10 or i % 50 == 0:
-            slug = url.rstrip("/").split("/")[-1] or url.rstrip("/").split("/")[-2]
-            print(f"  [{i:5}/{total}] {slug}")
+
+    for batch_start in range(0, total, batch_size):
+        batch = urls[batch_start:batch_start + batch_size]
+        print(f"\n  [Batch] {batch_start+1}–{batch_start+len(batch)} de {total} — a iniciar browser…")
+
+        driver = _make_driver()
         try:
-            r = sess.get(url, timeout=20)
-            if r.ok:
-                row = extract_page(url, r.text)
-                dados.append(row)
-        except Exception as e:
-            print(f"  [ERRO] {url}: {e}")
+            for j, url in enumerate(batch, 1):
+                i = batch_start + j
+                if i <= 10 or i % 50 == 0:
+                    slug = url.rstrip("/").split("/")[-1] or url.rstrip("/").split("/")[-2]
+                    print(f"  [{i:5}/{total}] {slug}")
 
-        if i % 300 == 0 and dados:
-            save_excel(dados, OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"))
-            print(f"  [Parcial] {i} items guardados")
+                html = _get_html(driver, url, wait=1.2)
+                if html:
+                    row = extract_page(url, html)
+                    dados.append(row)
 
-        time.sleep(0.5)
+                if i % 200 == 0 and dados:
+                    save_excel(dados, OUTPUT.replace(".xlsx", f"_parcial_{i}.xlsx"))
+                    print(f"  [Parcial] {i} items guardados")
+
+                time.sleep(DELAY)
+        finally:
+            try:
+                driver.quit()
+            except Exception:
+                pass
+
     return dados
 
 
@@ -526,9 +529,10 @@ def main():
             f.write("\n".join(urls))
         print(f"  URLs guardados em {URLS_FILE}\n")
 
-    # ── Fase 2: Extracção com requests (sem browser → sem crashes) ───────────
-    print(f"[Fase 2] A extrair dados de {len(urls)} items com requests…\n")
-    dados = _phase2_requests(urls)
+    # ── Fase 2: Extracção com Selenium em batches de 50 ─────────────────────
+    # Reinicia o browser a cada 50 páginas para libertar RAM e evitar crashes
+    print(f"[Fase 2] A extrair dados de {len(urls)} items (Selenium, batches de 50)…\n")
+    dados = _phase2_selenium(urls, batch_size=50)
     save_excel(dados)
 
 
