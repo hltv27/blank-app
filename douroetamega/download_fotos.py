@@ -35,8 +35,25 @@ DELAY      = 0.3
 EXCEL_FILE = sys.argv[1] if len(sys.argv) > 1 else "douroetamega_dados.xlsx"
 
 
+_JUNK_FILES = ("googlelogo", "sunny.png", "weather", "spinner", "loading",
+               "placeholder", "favicon", "maps.gstatic", "gstatic.com")
+
 def _slug_safe(s: str) -> str:
     return re.sub(r"[^\w-]", "_", s or "geral")[:60].strip("_") or "geral"
+
+
+def limpar_lixo():
+    """Apaga ficheiros de lixo (Google logo, ícones de tempo) já descarregados."""
+    if not os.path.exists(FOTOS_DIR):
+        return
+    removed = 0
+    for root, dirs, files in os.walk(FOTOS_DIR):
+        for fname in files:
+            if any(j in fname.lower() for j in _JUNK_FILES):
+                os.remove(os.path.join(root, fname))
+                removed += 1
+    if removed:
+        print(f"[Limpeza] {removed} ficheiros de lixo apagados (Google logo, ícones, etc.)")
 
 
 def main():
@@ -44,6 +61,7 @@ def main():
         print(f"[Erro] Ficheiro não encontrado: {EXCEL_FILE}")
         return
 
+    limpar_lixo()
     print(f"[Fotos] A ler {EXCEL_FILE}…")
     wb = load_workbook(EXCEL_FILE, read_only=True)
     ws = wb.active
@@ -80,6 +98,11 @@ def main():
         for img_url in imgs_raw.split(" | "):
             img_url = img_url.strip()
             if not img_url:
+                continue
+            # Só imagens do domínio douroetamega.pt
+            if "douroetamega.pt" not in img_url:
+                continue
+            if any(j in img_url.lower() for j in _JUNK_FILES):
                 continue
             fname = img_url.split("/")[-1].split("?")[0] or "foto.jpg"
             if "." not in fname[-6:]:
