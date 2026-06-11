@@ -325,17 +325,25 @@ def extract_page(url: str, html: str) -> dict:
             if key not in row:
                 row[key] = val_raw
 
-    # Imagens de conteúdo
+    # Imagens de conteúdo — apenas do domínio douroetamega.pt
+    _JUNK = ("googlelogo","sunny.png","weather","spinner","loading",
+             "placeholder","logo","icon","favicon","avatar","maps.gstatic",
+             "maps.googleapis","gstatic.com","googleapis.com")
     imgs = []
     for img in soup.find_all("img", src=True):
-        src = img["src"]
-        if any(x in src.lower() for x in ["/upload","/media","/photo","/image",
-                                            "/content","/assets","/files","/img",
-                                            "/fotos","/galeria","/gallery"]):
-            full = urljoin(BASE_URL, src)
-            if full not in imgs:
-                imgs.append(full)
-    row["imagens"] = " | ".join(imgs[:10])
+        src = img["src"].strip()
+        if not src:
+            continue
+        full = urljoin(BASE_URL, src)
+        # Só imagens do próprio site
+        if "douroetamega.pt" not in full:
+            continue
+        # Excluir ícones/junk
+        if any(j in full.lower() for j in _JUNK):
+            continue
+        if full not in imgs:
+            imgs.append(full)
+    row["imagens"] = " | ".join(imgs[:15])
 
     # Descrição longa (fallback corpo da página)
     if not row.get("descricao"):
