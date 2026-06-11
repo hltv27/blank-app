@@ -15,6 +15,7 @@ Correr:
 """
 
 import json
+import os
 import re
 import time
 from collections import Counter, deque
@@ -43,11 +44,13 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
-BASE_URL  = "https://www.douroetamega.pt"
-OUTPUT    = "douroetamega_dados.xlsx"
-DELAY_BFS = 0.5   # delay entre páginas na fase de descoberta
-DELAY_EXT = 0.8   # delay entre páginas na fase de extracção
-MAX_BFS   = 15000  # limite de segurança BFS
+BASE_URL      = "https://www.douroetamega.pt"
+OUTPUT        = "douroetamega_dados.xlsx"
+FOTOS_DIR     = "douroetamega_fotos"
+DELAY_BFS     = 0.5
+DELAY_EXT     = 0.8
+DELAY_FOTO    = 0.3
+MAX_BFS       = 15000
 
 # Extensões/paths a ignorar
 _SKIP_EXT  = (".pdf",".jpg",".jpeg",".png",".gif",".svg",".webp",
@@ -467,6 +470,66 @@ def save_excel(dados, output=OUTPUT):
     print(f"    Sheets: Dados | Presença (X/vazio) | Resumo")
 
 
+# ── Download de fotos ─────────────────────────────────────────────────────────
+
+def _foto_session():
+    try:
+        import cloudscraper
+        s = cloudscraper.create_scraper()
+    except ImportError:
+        import requests
+        s = requests.Session()
+    s.headers.update({"User-Agent": _session.headers["User-Agent"]})
+    return s
+
+def _slug_safe(s: str) -> str:
+    return re.sub(r"[^\w-]", "_", s or "geral")[:60].strip("_") or "geral"
+
+def download_fotos(dados: list[dict]):
+    """Descarrega todas as imagens para FOTOS_DIR/{secao}/{categoria}/{slug}/"""
+    sess   = _foto_session()
+    total  = sum(1 for r in dados if r.get("imagens"))
+    count  = 0
+    errors = 0
+
+    print(f"\n[Fotos] A descarregar imagens de {total} items para {FOTOS_DIR}/")
+
+    for row in dados:
+        imgs_raw = row.get("imagens", "")
+        if not imgs_raw:
+            continue
+
+        secao = _slug_safe(row.get("secao", ""))
+        cat   = _slug_safe(row.get("categoria", ""))
+        slug  = _slug_safe(row.get("slug", "") or row.get("id", "") or row.get("nome", "item"))
+        folder = os.path.join(FOTOS_DIR, secao, cat, slug)
+        os.makedirs(folder, exist_ok=True)
+
+        for img_url in imgs_raw.split(" | "):
+            img_url = img_url.strip()
+            if not img_url:
+                continue
+            fname = img_url.split("/")[-1].split("?")[0] or "foto.jpg"
+            # Garante extensão
+            if "." not in fname[-6:]:
+                fname += ".jpg"
+            fpath = os.path.join(folder, fname)
+            if os.path.exists(fpath):
+                continue  # já descarregado
+            try:
+                r = sess.get(img_url, timeout=20)
+                if r.ok:
+                    with open(fpath, "wb") as f:
+                        f.write(r.content)
+                    count += 1
+            except Exception:
+                errors += 1
+            time.sleep(DELAY_FOTO)
+
+    print(f"[Fotos] {count} ficheiros descarregados  |  {errors} erros")
+    print(f"[Fotos] Pasta: {os.path.abspath(FOTOS_DIR)}/")
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -505,6 +568,7 @@ def main():
         time.sleep(DELAY_EXT)
 
     save_excel(dados)
+    download_fotos(dados)
 
 
 if __name__ == "__main__":
