@@ -572,7 +572,7 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 | FB2A (Meta Platforms) | 0.00600559 | €2.95 | -1.67% |
 | **Total** | | **~€1,328** | |
 
-*Removidos vs Jun-03: RGTI, SMH. Adicionados: ALOY, ASTS, MRVL, CRWV, SOLS, IONQ, AMTM, S, FB2A.*
+*Removidos vs Jun-03: RGTI, SMH europeia. Adicionados: ALOY, ASTS, MRVL, CRWV, SOLS, IONQ, AMTM, S, FB2A.*
 
 ### Robinhood (2026-06-12) — €678.19 total
 | Activo | Qtd | Preço |
@@ -583,7 +583,7 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 | VTI (Vanguard Total Market ETF) | 0.00319 | $366.51 |
 | ETN (Eaton) | 0.00273 | $394.15 |
 
-*SMH voltou ao Robinhood. Adicionados QQQ e VTI (ETFs de índice amplo).*
+*SMH americana mantida/aumentada no Robinhood (versão diferente da SMH europeia que saiu do T212). Adicionados QQQ e VTI (ETFs de índice amplo).*
 
 ---
 
