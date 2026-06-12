@@ -529,6 +529,64 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ---
 
+### Snapshot 2026-06-12
+| Carteira | Moeda | Valor | Δ vs 03 Jun |
+|----------|-------|-------|-------------|
+| Tangem Wallet | USD | $3,313 | -$102 (-3.0%) |
+| Invest (Trading 212) | EUR | €1,328 | -€145 (-9.8%) |
+| Robinhood | EUR | €678 | +€343 (+102%) |
+| Binance Futures (bot) | USD | ~$150 USDC | — |
+| **Total aprox.** | | **~€5,231** | **+€143 (+2.8%)** |
+
+*Nota: Tangem em queda ligeira (BTC $65,244→$63,832, ETH -6.6%). Trading 212 perdeu €145 com RGTI e SMH removidos e CEG a cair -13.7%. Robinhood duplicou com SMH de volta + QQQ e VTI adicionados. Portfolio altamente diversificado: 13 posições em Trading 212, 5 no Robinhood.*
+
+### Activos Tangem (2026-06-12)
+| Activo | Qtd | Preço | Valor USD | Δ vs 03 Jun |
+|--------|-----|-------|-----------|-------------|
+| BTC | 0.0348942 | $63,832 | $2,227 | -$50 |
+| ETH | 0.44191314 | $1,680 | $743 | -$52 |
+| SOL | 3.26187746 | $67.72 | $221 (APY 5.77%) | -$13 |
+| XRP | 84.566087 | $1.15 | $97 | -$5 |
+| Base ETH | 0.009798 | $1,680 | $16 | novo |
+| LINK | 0.96250677 | $7.93 | $8 | — |
+| DOT | 1.00 | $0.97 | $1 | — |
+| **Total** | | | **$3,313** | **-$102** |
+
+*Novo: Base ETH (0.009798 ETH na rede Base).*
+
+### Invest — Trading 212 (2026-06-12)
+| Ticker | Qtd | Valor EUR | Var |
+|--------|-----|-----------|-----|
+| VWCE (Vanguard FTSE All-World) | 5.34529036 | €866.74 | +1.04% |
+| CEG (Constellation Energy) | 0.95436341 | €205.46 | -13.71% |
+| FTNT (Fortinet) | 1.45056673 | €182.19 | +14.35% |
+| ALOY (REalloys) | 2.25364349 | €31.43 | +12.41% |
+| ASTS (AST SpaceMobile) | 0.09750445 | €7.32 | -8.39% |
+| LEU (Centrus Energy) | 0.05773685 | €8.13 | +1.75% |
+| MRVL (Marvell Technology) | 0.03434547 | €8.48 | +6.13% |
+| CRWV (CoreWeave) | 0.03606306 | €3.22 | +7.33% |
+| SOLS (Solstice Advanced Materials) | 0.04329377 | €3.10 | +3.33% |
+| IONQ (IonQ) | 0.0601098 | €3.08 | +2.67% |
+| AMTM (Amentum Holdings) | 0.15404932 | €3.04 | +1.33% |
+| S (SentinelOne) | 0.23462755 | €2.98 | -0.67% |
+| FB2A (Meta Platforms) | 0.00600559 | €2.95 | -1.67% |
+| **Total** | | **~€1,328** | |
+
+*Removidos vs Jun-03: RGTI, SMH. Adicionados: ALOY, ASTS, MRVL, CRWV, SOLS, IONQ, AMTM, S, FB2A.*
+
+### Robinhood (2026-06-12) — €678.19 total
+| Activo | Qtd | Preço |
+|--------|-----|-------|
+| ANET (Arista Networks) | 2.3034 | $163.04 |
+| SMH (VanEck Semiconductor ETF) | 0.56218 | $618.76 |
+| QQQ (Invesco Nasdaq-100 ETF) | 0.06418 | $720.05 |
+| VTI (Vanguard Total Market ETF) | 0.00319 | $366.51 |
+| ETN (Eaton) | 0.00273 | $394.15 |
+
+*SMH voltou ao Robinhood. Adicionados QQQ e VTI (ETFs de índice amplo).*
+
+---
+
 ## 9. Infraestrutura e Operações
 
 ### Configuração actual — Termux (Android)
