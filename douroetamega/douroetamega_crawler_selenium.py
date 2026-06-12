@@ -482,6 +482,12 @@ _HDR_FILL = PatternFill("solid", fgColor="17375E")
 _HDR_FONT = Font(color="FFFFFF", bold=True)
 _X_FILL   = PatternFill("solid", fgColor="E2EFDA")
 
+# Caracteres ilegais para células Excel (controlo ASCII exceto tab/LF/CR)
+_ILLEGAL_RE = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]')
+
+def _clean(v: str) -> str:
+    return _ILLEGAL_RE.sub('', str(v or "")).strip()
+
 
 def _write_sheet(ws, headers, rows, presence=False):
     ws.append(headers)
@@ -492,7 +498,7 @@ def _write_sheet(ws, headers, rows, presence=False):
     for row in rows:
         vals = []
         for col in headers:
-            v = str(row.get(col,"") or "").strip()
+            v = _clean(row.get(col, ""))
             vals.append("X" if (presence and v) else ("" if presence else v))
         ws.append(vals)
     if presence:
