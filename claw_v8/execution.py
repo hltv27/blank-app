@@ -211,9 +211,17 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             print(f"[AVISO] {symbol}: stop falhou (tentativa {tentativa}/{STOP_RETRY_MAX})")
             time.sleep(2)
         if not stop_id:
-            # Exchange stop não suportado (conta EU/BNFCR) — software SL protege a posição
-            print(f"[AVISO] {symbol}: stop na exchange falhou — software SL activo em {sl:.4f}")
-            tg(f"⚠️ <b>{symbol}</b> aberto | SL @ {sl:.4f} (software)\nStop na exchange falhou — bot vigia preço a cada 10s.")
+            # Stop falhou após todas as tentativas — fechar posição e abortar trade
+            print(f"[ERRO] {symbol}: stop falhou {STOP_RETRY_MAX}x — a fechar posição por segurança")
+            close_position(symbol, qty, direction)
+            mem.get("pending_sync", {}).pop(symbol, None)
+            save_memory(mem)
+            tg(
+                f"🚨 <b>{symbol} — TRADE ABORTADO</b>\n"
+                f"Stop na exchange falhou após {STOP_RETRY_MAX} tentativas.\n"
+                f"Posição fechada por segurança."
+            )
+            return
 
         # TP como ordem real
         tp_side      = "SELL" if direction == "LONG" else "BUY"
