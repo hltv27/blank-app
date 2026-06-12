@@ -289,14 +289,13 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
     """STOP_MARKET via /fapi/v1/algoOrder com closePosition=true.
-    Binance rejeita STOP_MARKET no endpoint regular para contas BNFCR — usa algoOrder."""
+    Binance BNFCR: usa algoOrder sem algoType (causa erro 'type missing')."""
     try:
         decimals = PRICE_PRECISION.get(symbol, 2)
         params = {
             "symbol":        symbol,
             "side":          side,
             "orderType":     "STOP_MARKET",
-            "algoType":      "CONDITIONAL",
             "stopPrice":     f"{stop_price:.{decimals}f}",
             "closePosition": "true",
         }
@@ -320,30 +319,30 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
 
 
 def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
-    """TAKE_PROFIT_MARKET via /fapi/v1/order com closePosition=true.
-    O algoOrder rejeita com 'type missing' para TAKE_PROFIT_MARKET — usa endpoint regular."""
+    """TAKE_PROFIT_MARKET via /fapi/v1/algoOrder com closePosition=true.
+    Binance BNFCR: endpoint regular rejeita TAKE_PROFIT_MARKET — usa algoOrder."""
     try:
         decimals = PRICE_PRECISION.get(symbol, 2)
         params = {
             "symbol":        symbol,
             "side":          side,
-            "type":          "TAKE_PROFIT_MARKET",
+            "orderType":     "TAKE_PROFIT_MARKET",
             "stopPrice":     f"{tp_price:.{decimals}f}",
             "closePosition": "true",
         }
-        r = requests.post(
-            f"{BASE_URL}/fapi/v1/order",
-            params=_sign(params), headers=_headers(), timeout=10
-        )
-        data = r.json()
-        if _is_timestamp_error(data):
-            sync_time()
-            r = requests.post(f"{BASE_URL}/fapi/v1/order",
-                              params=_sign(params), headers=_headers(), timeout=10)
+        for attempt in range(2):
+            r = requests.post(
+                f"{BASE_URL}/fapi/v1/algoOrder",
+                params=_sign(params), headers=_headers(), timeout=10
+            )
             data = r.json()
-        if "orderId" in data:
-            return data["orderId"]
-        print(f"[AVISO] take_profit {symbol}: {data.get('msg', data)}")
+            if _is_timestamp_error(data):
+                sync_time()
+                continue
+            if "algoId" in data:
+                return data["algoId"]
+            print(f"[AVISO] take_profit {symbol}: {data.get('msg', data)}")
+            break
     except Exception as e:
         print(f"[ERRO] place_take_profit {symbol}: {e}")
     return None
@@ -357,7 +356,6 @@ def place_trailing_stop(symbol: str, side: str, callback_rate: float,
             "symbol":          symbol,
             "side":            side,
             "orderType":       "TRAILING_STOP_MARKET",
-            "algoType":        "CONDITIONAL",
             "callbackRate":    f"{callback_rate}",
             "activationPrice": f"{activation_price:.{decimals}f}",
             "closePosition":   "true",
