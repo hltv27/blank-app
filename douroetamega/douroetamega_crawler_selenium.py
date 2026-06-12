@@ -489,6 +489,9 @@ def _clean(v: str) -> str:
     return _ILLEGAL_RE.sub('', str(v or "")).strip()
 
 
+# Colunas que na sheet Presença mostram o valor real (não X/branco)
+_ID_COLS = {"id","nome","dominio","secao","categoria","subcategoria","slug","url"}
+
 def _write_sheet(ws, headers, rows, presence=False):
     ws.append(headers)
     for i in range(1, len(headers)+1):
@@ -499,7 +502,13 @@ def _write_sheet(ws, headers, rows, presence=False):
         vals = []
         for col in headers:
             v = _clean(row.get(col, ""))
-            vals.append("X" if (presence and v) else ("" if presence else v))
+            if presence:
+                if col in _ID_COLS:
+                    vals.append(v)          # mostra valor real
+                else:
+                    vals.append("X" if v else "")
+            else:
+                vals.append(v)
         ws.append(vals)
     if presence:
         for r in ws.iter_rows(min_row=2):
