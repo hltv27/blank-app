@@ -12,7 +12,7 @@ from config import (
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
     MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, BTC_CRASH_PCT, CORR_MAX,
     BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
-    ROI_TP_IMEDIATO, TIME_TP_MIN_MIN, SCORE_FORTE, EMERGENCY_PNL_CUT,
+    ROI_TP_IMEDIATO, SCORE_FORTE, EMERGENCY_PNL_CUT,
     LIQUIDATION_GUARD_PCT, LIQUIDATION_WARN1_PCT, LIQUIDATION_WARN2_PCT, LIQUIDATION_WARN3_PCT,
     TRAILING_LOCK_USDC
 )
@@ -454,18 +454,6 @@ def gerir_posicoes(mem: dict):
                     f"🎯 <b>ROI TP</b> — {symbol}\n"
                     f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} | {int(elapsed/60)}min"
                 )
-            continue
-
-        # Saída por tempo + ROI ≥ 5%
-        if elapsed >= TIME_TP_MIN_MIN * 60 and roi >= 5.0:
-            if not _fechar_com_retry(symbol, pos["qty"], side):
-                continue
-            _registar_fecho(symbol, side, entry, sl, tp, qty,
-                            pos["pnl"], "TIME_TP", True, mem)
-            tg(
-                f"⏱️ <b>TEMPO+LUCRO</b> — {symbol}\n"
-                f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} | {int(elapsed/60)}min"
-            )
             continue
 
         # ── Saída por reversão de sinal ──────────────────────────────────
