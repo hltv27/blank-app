@@ -282,6 +282,65 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ---
 
+### FTNT (Fortinet) — 🟢 MANTER + ACUMULAR EM DIPS
+
+**O que é:** Líder mundial em firewalls e segurança de rede (FortiGate). Caminha para plataforma SASE/zero-trust completa — um único vendor para firewall, SD-WAN, endpoint e cloud security.
+
+**Pontos positivos:**
+- Billings a recuperar após abrandamento 2023-2024: crescimento voltou a acelerar em 2025
+- Receita recorrente (subscriptions + suporte) já >50% do total — modelo previsível
+- Free cash flow margin ~25-30% — empresa extremamente eficiente
+- Setor em crescimento estrutural: IA a criar novas superfícies de ataque, ransomware em alta, zero-trust a tornar-se mandatório nas empresas
+- No teu portfólio desde ~Abr-2026: +14.35% já registado; AutoInvest de €1/dia activo
+
+**Riscos:**
+- Competição da Palo Alto Networks (PANW) que está mais agressiva em bundling e a oferecer produto gratuito para ganhar quota
+- Valuation não barato: ~7-8x revenue — exige execução consistente
+- Ciclo de renovação de firewalls físicos pode ser mais lento nos próximos 2 anos
+
+**Estratégia recomendada:** Manter e continuar AutoInvest diário. Em correções de -10 a -15% adicionar parcela extra. É a tua melhor posição individual em termos de risco/retorno no médio prazo (2-3 anos).
+
+---
+
+### VWCE (Vanguard FTSE All-World) — 🟢 CORE — AUMENTAR SEMPRE
+
+**O que é:** ETF UCITS que replica o FTSE All-World Index — ~3,700 empresas de 50 países. ~63% EUA, ~6% Japão, ~4% UK, resto do mundo. TER: 0.22%.
+
+**Pontos positivos:**
+- Diversificação máxima num único instrumento — elimina risco idiossincrático
+- Retorno histórico ajustado ~7-10% a.a. no longo prazo
+- Acumula automaticamente dividendos (acc) — eficiente fiscalmente
+- Já é a tua maior posição (€867) e é assim que deve ser
+
+**Pontos a considerar:**
+- Concentração elevada em mega-caps US tech (Nvidia, Apple, Microsoft, Amazon, Google = ~18% do índice) — que é um risco mas também o que está a puxar os retornos
+- Em correções de mercado cai com tudo (2022: -18%) — mas é o melhor ativo para DCA nesses momentos
+
+**Estratégia recomendada:** Esta é a âncora do portfólio. Devias ter AutoInvest em VWCE pelo menos igual ao de FTNT — idealmente mais. Em qualquer mês em que não saibas onde investir, vai para VWCE. Meta: crescer esta posição até representar 50%+ do portfólio de stocks (actualmente ~65% do T212, já bem posicionado).
+
+---
+
+### IONQ (IonQ) — 🟡 MANTER PEQUENO — NÃO AUMENTAR JÁ
+
+**O que é:** Empresa de computação quântica pura (pure play), NYSE. Usa arquitectura de iões aprisionados (trapped-ion) — tecnologia diferenciada vs qubits supercondutores da IBM/Google.
+
+**Pontos positivos:**
+- Crescimento de receita ~100% em 2025 (base pequena, mas momentum real)
+- Contratos com US Air Force, US Army, governo federal — validação de performance
+- Parceria com AWS, Azure, Google Cloud — os 3 grandes hiperescalers
+- Arquitectura trapped-ion tem vantagem em fidelidade de qubits vs concorrentes
+
+**Riscos:**
+- Pré-lucro: continuam a queimar cash (~$50-70M/ano)
+- Computação quântica com impacto comercial real: estimado 2028-2032 no mínimo
+- Volatilidade extrema: o stock já fez -60% e +200% em períodos de 6 meses
+- Competição de IBM, Google, Microsoft com muito mais recursos
+- A tua posição actual (€3.08) é micro — o upside em euros é insignificante mesmo que o stock duplique
+
+**Estratégia recomendada:** Manter como "lottery ticket" — a posição de €3 está bem. Considerar aumentar para €20-30 se e quando reportarem receita >$100M com path credível para breakeven (provavelmente 2027). Não adicionar agora só por especulação.
+
+---
+
 ### SUI Token — 🟡 ACUMULAR EM DCA
 
 **O que é:** Layer 1 da Mysten Labs (ex-Meta/Diem). Modelo de dados por objectos, processamento paralelo de transacções, linguagem Move.
