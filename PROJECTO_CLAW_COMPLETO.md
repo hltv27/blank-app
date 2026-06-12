@@ -282,6 +282,27 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ---
 
+### LEU (Centrus Energy) — 🟢 MANTER — TESE DE LONGO PRAZO
+
+**O que é:** Única empresa norte-americana com capacidade activa de enriquecimento de urânio, incluindo HALEU (High-Assay Low-Enriched Uranium) — combustível crítico para os reactores nucleares de próxima geração (SMR, reactores avançados).
+
+**Pontos positivos:**
+- Monopólio de facto nos EUA para HALEU — sem concorrência doméstica no curto prazo
+- Contratos directos com o Departamento de Energia (DOE) para produção de HALEU — receita garantida pelo governo
+- A lei de proibição de urânio russo (2024) obrigou as utilities americanas a procurar alternativas domésticas — Centrus beneficia directamente
+- Renascimento nuclear global: SMR da NuScale, TerraPower, Oklo — todos precisam de HALEU
+- A IA está a aumentar o consumo energético nos data centers → energia nuclear volta a ser prioritária nos EUA (Microsoft, Google já assinaram contratos com centrais nucleares)
+
+**Riscos:**
+- Small cap (~$400M market cap) — muito sensível a notícias e contratos
+- Receita concentrada em contratos governamentais — atrasos em renovações afectam o preço
+- Ciclo nuclear é longo: os SMR mais avançados não estarão operacionais antes de 2030-2032
+- Posição pequena (€8.13) — mesmo com upside de 3-5x, o impacto no portfólio é limitado
+
+**Estratégia recomendada:** Manter. A tese é sólida mas de horizonte longo (3-5 anos). Considerar reforçar para €20-30 se o DOE anunciar extensão ou expansão dos contratos HALEU. Não é para trading — é para deixar quieto.
+
+---
+
 ### FTNT (Fortinet) — 🟢 MANTER + ACUMULAR EM DIPS
 
 **O que é:** Líder mundial em firewalls e segurança de rede (FortiGate). Caminha para plataforma SASE/zero-trust completa — um único vendor para firewall, SD-WAN, endpoint e cloud security.
