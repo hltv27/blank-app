@@ -12,7 +12,7 @@ from config import (
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
     MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, BTC_CRASH_PCT, CORR_MAX,
     BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
-    ROI_TP_IMEDIATO, SCORE_FORTE, EMERGENCY_PNL_CUT,
+    ROI_TP_IMEDIATO, SCORE_FORTE, SCORE_ALERTA, EMERGENCY_PNL_CUT,
     LIQUIDATION_GUARD_PCT, LIQUIDATION_WARN1_PCT, LIQUIDATION_WARN2_PCT, LIQUIDATION_WARN3_PCT,
     TRAILING_LOCK_USDC
 )
@@ -497,12 +497,39 @@ def gerir_posicoes(mem: dict):
 
         # ── Saída por estagnação ──────────────────────────────────────────
         # Só fecha se aberto > 60min E PnL entre -0.5 e +1.0 (verdadeira estagnação).
-        # Posições muito negativas ficam para emergency cut (-3 USDC / -5.5% ROI).
-        # Posições lucrativas ficam para profit lock / TIME_TP.
+        # Antes de fechar, verifica se o mercado ainda confirma a direcção —
+        # se score >= SCORE_ALERTA na mesma direcção, suspende o fecho e deixa correr.
         tempo_min = elapsed / 60
         if (tempo_min >= 60
                 and -0.5 <= pos["pnl"] < 1.0
                 and not trade.get("trailing_lock_done")):
+            mercado_ok = False
+            try:
+                kl_stag = get_klines(symbol)
+                if kl_stag and len(kl_stag) >= 104:
+                    c_s = [float(k[4]) for k in kl_stag]
+                    h_s = [float(k[2]) for k in kl_stag]
+                    l_s = [float(k[3]) for k in kl_stag]
+                    v_s = [float(k[5]) for k in kl_stag]
+                    stag_dir, stag_score, _ = signal_trending(c_s, h_s, l_s, v_s, symbol)
+                    if stag_dir == side and stag_score >= SCORE_ALERTA:
+                        mercado_ok = True
+            except Exception as _e:
+                print(f"[AVISO] stagnado_check {symbol}: {_e}")
+
+            if mercado_ok:
+                # Notifica no máximo uma vez a cada 15min para não fazer spam
+                ultimo_skip = trade.get("stagnado_skip_ts", 0)
+                if time.time() - ultimo_skip > 900:
+                    mem["trades_abertos"][symbol]["stagnado_skip_ts"] = time.time()
+                    save_memory(mem)
+                    tg(
+                        f"⏳ <b>STAGNADO SUSPENSO</b> — {symbol}\n"
+                        f"{tempo_min:.0f}min | PnL: {pos['pnl']:+.2f} USDC\n"
+                        f"Mercado ainda favorável (score {stag_score}) — a aguardar."
+                    )
+                continue
+
             if not _fechar_com_retry(symbol, pos["qty"], side):
                 continue
             _registar_fecho(symbol, side, entry, sl, tp, qty,

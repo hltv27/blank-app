@@ -102,6 +102,7 @@ CVD_PERIOD = 20
 ATR_SL_MULT_MIN     = 1.8      # era 1.2 — SL mínimo mais largo
 ATR_SL_MULT_MAX     = 2.5      # era 1.8 — mercado volátil → SL ainda mais largo
 SL_MIN_PCT          = 0.005    # SL nunca a menos de 0.5% da entrada (Binance rejeita <0.1%)
+SL_MAX_PCT          = 0.03     # SL nunca a mais de 3% da entrada
 ATR_VOL_SCALE_PCT   = 0.003    # ATR/price acima disto → reduz qty
 TAKER_RATIO_MIN     = 0.52     # taker buy ratio mínimo para LONG
 
@@ -125,7 +126,7 @@ BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 MAX_DRAWDOWN_PCT    = 0.25   # 25% do saldo → fecha tudo
 MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
 MAX_MARGEM_TRADE    = 0.20   # máx 20% do capital por posição (60 USDC em 300)
-PROFIT_LOCK_USDC    = 1.0    # activa lock a partir deste PnL
+PROFIT_LOCK_USDC    = 0.5    # activa lock a partir deste PnL
 PROFIT_LOCK_STEP    = 0.5    # a cada +0.5 USDC move o stop para esse nível
 TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~0.8R), muda stop fixo → trailing stop
 
