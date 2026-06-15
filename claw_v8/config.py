@@ -19,6 +19,9 @@ BASE_URL = "https://fapi.binance.com"
 # ─────────────────────────────────────────────
 TOP_N_FUTURES = 50   # top 50 por volume — evita memecoins exóticos de baixo volume
 
+# Pares sempre scaneados, independentemente de estarem no top N por volume
+FORCE_INCLUDE_SYMBOLS = ["ZECUSDC"]
+
 # Lista base de fallback (usada se a fetch dinâmica falhar)
 SYMBOLS = [
     "BTCUSDC", "ETHUSDC", "BNBUSDC", "SOLUSDC",

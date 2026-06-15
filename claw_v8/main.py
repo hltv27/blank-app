@@ -20,7 +20,7 @@ from config import (
     BTC_SYMBOLS, MAX_TRADES_ABERTOS,
     MAX_LONGS_ALT, MAX_SHORTS_ALT, LOOKBACK,
     CHECK_POSICOES_FAST, CHECK_POSICOES, CAPITAL_MAX_BOT, RISCO_USDC,
-    ALAVANCAGEM, TOP_N_FUTURES
+    ALAVANCAGEM, TOP_N_FUTURES, FORCE_INCLUDE_SYMBOLS
 )
 from exchange import tg, get_klines, get_positions, get_balance, get_price, sync_time, get_public_ip, get_top_futures_symbols, place_stop_market as _psm
 from indicators import atr, get_daily_vwap
@@ -157,7 +157,9 @@ def run():
     # Fetch dinâmico dos top N pares USDC-M por volume + precisão
     dinamicos, precisoes, price_precisoes = get_top_futures_symbols(TOP_N_FUTURES)
     if dinamicos:
-        config.SYMBOLS = dinamicos
+        # Merge: top N + FORCE_INCLUDE_SYMBOLS (sem duplicados, força-include no fim)
+        extras = [s for s in FORCE_INCLUDE_SYMBOLS if s not in dinamicos]
+        config.SYMBOLS = dinamicos + extras
     if precisoes:
         config.SYMBOL_PRECISION.update(precisoes)
     if price_precisoes:
@@ -222,7 +224,8 @@ def run():
             if time.time() - ultima_actualizacao_symbols > 86400:
                 novos, precisoes_novas, price_precisoes_novas = get_top_futures_symbols(TOP_N_FUTURES)
                 if novos:
-                    config.SYMBOLS = novos
+                    extras_novos = [s for s in FORCE_INCLUDE_SYMBOLS if s not in novos]
+                    config.SYMBOLS = novos + extras_novos
                     SYMBOLS = config.SYMBOLS
                 if precisoes_novas:
                     config.SYMBOL_PRECISION.update(precisoes_novas)
