@@ -6,17 +6,10 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Auto-dream startup: Faz uma análise rápida do estado do projecto no início desta sessão.\n\n1. Lê `claw_v8/status.json` do GitHub (branch main) com mcp__github__get_file_contents para ver o estado actual do bot (saldo, PnL, trades, circuit breaker).\n2. Lê `claw_v8/status_history.jsonl` para ver tendência dos últimos dias.\n3. Faz um scan rápido dos ficheiros principais do bot (main.py, config.py, execution.py, exchange.py) para detectar TODOs, FIXMEs, ou problemas óbvios.\n4. Apresenta um resumo compacto ao utilizador com:\n   - Estado do bot (online/offline, saldo, PnL do dia, trades abertos)\n   - Tendência dos últimos dias (win rate, PnL acumulado)\n   - Alertas se houver problemas (circuit breaker activo, saldo baixo, etc.)\n   - Sugestões de melhorias se encontrar algo nos ficheiros\n\nFormato: resumo curto e directo, sem verbosidade. Usar emoji de semáforo (🟢🟡🔴) para status rápido."
+            "prompt": "AUTO-DREAM: Início de sessão. Faz o seguinte automaticamente e apresenta um resumo compacto:\n\n1. **Estado do bot**: Lê `claw_v8/status.json` do GitHub (branch main) com `mcp__github__get_file_contents`. Reporta: saldo, PnL do dia, trades abertos, circuit breaker, win rate.\n\n2. **Histórico recente**: Lê `claw_v8/status_history.jsonl` — mostra tendência dos últimos 3-5 dias (PnL acumulado, WR, nº trades).\n\n3. **Código — changes recentes**: Corre `git log --oneline -10` para ver os últimos commits. Identifica se há mudanças pendentes não deployed.\n\n4. **Resumo**: Apresenta tudo num bloco compacto com emojis para rápida leitura:\n   - 🤖 Estado: running/parado/erro\n   - 💰 Saldo + PnL dia\n   - 📊 Trades: X wins / Y losses (Z% WR)\n   - 📈 Tendência: últimos dias\n   - 🔧 Último commit: descrição\n   - ⚠️ Alertas: circuit breaker, bugs, etc.\n\nSê conciso — máximo 15 linhas. Depois pergunta: 'O que queres trabalhar hoje?'"
           }
         ]
       }
-    ]
-  },
-  "permissions": {
-    "allow": [
-      "Read",
-      "Glob",
-      "Grep"
     ]
   }
 }
