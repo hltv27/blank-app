@@ -464,6 +464,45 @@ def gerir_posicoes(mem: dict):
                 )
             continue
 
+        # ── ROI ≥ 5%: fecha se mercado não confirmar, deixa correr se confirmar ──
+        # Evita sair prematuramente de winners em tendência forte.
+        if (roi >= 5.0
+                and not trade.get("trailing_lock_done")):
+            sinal_ok = False
+            score5   = 0
+            try:
+                kl5 = get_klines(symbol)
+                if kl5 and len(kl5) >= 104:
+                    c5 = [float(k[4]) for k in kl5]
+                    h5 = [float(k[2]) for k in kl5]
+                    l5 = [float(k[3]) for k in kl5]
+                    v5 = [float(k[5]) for k in kl5]
+                    dir5, score5, _ = signal_trending(c5, h5, l5, v5, symbol)
+                    if dir5 == side and score5 >= SCORE_ALERTA:
+                        sinal_ok = True
+            except Exception as _e:
+                print(f"[AVISO] roi5_check {symbol}: {_e}")
+
+            if not sinal_ok:
+                if _fechar_com_retry(symbol, pos["qty"], side):
+                    _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                    pos["pnl"], "ROI5_TP", True, mem)
+                    tg(
+                        f"🎯 <b>ROI 5% TP</b> — {symbol}\n"
+                        f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} USDC\n"
+                        f"Sinal enfraqueceu — saída confirmada."
+                    )
+                continue
+            else:
+                # Mercado ainda favorável — notifica 1x por 15min e deixa correr
+                if time.time() - trade.get("roi5_skip_ts", 0) > 900:
+                    mem["trades_abertos"][symbol]["roi5_skip_ts"] = time.time()
+                    save_memory(mem)
+                    tg(
+                        f"🚀 <b>ROI 5% — DEIXA CORRER</b> — {symbol}\n"
+                        f"ROI: {roi:.1f}% | Score: {score5} | Mercado confirma {side}."
+                    )
+
         # ── Saída por reversão de sinal ──────────────────────────────────
         # Se o sinal original inverteu completamente (score forte na direcção oposta),
         # fecha antes de o preço atingir o SL. Não actua se trailing já protege.
