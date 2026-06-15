@@ -729,9 +729,9 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 | Jun-01 | $3,726 | €1,465 | €606 | $57 bot | **~€5,420** | -€973 |
 | Jun-03 | $3,415 | €1,473 | €335 | $154 bot | **~€5,088** | -€332 |
 | Jun-12 | $3,313 | €1,328 | €678 | $150 bot | **~€5,231** | +€143 |
-| Jun-15 | $3,542 | €1,466 | €698 | $165 bot | **~€5,574** | +€343 |
+| Jun-15 | $3,542 | €1,466 | €698 | $165 bot + $290 ZEC | **~€5,842** | +€611 |
 
-*Taxa EUR/USD ~1.08 usada para conversões. Pico histórico: €6,601 em Mai-14 (BTC $81,522). Distância ao pico: -€1,027 (-15.6%). Recuperação desde mínimo Jun-03: +€486 (+9.5%).*
+*Taxa EUR/USD ~1.08 usada para conversões. ZEC Spot Binance: 0.5424 ZEC ≈ $290 (ganho via Earn, custo $0). Pico histórico: €6,601 em Mai-14 (BTC $81,522). Distância ao pico: -€759 (-11.5%). Recuperação desde mínimo Jun-03: +€754 (+14.8%).*
 
 ---
 
