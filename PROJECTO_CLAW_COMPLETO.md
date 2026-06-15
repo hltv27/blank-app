@@ -667,6 +667,72 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ---
 
+### Snapshot 2026-06-15
+| Carteira | Moeda | Valor | Δ vs 12 Jun |
+|----------|-------|-------|-------------|
+| Tangem Wallet | USD | $3,542 | +$229 (+6.9%) |
+| Invest (Trading 212) | EUR | €1,466 | +€138 (+10.4%) |
+| Robinhood | EUR | €698 | +€20 (+3.0%) |
+| Binance Futures (bot) | USD | ~$165 USDC | +$15 |
+| **Total aprox.** | | **~€5,574** | **+€343 (+6.2%)** |
+
+*Nota: Mercado cripto em recuperação forte — BTC +4.8% ($63,832→$67,192), ETH +10.5%, SOL +11.9%, XRP +13.2%. Tangem recuperou $229. T212 cresceu €138 com posições significativamente reforçadas (ALOY, MRVL, IONQ, CRWV, FB2A, LEU). AutoInvest expandido para €274/mês.*
+
+### Activos Tangem (2026-06-15)
+| Activo | Qtd | Preço | Valor USD | Δ vs 12 Jun |
+|--------|-----|-------|-----------|-------------|
+| BTC | 0.0348942 | $67,192 | $2,345 | +$118 |
+| ETH | 0.44191314 | $1,842 | $814 | +$71 |
+| SOL | 3.2628276 | $75.74 | $247 (APY 5.75%) | +$26 |
+| XRP | 84.566087 | $1.29 | $109 | +$12 |
+| Base ETH | 0.009798 | $1,842 | $18 | — |
+| LINK | 0.96250677 | $8.55 | $8 | — |
+| **Total** | | | **$3,542** | **+$229** |
+
+*DOT já não aparece na carteira (vendido ou valor negligenciável).*
+
+### Invest — Trading 212 (2026-06-15)
+| Ticker | Qtd | Valor EUR | Var | Δ qtd vs Jun-12 |
+|--------|-----|-----------|-----|-----------------|
+| VWCE (Vanguard FTSE All-World) | 5.40631806 | €889.88 | +2.55% | +0.06 |
+| CEG (Constellation Energy) | 0.95436341 | €216.45 | -9.10% | — |
+| FTNT (Fortinet) | 1.45846945 | €186.89 | +16.57% | +0.008 |
+| ALOY (REalloys) | 4.06864039 | €57.82 | +5.30% | **+1.82** |
+| MRVL (Marvell Technology) | 0.2011094 | €51.92 | +5.19% | **+0.167** |
+| LEU (Centrus Energy) | 0.13281743 | €20.23 | +8.07% | +0.075 |
+| IONQ (IonQ) | 0.24858356 | €13.48 | +3.85% | **+0.188** |
+| CRWV (CoreWeave) | 0.13168071 | €12.29 | +4.06% | **+0.096** |
+| DRON (Drone Acc) | 1.68690958 | €10.05 | +0.50% | novo |
+| FB2A (Meta Platforms) | 0.01201983 | €6.19 | +3.17% | +0.006 |
+| EBS (Emergent BioSolutions) | 0.13682567 | €0.98 | -2.00% | novo |
+| **Total** | | **€1,466** | | |
+
+*Removidos vs Jun-12: ASTS, SOLS, AMTM, S. Adicionados: DRON, EBS. AutoInvest expandido para €274/mês (novos: MRVL, META, LEU, IONQ, ALOY, EBS, CEG a €1/dia cada).*
+
+### Robinhood (2026-06-15) — €698.42 total
+| Activo | Qtd | Preço | Δ qtd vs Jun-12 |
+|--------|-----|-------|-----------------|
+| ANET (Arista Networks) | 2.59102 | $166.57 | +0.288 |
+| SMH (VanEck Semiconductor ETF) | 0.56218 | $646.94 | — |
+| QQQ, VTI, ETN | — | — | mantidos |
+
+---
+
+### Evolução do Portfólio Total
+| Data | Tangem | T212 | Robinhood | Bot USDC | **Total €** | Δ |
+|------|--------|------|-----------|----------|-------------|---|
+| Mai-03 | $3,749 | €1,600 | ~€200 | — | **~€5,219** | base |
+| Mai-06 | $3,990 | €1,137 | — | — | **~€4,830** | -€389 |
+| Mai-16 | $3,491 | ~€1,090 | — | — | **~€4,350** | -€480 |
+| Jun-01 | $3,313 | €1,473 | €606 | — | **~€5,150** | +€800 |
+| Jun-03 | $3,415 | €1,473 | €335 | $154 | **~€5,088** | -€62 |
+| Jun-12 | $3,313 | €1,328 | €678 | $150 | **~€5,231** | +€143 |
+| **Jun-15** | **$3,542** | **€1,466** | **€698** | **$165** | **~€5,574** | **+€343** |
+
+*Taxa EUR/USD ~1.08 usada para conversões. Total Jun-15 é o máximo histórico registado neste projecto.*
+
+---
+
 ## 9. Infraestrutura e Operações
 
 ### Configuração actual — Termux (Android)
