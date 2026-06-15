@@ -298,6 +298,8 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
             "orderType":     "STOP_MARKET",
             "stopPrice":     f"{stop_price:.{decimals}f}",
             "closePosition": "true",
+            "workingType":   "MARK_PRICE",
+            "priceProtect":  "true",
         }
         for attempt in range(3):
             signed = _sign(params)
@@ -329,6 +331,8 @@ def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
             "orderType":     "TAKE_PROFIT_MARKET",
             "stopPrice":     f"{tp_price:.{decimals}f}",
             "closePosition": "true",
+            "workingType":   "MARK_PRICE",
+            "priceProtect":  "true",
         }
         for attempt in range(2):
             r = requests.post(
@@ -359,6 +363,7 @@ def place_trailing_stop(symbol: str, side: str, callback_rate: float,
             "callbackRate":    f"{callback_rate}",
             "activationPrice": f"{activation_price:.{decimals}f}",
             "closePosition":   "true",
+            "workingType":     "MARK_PRICE",
         }
         r    = requests.post(f"{BASE_URL}/fapi/v1/algoOrder",
                              params=_sign(params), headers=_headers(), timeout=10)
