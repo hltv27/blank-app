@@ -1,5 +1,6 @@
 import logging
 import random
+import time
 from pathlib import Path
 
 from affiliate_bot.config import Config
@@ -19,9 +20,14 @@ logger = logging.getLogger(__name__)
 def refresh_product_cache(niches: dict):
     """Fetch fresh products from API for all niches and store in DB. Runs once daily."""
     logger.info("Refreshing product cache for %d niches", len(niches))
-    for niche_key, niche_cfg in niches.items():
+    for i, (niche_key, niche_cfg) in enumerate(niches.items()):
+        if i > 0:
+            time.sleep(5)
         try:
             products = get_products_for_niche(niche_key, niche_cfg, limit=20)
+            if not products:
+                logger.warning("Cache refresh got 0 products for %s — leaving cache stale for retry", niche_key)
+                continue
             for p in products:
                 save_product(p)
             mark_cache_refreshed(niche_key)
@@ -38,9 +44,10 @@ def run_post_cycle(platform: str, niche_key: str, niche_config: dict) -> bool:
     if not products:
         logger.info("Cache empty/stale for %s — fetching from API", niche_key)
         products = get_products_for_niche(niche_key, niche_config, limit=20)
-        for p in products:
-            save_product(p)
-        mark_cache_refreshed(niche_key)
+        if products:
+            for p in products:
+                save_product(p)
+            mark_cache_refreshed(niche_key)
 
     if not products:
         logger.warning("No products found for niche %s", niche_key)
