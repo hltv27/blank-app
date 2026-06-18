@@ -718,6 +718,39 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ---
 
+### Activos Tangem (2026-06-18)
+| Activo | Qtd | Preço | Valor USD | Δ vs 15 Jun |
+|--------|-----|-------|-----------|-------------|
+| BTC | 0.0348942 | $63,618.57 | $2,219.92 | -$125 |
+| ETH | 0.44191314 | $1,733.97 | $766.27 | -$48 |
+| SOL | 3.26472832 | $70.74 | $230.93 (APY 5.75%) | -$16 |
+| XRP | 84.566087 | $1.16 | $97.92 | -$11 |
+| Base ETH | 0.009798 | $1,733.97 | $16.99 | -$1 |
+| LINK | 0.96250677 | $7.99 | $7.69 | — |
+| **Total** | | | **$3,341** | **-$201** |
+
+### Invest — Trading 212 (2026-06-18) — €1,545.62 total
+| Ticker | Qtd | Valor EUR | Var hoje |
+|--------|-----|-----------|----------|
+| VWCE (Vanguard FTSE All-World) | 5.67667402 | €940.68 | +3.08% |
+| CEG (Constellation Energy) | 0.95877895 | €231.77 | -3.07% |
+| FTNT (Fortinet) | 1.04051011 | €131.44 | +10.23% |
+| MRVL (Marvell Technology) | 0.3779996 | €107.27 | +8.05% |
+| LEU (Centrus Energy) | 0.44170761 | €72.88 | +4.65% |
+| CRWV (CoreWeave) | 0.59074987 | €61.58 | +5.03% |
+
+*IONQ e EBS já não aparecem — vendidos, conforme decidido. Conta total +€26.17 (+1.9%) hoje.*
+
+### Robinhood (2026-06-18) — €709.35 total
+| Activo | Qtd | Preço |
+|--------|-----|-------|
+| ANET (Arista Networks) | 2.95008 | $168.91 |
+| SMH (VanEck Semiconductor ETF) | 0.45925 | $658.12 |
+
+*+€13.45 (+1.93%) hoje.*
+
+---
+
 ### Evolução do Portfólio Total
 | Data | Tangem | T212 | Robinhood | Outros | **Total €** | Δ |
 |------|--------|------|-----------|--------|-------------|---|
@@ -730,8 +763,9 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 | Jun-03 | $3,415 | €1,473 | €335 | $154 bot | **~€5,088** | -€332 |
 | Jun-12 | $3,313 | €1,328 | €678 | $150 bot | **~€5,231** | +€143 |
 | Jun-15 | $3,542 | €1,466 | €698 | $165 bot + $290 ZEC | **~€5,842** | +€611 |
+| Jun-18 | $3,341 | €1,546 | €709 | $165 bot + $290 ZEC (sem actualização) | **~€5,770** | -€72 |
 
-*Taxa EUR/USD ~1.08 usada para conversões. ZEC Spot Binance: 0.5424 ZEC ≈ $290 (ganho via Earn, custo $0). Pico histórico: €6,601 em Mai-14 (BTC $81,522). Distância ao pico: -€759 (-11.5%). Recuperação desde mínimo Jun-03: +€754 (+14.8%).*
+*Taxa EUR/USD ~1.08 usada para conversões. ZEC Spot Binance: 0.5424 ZEC ≈ $290 (ganho via Earn, custo $0). Pico histórico: €6,601 em Mai-14 (BTC $81,522). Distância ao pico: -€831 (-12.6%). Recuperação desde mínimo Jun-03: +€682 (+13.4%).*
 
 ---
 
