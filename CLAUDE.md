@@ -93,7 +93,7 @@ RISCO_USDC          = 5.0      # risco por trade em USDC
 ALAVANCAGEM         = 6        # leverage
 MAX_TRADES_ABERTOS  = 5
 MAX_MARGEM_TRADE    = 0.20     # máx 20% do capital por posição
-PROFIT_LOCK_USDC    = 1.0      # activa lock a partir de +1 USDC
+PROFIT_LOCK_USDC    = 0.5      # activa lock a partir de +0.5 USDC
 PROFIT_LOCK_STEP    = 0.5      # move stop a cada +0.5 USDC
 TRAILING_LOCK_USDC  = 4.0      # ao atingir 4 USDC muda para trailing stop
 EMERGENCY_ROI_CUT   = -5.5     # % ROI para corte de emergência
@@ -137,12 +137,15 @@ TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
 - Drawdown 25% do saldo → fecha tudo do bot
 - Margem > 35% → fecha tudo do bot
 - Margem global > 50% → fecha posições a positivo (liquidation guard)
-- **Nunca tocam em posições manuais**
+- **Guards de drawdown/margem/BTC-crash nunca tocam em posições manuais**
 
 ### Posições manuais (detectadas no scan)
 - Sem `pending_sync` → vai para `posicoes_externas`
 - Bot envia alertas de ROI (-5%, -3%, +3%, +5%, +10%, +15%, +20%)
-- Bot NÃO coloca stops, NÃO fecha, P&L NÃO conta para circuit breaker
+- Bot NÃO fecha, P&L NÃO conta para circuit breaker
+- **Profit lock activo**: a partir de `PROFIT_LOCK_USDC` (+0.5 USDC) o bot coloca/move um `STOP_MARKET closePosition` a cada `PROFIT_LOCK_STEP` (+0.5 USDC), igual ao que faz nas trades do próprio bot
+- Na primeira activação cancela qualquer stop pré-existente no símbolo (`get_open_algo_orders` + `cancel_algo_order`) antes de colocar o seu — evita conflito com stop manual já colocado pelo utilizador (só pode existir 1 `closePosition` stop por símbolo)
+- Implementado em `main.py`, bloco "Monitorização de posições externas"
 
 ### Circuit breaker
 - `MAX_LOSS_DIA = 15 USDC` → cooldown 120min

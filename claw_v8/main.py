@@ -20,9 +20,14 @@ from config import (
     BTC_SYMBOLS, MAX_TRADES_ABERTOS,
     MAX_LONGS_ALT, MAX_SHORTS_ALT, LOOKBACK,
     CHECK_POSICOES_FAST, CHECK_POSICOES, CAPITAL_MAX_BOT, RISCO_USDC,
-    ALAVANCAGEM, TOP_N_FUTURES, FORCE_INCLUDE_SYMBOLS
+    ALAVANCAGEM, TOP_N_FUTURES, FORCE_INCLUDE_SYMBOLS,
+    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP
 )
-from exchange import tg, get_klines, get_positions, get_balance, get_price, sync_time, get_public_ip, get_top_futures_symbols, place_stop_market as _psm
+import math
+from exchange import (
+    tg, get_klines, get_positions, get_balance, get_price, sync_time, get_public_ip,
+    get_top_futures_symbols, place_stop_market as _psm, cancel_algo_order, get_open_algo_orders
+)
 from indicators import atr, get_daily_vwap
 from strategy import detect_market_mode, signal_trending
 from filters import calc_correlation
@@ -398,7 +403,7 @@ def run():
                             f"{dir_icon} <b>{symbol}</b>{na_lista}\n"
                             f"Entrada: <code>{pos['entry']:.6g}</code> | "
                             f"Qty: {abs(pos['qty']):.4g} | ~{notional:.1f} USDC\n"
-                            f"<i>Bot não gere nem coloca stops. P&amp;L não conta para os limites.</i>"
+                            f"<i>Bot não fecha nem conta para os limites. A partir de +{PROFIT_LOCK_USDC:.1f} USDC, bloqueia lucro a cada {PROFIT_LOCK_STEP:.1f} USDC.</i>"
                         )
 
 
@@ -429,6 +434,57 @@ def run():
                                         f"Entrada: {ext['entry']:.6g} | "
                                         f"Actual: {preco_atual:.6g}"
                                     )
+
+                    # ── Lock de lucro progressivo (mesma lógica do bot) ──────
+                    pos_real = posicoes_reais[symbol]
+                    pnl_ext  = pos_real["pnl"]
+                    qty_ext  = abs(pos_real["qty"])
+                    side_ext = ext["direction"]
+                    current_lock_ext = ext.get("profit_lock_level", 0.0)
+                    if qty_ext > 0 and ext["entry"] > 0 and pnl_ext >= PROFIT_LOCK_USDC:
+                        new_lock_ext = math.floor(pnl_ext / PROFIT_LOCK_STEP) * PROFIT_LOCK_STEP
+                        if new_lock_ext >= PROFIT_LOCK_USDC and new_lock_ext > current_lock_ext + 1e-9:
+                            lock_usdc_ext = max(new_lock_ext - PROFIT_LOCK_STEP, 0.0)
+                            if side_ext == "LONG":
+                                lock_price_ext = (round(ext["entry"] + lock_usdc_ext / qty_ext, 8)
+                                                   if lock_usdc_ext > 0 else round(ext["entry"] * 1.0005, 8))
+                            else:
+                                lock_price_ext = (round(ext["entry"] - lock_usdc_ext / qty_ext, 8)
+                                                   if lock_usdc_ext > 0 else round(ext["entry"] * 0.9995, 8))
+
+                            # Primeira activação: pode já existir stop colocado manualmente
+                            # pelo utilizador — cancela TUDO antes (só pode haver 1 closePosition stop)
+                            if current_lock_ext == 0.0:
+                                for old_algo_id in get_open_algo_orders(symbol):
+                                    cancel_algo_order(symbol, old_algo_id)
+                            old_stop_ext = ext.get("stop_order_id")
+                            if old_stop_ext:
+                                cancel_algo_order(symbol, old_stop_ext)
+                                ext["stop_order_id"] = None
+
+                            lock_side_ext = "SELL" if side_ext == "LONG" else "BUY"
+                            new_lock_id_ext = None
+                            for attempt in range(3):
+                                new_lock_id_ext = _psm(symbol, lock_side_ext, lock_price_ext, qty_ext)
+                                if new_lock_id_ext:
+                                    break
+                                if side_ext == "LONG":
+                                    lock_price_ext = round(lock_price_ext * (1 - 0.0015), 8)
+                                else:
+                                    lock_price_ext = round(lock_price_ext * (1 + 0.0015), 8)
+                                time.sleep(0.5)
+
+                            ext["profit_lock_level"] = new_lock_ext
+                            ext["stop_order_id"]     = new_lock_id_ext
+                            save_memory(mem)
+                            emoji_ext = "🔒" if current_lock_ext == 0.0 else "📈"
+                            stop_info_ext = f"#{new_lock_id_ext}" if new_lock_id_ext else "SOFTWARE ⚠️"
+                            if not new_lock_id_ext:
+                                print(f"[AVISO] {symbol} (externa): lock stop falhou após 3 tentativas")
+                            tg(
+                                f"{emoji_ext} <b>LOCK +{new_lock_ext:.1f} USDC</b> — {symbol} (externa)\n"
+                                f"Stop → {lock_price_ext:.6g} ({stop_info_ext}) | PnL: +{pnl_ext:.2f} USDC"
+                            )
                 else:
                     # Fechada — calcula P&L final
                     fechadas_ext.append(symbol)

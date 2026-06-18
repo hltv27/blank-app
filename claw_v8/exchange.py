@@ -487,6 +487,32 @@ def cancel_order(symbol: str, order_id) -> bool:
         return False
 
 
+def get_open_algo_orders(symbol: str) -> list:
+    """Lista algoIds de STOP_MARKET/TAKE_PROFIT_MARKET abertos para o símbolo.
+    Usado antes do primeiro lock numa posição externa — pode já existir um stop
+    colocado manualmente pelo utilizador, que tem de ser cancelado primeiro
+    (a conta só permite um STOP_MARKET closePosition por símbolo)."""
+    try:
+        r = requests.get(
+            f"{_SAPI_URL}/sapi/v1/algo/futures/openOrders",
+            params=_sign({"symbol": symbol}), headers=_headers(), timeout=10
+        )
+        data = r.json()
+        if _is_timestamp_error(data):
+            sync_time()
+            r = requests.get(
+                f"{_SAPI_URL}/sapi/v1/algo/futures/openOrders",
+                params=_sign({"symbol": symbol}), headers=_headers(), timeout=10
+            )
+            data = r.json()
+        orders = data.get("data", data) if isinstance(data, dict) else data
+        if isinstance(orders, list):
+            return [o["algoId"] for o in orders if o.get("symbol") == symbol and "algoId" in o]
+    except Exception as e:
+        print(f"[AVISO] get_open_algo_orders {symbol}: {e}")
+    return []
+
+
 def cancel_algo_order(symbol: str, algo_id) -> bool:
     """Cancela stop/TP. Tenta primeiro como algoId (trailing stops), depois como
     orderId regular (STOP_MARKET colocados via /fapi/v1/order)."""
