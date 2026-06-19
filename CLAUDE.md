@@ -17,7 +17,7 @@ O `ultimo_relatorio_dia` é persistido no SQLite — restarts não perdem dias n
 
 ## O que é este projecto
 Bot de trading automático para Binance Futures USDC-M (perpétuos).
-- Capital: ~240 USDC | Alavancagem: 6x | Margem: Cross
+- Capital: ~370 USDC | Alavancagem: 6x | Margem: Cross
 - Conta europeia **BNFCR** (Binance France Crypto Receipt) — tem restrições de API
 - Corre no **VPS** `178.105.52.219` — IP fixo whitelisted na Binance
 - Ficheiros em `/root/blank-app/claw_v8/` | Log: `/root/claw.log`
@@ -88,7 +88,7 @@ O profit lock cancela o stop antigo ANTES de colocar o novo. Ver `execution.py`.
 ## Parâmetros actuais em `config.py`
 
 ```python
-CAPITAL_MAX_BOT     = 300.0    # capital máximo que o bot usa
+CAPITAL_MAX_BOT     = 370.0    # capital máximo que o bot usa
 RISCO_USDC          = 5.0      # risco por trade em USDC
 ALAVANCAGEM         = 6        # leverage
 MAX_TRADES_ABERTOS  = 5
