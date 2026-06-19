@@ -749,6 +749,26 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 *+€13.45 (+1.93%) hoje.*
 
+### Invest — Trading 212 (2026-06-19) — €1.428,96 total
+| Ticker | Qtd | Valor EUR | Var hoje | Δ vs Jun-18 |
+|--------|-----|-----------|----------|-------------|
+| VWCE (Vanguard FTSE All-World) | 5,67667402 | €939,26 | +2,92% | — |
+| CEG (Constellation Energy) | 0,95877895 | €234,59 | -1,89% | — |
+| FTNT (Fortinet) | 1,04051011 | €130,91 | +9,79% | — |
+| MRVL (Marvell Technology) | 0,18439326 | €52,01 | +7,39% | **vendido a meio** |
+| LEU (Centrus Energy) | 0,44583732 | €72,19 | +2,31% | — |
+| CRWV (CoreWeave) | — | — | — | **vendido por completo** |
+
+*Reequilíbrio do tema IA conforme decidido: CRWV liquidado, MRVL reduzido a metade. ~€117 libertados.*
+
+### Robinhood (2026-06-19) — €707,39 total
+| Activo | Qtd | Preço | Δ vs Jun-18 |
+|--------|-----|-------|-------------|
+| ANET (Arista Networks) | 1,70895 | $169,03 | reduzido (-1,24) |
+| SMH (VanEck Semiconductor ETF) | 0,31906 | $657,01 | reduzido (-0,14) |
+
+*ANET e SMH aliviados. ~€280 libertados. Exposição IA/semis das acções caiu de ~52% para bem menos de metade. Cash libertado (~€397 total) ainda por deployar — plano: metade VWCE, metade buffer.*
+
 ---
 
 ### Evolução do Portfólio Total
@@ -764,8 +784,9 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 | Jun-12 | $3,313 | €1,328 | €678 | $150 bot | **~€5,231** | +€143 |
 | Jun-15 | $3,542 | €1,466 | €698 | $165 bot + $290 ZEC | **~€5,842** | +€611 |
 | Jun-18 | $3,341 | €1,546 | €709 | $165 bot + $290 ZEC (sem actualização) | **~€5,770** | -€72 |
+| Jun-19 | $3,341 (sem actualização) | €1,429 | €707 | $165 bot + $290 ZEC (sem actualização) | **~€5,651** | -€119 |
 
-*Taxa EUR/USD ~1.08 usada para conversões. ZEC Spot Binance: 0.5424 ZEC ≈ $290 (ganho via Earn, custo $0). Pico histórico: €6,601 em Mai-14 (BTC $81,522). Distância ao pico: -€831 (-12.6%). Recuperação desde mínimo Jun-03: +€682 (+13.4%).*
+*Taxa EUR/USD ~1.08 usada para conversões. ZEC Spot Binance: 0.5424 ZEC ≈ $290 (ganho via Earn, custo $0). Pico histórico: €6,601 em Mai-14 (BTC $81,522). Distância ao pico: -€950 (-14.4%). Recuperação desde mínimo Jun-03: +€563 (+11.1%). Queda de Jun-19 reflecte reequilíbrio do tema IA (venda CRWV, corte MRVL/ANET/SMH) — ~€397 libertados ainda não reinvestidos, não contam como perda real de capital.*
 
 ---
 
