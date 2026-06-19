@@ -289,12 +289,13 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
     """STOP_MARKET via /fapi/v1/algoOrder com closePosition=true.
-    Binance BNFCR: usa algoOrder sem algoType (causa erro 'type missing')."""
+    Binance exige o parâmetro algoType (mudança de API — antes bastava orderType)."""
     try:
         decimals = PRICE_PRECISION.get(symbol, 2)
         params = {
             "symbol":        symbol,
             "side":          side,
+            "algoType":      "STOP_MARKET",
             "orderType":     "STOP_MARKET",
             "stopPrice":     f"{stop_price:.{decimals}f}",
             "closePosition": "true",
@@ -322,12 +323,14 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
 
 def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
     """TAKE_PROFIT_MARKET via /fapi/v1/algoOrder com closePosition=true.
-    Binance BNFCR: endpoint regular rejeita TAKE_PROFIT_MARKET — usa algoOrder."""
+    Binance BNFCR: endpoint regular rejeita TAKE_PROFIT_MARKET — usa algoOrder.
+    Exige também o parâmetro algoType (mudança de API)."""
     try:
         decimals = PRICE_PRECISION.get(symbol, 2)
         params = {
             "symbol":        symbol,
             "side":          side,
+            "algoType":      "TAKE_PROFIT_MARKET",
             "orderType":     "TAKE_PROFIT_MARKET",
             "stopPrice":     f"{tp_price:.{decimals}f}",
             "closePosition": "true",
@@ -359,6 +362,7 @@ def place_trailing_stop(symbol: str, side: str, callback_rate: float,
         params = {
             "symbol":          symbol,
             "side":            side,
+            "algoType":        "TRAILING_STOP_MARKET",
             "orderType":       "TRAILING_STOP_MARKET",
             "callbackRate":    f"{callback_rate}",
             "activationPrice": f"{activation_price:.{decimals}f}",
