@@ -140,6 +140,7 @@ OBI_VETO        = 0.3
 EQUITY_EMA_N    = 20
 CORR_MAX        = 0.75
 MACRO_CACHE_MIN = 60
+MACRO_LOOKBACK_MIN = 30  # bloqueia também N min DEPOIS de evento de alto impacto
 
 # Guard de liquidação global (conta inteira USDT+USDC)
 LIQUIDATION_GUARD_PCT = 50.0  # > 50% → fecha todas as posições a positivo
