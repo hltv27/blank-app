@@ -3,14 +3,13 @@ Claw Agent v8.0 — Execução de trades e gestão de posições
 Mesma lógica da v7.1 + logging SQLite completo.
 """
 import time
-import math
 import requests
 from config import (
     BASE_URL, CAPITAL_MAX_BOT, RISCO_USDC, ALAVANCAGEM,
     SYMBOL_PRECISION, STOP_RETRY_MAX, EMERGENCY_ROI_CUT,
     PARTIAL_TP_RATIO, PARTIAL_TP_QTY, PARTIAL_TP2_RATIO, PARTIAL_TP2_QTY,
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
-    MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, BTC_CRASH_PCT, CORR_MAX,
+    MAX_MARGEM_TRADE, BTC_CRASH_PCT, CORR_MAX,
     BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
     ROI_TP_IMEDIATO, SCORE_FORTE, SCORE_ALERTA, EMERGENCY_PNL_CUT,
     LIQUIDATION_GUARD_PCT, LIQUIDATION_WARN1_PCT, LIQUIDATION_WARN2_PCT, LIQUIDATION_WARN3_PCT,
@@ -617,77 +616,6 @@ def gerir_posicoes(mem: dict):
                 f"Activação: {activation:.6g} | Callback: {cb}%\n"
                 f"PnL: +{pos['pnl']:.2f} USDC | {stop_txt}"
             )
-
-        # ── Lock de lucro progressivo: a cada PROFIT_LOCK_STEP USDC ─────
-        lock_side = "SELL" if side == "LONG" else "BUY"
-        if (not trade.get("partial_tp_done") and entry > 0 and qty > 0
-                and pos["pnl"] >= PROFIT_LOCK_USDC
-                and not trade.get("trailing_lock_done")):
-            current_lock = trade.get("profit_lock_level", 0.0)
-            new_lock = math.floor(pos["pnl"] / PROFIT_LOCK_STEP) * PROFIT_LOCK_STEP
-            if new_lock >= PROFIT_LOCK_USDC and new_lock > current_lock + 1e-9:
-                # Stop no nível ANTERIOR garante distância mínima ao preço actual.
-                # Binance rejeita stops a < 0.1% do mark price — a fórmula "entry + new_lock/qty"
-                # coincide quase exactamente com o preço corrente quando o PnL acabou de cruzar o limiar.
-                lock_usdc = max(new_lock - PROFIT_LOCK_STEP, 0.0)
-                if side == "LONG":
-                    lock_price = round(entry + lock_usdc / qty, 8) if lock_usdc > 0 else round(entry * 1.0005, 8)
-                else:
-                    lock_price = round(entry - lock_usdc / qty, 8) if lock_usdc > 0 else round(entry * 0.9995, 8)
-
-                # Cancela stop antigo PRIMEIRO (closePosition só permite um de cada vez)
-                old_stop_lock = trade.get("stop_order_id")
-                if old_stop_lock:
-                    cancel_algo_order(symbol, old_stop_lock)
-                    mem["trades_abertos"][symbol]["stop_order_id"] = None
-
-                # Tenta colocar stop — 3 tentativas com buffer crescente se falhar
-                new_lock_id = None
-                for attempt in range(3):
-                    new_lock_id = place_stop_market(symbol, lock_side, lock_price, qty)
-                    if new_lock_id:
-                        break
-                    # Afasta o stop 0.15% a cada tentativa para evitar rejeição Binance
-                    if side == "LONG":
-                        lock_price = round(lock_price * (1 - 0.0015), 8)
-                    else:
-                        lock_price = round(lock_price * (1 + 0.0015), 8)
-                    time.sleep(0.5)
-
-                mem["trades_abertos"][symbol]["profit_lock_level"] = new_lock
-                mem["trades_abertos"][symbol]["sl"]                = lock_price
-                if new_lock_id:
-                    mem["trades_abertos"][symbol]["stop_order_id"] = new_lock_id
-                else:
-                    print(f"[AVISO] {symbol}: lock stop falhou após 3 tentativas — software SL activo")
-                    tg(f"⚠️ <b>{symbol}</b> — stop lock FALHOU (3 tentativas)\nSL software: {lock_price:.4f} | PnL: +{pos['pnl']:.2f}")
-                save_memory(mem)
-                emoji = "🔒" if current_lock == 0.0 else "📈"
-                stop_info = f"#{new_lock_id}" if new_lock_id else "SOFTWARE ⚠️"
-                tg(
-                    f"{emoji} <b>LOCK +{new_lock:.1f} USDC</b> — {symbol}\n"
-                    f"Stop → {lock_price:.4f} ({stop_info}) | PnL: +{pos['pnl']:.2f} USDC"
-                )
-
-        # ── Software profit lock: fecha se exchange stop falhou e PnL recuou ──
-        # Quando o exchange stop não existe (falha persistente) e o PnL caiu abaixo
-        # do nível locked, o software reproduz o comportamento do exchange stop.
-        profit_lock_lvl = trade.get("profit_lock_level", 0.0)
-        if (profit_lock_lvl >= PROFIT_LOCK_USDC
-                and not trade.get("stop_order_id")
-                and not trade.get("trailing_lock_done")
-                and pos["pnl"] < profit_lock_lvl - PROFIT_LOCK_STEP):
-            if _fechar_com_retry(symbol, pos["qty"], side):
-                _registar_fecho(symbol, side, entry, sl, tp, qty,
-                                pos["pnl"], "SOFTWARE_PROFIT_LOCK", pos["pnl"] > 0, mem)
-                tg(
-                    f"🔒 <b>LOCK FECHADO (software)</b> — {symbol}\n"
-                    f"PnL recuou: <b>+{pos['pnl']:.2f} USDC</b> | Lock: +{profit_lock_lvl:.1f} USDC\n"
-                    f"Exchange stop falhou — software lock protegeu lucro."
-                )
-            else:
-                tg(f"🚨 <b>SOFTWARE LOCK FALHOU</b> — {symbol}\nPnL: +{pos['pnl']:.2f} | fecha MANUALMENTE")
-            continue
 
         # ── TP1: fecha 33% a 2R, move stop para breakeven ────────────────
         entry_trade = trade.get("entry", 0)
