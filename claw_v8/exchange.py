@@ -289,14 +289,14 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
     """STOP_MARKET via /fapi/v1/algoOrder com closePosition=true.
-    Binance exige algoType=CONDITIONAL (orderType leva o tipo específico)."""
+    Binance exige algoType=CONDITIONAL e o tipo no parâmetro "type" (não "orderType")."""
     try:
         decimals = PRICE_PRECISION.get(symbol, 2)
         params = {
             "symbol":        symbol,
             "side":          side,
             "algoType":      "CONDITIONAL",
-            "orderType":     "STOP_MARKET",
+            "type":          "STOP_MARKET",
             "stopPrice":     f"{stop_price:.{decimals}f}",
             "closePosition": "true",
             "workingType":   "MARK_PRICE",
@@ -324,14 +324,14 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
 def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
     """TAKE_PROFIT_MARKET via /fapi/v1/algoOrder com closePosition=true.
     Binance BNFCR: endpoint regular rejeita TAKE_PROFIT_MARKET — usa algoOrder.
-    Exige algoType=CONDITIONAL (orderType leva o tipo específico)."""
+    Exige algoType=CONDITIONAL e o tipo no parâmetro "type" (não "orderType")."""
     try:
         decimals = PRICE_PRECISION.get(symbol, 2)
         params = {
             "symbol":        symbol,
             "side":          side,
             "algoType":      "CONDITIONAL",
-            "orderType":     "TAKE_PROFIT_MARKET",
+            "type":          "TAKE_PROFIT_MARKET",
             "stopPrice":     f"{tp_price:.{decimals}f}",
             "closePosition": "true",
             "workingType":   "MARK_PRICE",
@@ -363,7 +363,7 @@ def place_trailing_stop(symbol: str, side: str, callback_rate: float,
             "symbol":          symbol,
             "side":            side,
             "algoType":        "CONDITIONAL",
-            "orderType":       "TRAILING_STOP_MARKET",
+            "type":            "TRAILING_STOP_MARKET",
             "callbackRate":    f"{callback_rate}",
             "activationPrice": f"{activation_price:.{decimals}f}",
             "closePosition":   "true",
