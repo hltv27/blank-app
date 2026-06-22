@@ -617,6 +617,45 @@ def gerir_posicoes(mem: dict):
                 f"PnL: +{pos['pnl']:.2f} USDC | {stop_txt}"
             )
 
+        # ── Breakeven a 1R: protege lucro antes do TP1 (2R) ───────────────
+        # Sem isto, uma trade que esteve em lucro mas nunca chegou a 2R
+        # pode reverter e fechar no SL original (perda), apesar de ter
+        # passado tempo claramente positiva.
+        entry_trade0 = trade.get("entry", 0)
+        sl_orig      = trade.get("sl", entry_trade0)
+        sl_dist      = abs(entry_trade0 - sl_orig)
+        if (sl_dist > 0 and entry_trade0 > 0
+                and not trade.get("partial_tp_done")
+                and not trade.get("breakeven_1r_done")):
+            if side == "LONG":
+                r1_level = entry_trade0 + sl_dist
+                hit_r1   = price >= r1_level
+                be_price1 = round(entry_trade0 * (1 + BREAKEVEN_OFFSET), 8)
+            else:
+                r1_level = entry_trade0 - sl_dist
+                hit_r1   = price <= r1_level
+                be_price1 = round(entry_trade0 * (1 - BREAKEVEN_OFFSET), 8)
+            if hit_r1:
+                old_stop1 = trade.get("stop_order_id")
+                if old_stop1:
+                    try:
+                        cancel_algo_order(symbol, old_stop1)
+                    except Exception:
+                        pass
+                be_side1     = "SELL" if side == "LONG" else "BUY"
+                new_stop_id1 = place_stop_market(symbol, be_side1, be_price1, abs(pos["qty"]))
+                mem["trades_abertos"][symbol]["breakeven_1r_done"] = True
+                mem["trades_abertos"][symbol]["sl"]                = be_price1
+                mem["trades_abertos"][symbol]["stop_order_id"]     = new_stop_id1
+                save_memory(mem)
+                stop_txt1 = f"#{new_stop_id1}" if new_stop_id1 else "SOFTWARE ⚠️"
+                tg(
+                    f"🔒 <b>BREAKEVEN 1R</b> — {symbol}\n"
+                    f"Preço: {price:.4f} | Stop movido para: {be_price1:.4f}\n"
+                    f"{stop_txt1}"
+                )
+                sl = be_price1
+
         # ── TP1: fecha 33% a 2R, move stop para breakeven ────────────────
         entry_trade = trade.get("entry", 0)
         if sl > 0 and tp > 0 and not trade.get("partial_tp_done") and entry_trade > 0:
