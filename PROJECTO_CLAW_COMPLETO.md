@@ -780,7 +780,7 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 | Binance Futures (bot) | USD | ~$165 USDC + $290 ZEC (sem actualização) | — |
 | **Total aprox.** | | **~€5.801** | **+€150 (+2,7%)** |
 
-*Recuperação ligeira em todas as contas. T212 cresceu €106 com VWCE em alta. Robinhood passou a mostrar também posições cripto (Aerodrome Finance, Eigenlayer) e "Euro Interest" (cash a render 5% APY) — diversificação da conta para além de acções/ETFs.*
+*Recuperação ligeira em todas as contas. T212 cresceu €106 com VWCE em alta. Robinhood passou a render juros via "Euro Interest" (cash a 5% APY) e trocou QQQ por QQQM.*
 
 ### Activos Tangem (2026-06-22)
 | Activo | Qtd | Valor USD | Δ vs Jun-19 |
@@ -810,11 +810,9 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 | ANET (Arista Networks) | 1,70895 | $174,00 | +$5 |
 | QQQM (Invesco NASDAQ 100 ETF) | 0,96694 | $303,94 | substitui QQQ |
 | SMH (VanEck Semiconductor ETF) | 0,32241 | $667,90 | +0,003 unid. |
-| Aerodrome Finance (cripto) | — | -9,09% hoje | novo |
-| Eigenlayer (cripto) | — | -9,09% hoje | novo |
 | Euro Interest (cash a render) | — | 5% APY, €0,03 ganho este mês, €0,53 em juros | novo |
 
-*Conta diversificou para cripto (Aerodrome, Eigenlayer) e passou a render juros em EUR via "Euro Interest". QQQ trocado por QQQM.*
+*Passou a render juros em EUR via "Euro Interest". QQQ trocado por QQQM. (Aerodrome Finance e Eigenlayer vistos no ecrã são apenas um carrossel de "movers" de mercado — market cap e variação do dia — não são posições da carteira.)*
 
 ---
 
@@ -834,7 +832,7 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 | Jun-19 | $3,341 (sem actualização) | €1,429 | €707 | $165 bot + $290 ZEC (sem actualização) | **~€5,651** | -€119 |
 | Jun-22 | $3.376 | €1.535 | €718 | $165 bot + $290 ZEC (sem actualização) | **~€5.801** | +€150 |
 
-*Taxa EUR/USD ~1.08 usada para conversões. ZEC Spot Binance: 0.5424 ZEC ≈ $290 (ganho via Earn, custo $0). Pico histórico: €6,601 em Mai-14 (BTC $81,522). Distância ao pico: -€800 (-12.1%). Recuperação desde mínimo Jun-03: +€713 (+14.0%). Jun-22: recuperação ligeira e generalizada; Robinhood passou a incluir posições cripto (Aerodrome, Eigenlayer) e juros EUR ("Euro Interest"), T212 reforçou VWCE/FTNT/LEU com AutoInvest reduzido para ~€61/mês.*
+*Taxa EUR/USD ~1.08 usada para conversões. ZEC Spot Binance: 0.5424 ZEC ≈ $290 (ganho via Earn, custo $0). Pico histórico: €6,601 em Mai-14 (BTC $81,522). Distância ao pico: -€800 (-12.1%). Recuperação desde mínimo Jun-03: +€713 (+14.0%). Jun-22: recuperação ligeira e generalizada; Robinhood passou a render juros EUR via "Euro Interest" e trocou QQQ por QQQM, T212 reforçou VWCE/FTNT/LEU com AutoInvest reduzido para ~€61/mês.*
 
 ---
 
