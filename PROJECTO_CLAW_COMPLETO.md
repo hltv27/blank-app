@@ -771,6 +771,53 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ---
 
+### Snapshot 2026-06-22
+| Carteira | Moeda | Valor | Δ vs Jun-19 |
+|----------|-------|-------|-------------|
+| Tangem Wallet | USD | $3.376,37 | +$35 |
+| Invest (Trading 212) | EUR | €1.534,95 | +€106 |
+| Robinhood (acções + cripto) | EUR | €718,15 | +€11 |
+| Binance Futures (bot) | USD | ~$165 USDC + $290 ZEC (sem actualização) | — |
+| **Total aprox.** | | **~€5.801** | **+€150 (+2,7%)** |
+
+*Recuperação ligeira em todas as contas. T212 cresceu €106 com VWCE em alta. Robinhood passou a mostrar também posições cripto (Aerodrome Finance, Eigenlayer) e "Euro Interest" (cash a render 5% APY) — diversificação da conta para além de acções/ETFs.*
+
+### Activos Tangem (2026-06-22)
+| Activo | Qtd | Valor USD | Δ vs Jun-19 |
+|--------|-----|-----------|-------------|
+| BTC | 0,0348942 | $2.250,04 (+0,61%) | — |
+| ETH | 0,44191314 | $767,00 (+0,33%) | — |
+| SOL | 3,26662273 | $237,72 (APY 5,72%, -2,08%) | — |
+| XRP | 84,566087 | $95,99 (-0,88%) | — |
+| Base ETH | 0,009798 | $17,01 (+0,33%) | — |
+| LINK | 0,96250677 | $7,62 (-0,30%) | — |
+| **Total** | | **$3.376,37** | **+$35** |
+
+### Invest — Trading 212 (2026-06-22) — €1.534,95 total
+| Ticker | Qtd | Valor EUR | Var hoje |
+|--------|-----|-----------|----------|
+| VWCE (Vanguard FTSE All-World) | 5,82069771 | €966,47 | +3,19% |
+| FTNT (Fortinet) | 1,07177698 | €136,34 | +10,63% |
+| CEG (Constellation Energy) | 0,95877895 | €230,81 | -3,47% |
+| MRVL (Marvell Technology) | 0,29554497 | €79,67 | +1,65% |
+| LEU (Centrus Energy) | 0,75705578 | €121,66 | +0,98% |
+
+*AutoInvest reduzido para ~€61/mês (era €274/mês em Jun-15). Posições reforçadas em VWCE, FTNT, LEU desde Jun-19; MRVL e CEG mantidos.*
+
+### Robinhood (2026-06-22) — €718,15 total
+| Activo | Qtd / Detalhe | Valor | Δ vs Jun-19 |
+|--------|---------------|-------|-------------|
+| ANET (Arista Networks) | 1,70895 | $174,00 | +$5 |
+| QQQM (Invesco NASDAQ 100 ETF) | 0,96694 | $303,94 | substitui QQQ |
+| SMH (VanEck Semiconductor ETF) | 0,32241 | $667,90 | +0,003 unid. |
+| Aerodrome Finance (cripto) | — | -9,09% hoje | novo |
+| Eigenlayer (cripto) | — | -9,09% hoje | novo |
+| Euro Interest (cash a render) | — | 5% APY, €0,03 ganho este mês, €0,53 em juros | novo |
+
+*Conta diversificou para cripto (Aerodrome, Eigenlayer) e passou a render juros em EUR via "Euro Interest". QQQ trocado por QQQM.*
+
+---
+
 ### Evolução do Portfólio Total
 | Data | Tangem | T212 | Robinhood | Outros | **Total €** | Δ |
 |------|--------|------|-----------|--------|-------------|---|
@@ -785,8 +832,9 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 | Jun-15 | $3,542 | €1,466 | €698 | $165 bot + $290 ZEC | **~€5,842** | +€611 |
 | Jun-18 | $3,341 | €1,546 | €709 | $165 bot + $290 ZEC (sem actualização) | **~€5,770** | -€72 |
 | Jun-19 | $3,341 (sem actualização) | €1,429 | €707 | $165 bot + $290 ZEC (sem actualização) | **~€5,651** | -€119 |
+| Jun-22 | $3.376 | €1.535 | €718 | $165 bot + $290 ZEC (sem actualização) | **~€5.801** | +€150 |
 
-*Taxa EUR/USD ~1.08 usada para conversões. ZEC Spot Binance: 0.5424 ZEC ≈ $290 (ganho via Earn, custo $0). Pico histórico: €6,601 em Mai-14 (BTC $81,522). Distância ao pico: -€950 (-14.4%). Recuperação desde mínimo Jun-03: +€563 (+11.1%). Queda de Jun-19 reflecte reequilíbrio do tema IA (venda CRWV, corte MRVL/ANET/SMH) — ~€397 libertados ainda não reinvestidos, não contam como perda real de capital.*
+*Taxa EUR/USD ~1.08 usada para conversões. ZEC Spot Binance: 0.5424 ZEC ≈ $290 (ganho via Earn, custo $0). Pico histórico: €6,601 em Mai-14 (BTC $81,522). Distância ao pico: -€800 (-12.1%). Recuperação desde mínimo Jun-03: +€713 (+14.0%). Jun-22: recuperação ligeira e generalizada; Robinhood passou a incluir posições cripto (Aerodrome, Eigenlayer) e juros EUR ("Euro Interest"), T212 reforçou VWCE/FTNT/LEU com AutoInvest reduzido para ~€61/mês.*
 
 ---
 
