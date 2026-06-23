@@ -13,7 +13,7 @@ from config import (
     BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
     ROI_TP_IMEDIATO, SCORE_FORTE, SCORE_ALERTA, EMERGENCY_PNL_CUT,
     LIQUIDATION_GUARD_PCT, LIQUIDATION_WARN1_PCT, LIQUIDATION_WARN2_PCT, LIQUIDATION_WARN3_PCT,
-    TRAILING_LOCK_USDC
+    TRAILING_LOCK_USDC, PEAK_PROFIT_MIN_USDC, PEAK_DRAWDOWN_PCT
 )
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_margin_ratio_global, get_price,
@@ -26,6 +26,7 @@ from strategy import calc_sl_tp, calc_qty, signal_trending
 
 # Timestamp do último check de reversão de sinal por símbolo (rate-limit 60s)
 _signal_inv_ts: dict = {}
+_peak_drawdown_ts: dict = {}
 
 
 def _fechar_com_retry(symbol: str, qty: float, side: str, tentativas: int = 3) -> bool:
@@ -443,6 +444,12 @@ def gerir_posicoes(mem: dict):
 
         mem["trades_abertos"][symbol]["pnl_ultimo"] = pos["pnl"]
 
+        # Regista o pico de PnL já atingido — usado pela protecção de recuo
+        peak_pnl = trade.get("peak_pnl", pos["pnl"])
+        if pos["pnl"] > peak_pnl:
+            peak_pnl = pos["pnl"]
+            mem["trades_abertos"][symbol]["peak_pnl"] = peak_pnl
+
         entry    = trade.get("entry", 0)
         qty      = abs(pos["qty"])
         qty_base = trade.get("qty_inicial", qty)
@@ -532,6 +539,39 @@ def gerir_posicoes(mem: dict):
                         continue
             except Exception as _e:
                 print(f"[AVISO] signal_inv {symbol}: {_e}")
+
+        # ── Saída por recuo do pico de lucro ──────────────────────────────
+        # Se a trade já chegou a um lucro relevante (>= PEAK_PROFIT_MIN_USDC)
+        # e recuou >= PEAK_DRAWDOWN_PCT desse pico, fecha — mas só se o sinal
+        # já não confirmar a direcção (evita fechar por simples ruído).
+        if (peak_pnl >= PEAK_PROFIT_MIN_USDC
+                and not trade.get("trailing_lock_done")
+                and time.time() - _peak_drawdown_ts.get(symbol, 0) > 60):
+            drawdown_pnl = peak_pnl - pos["pnl"]
+            if drawdown_pnl >= peak_pnl * PEAK_DRAWDOWN_PCT:
+                _peak_drawdown_ts[symbol] = time.time()
+                try:
+                    kl_pk = get_klines(symbol)
+                    pk_dir, pk_score = None, 0
+                    if kl_pk and len(kl_pk) >= 104:
+                        c_pk = [float(k[4]) for k in kl_pk]
+                        h_pk = [float(k[2]) for k in kl_pk]
+                        l_pk = [float(k[3]) for k in kl_pk]
+                        v_pk = [float(k[5]) for k in kl_pk]
+                        pk_dir, pk_score, _ = signal_trending(c_pk, h_pk, l_pk, v_pk, symbol)
+                    sinal_ok = pk_dir == side and pk_score >= SCORE_ALERTA
+                    if not sinal_ok:
+                        if _fechar_com_retry(symbol, pos["qty"], side):
+                            _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                            pos["pnl"], "PEAK_DRAWDOWN", pos["pnl"] > 0, mem)
+                            tg(
+                                f"📉 <b>RECUO DE PICO</b> — {symbol}\n"
+                                f"Pico: +{peak_pnl:.2f} USDC → Agora: {pos['pnl']:+.2f} USDC\n"
+                                f"Sinal já não confirma {side} — saída antecipada."
+                            )
+                        continue
+                except Exception as _e:
+                    print(f"[AVISO] peak_drawdown {symbol}: {_e}")
 
         # ── Saída por estagnação ──────────────────────────────────────────
         # Só fecha se aberto > 60min E PnL entre -0.5 e +1.0 (verdadeira estagnação).

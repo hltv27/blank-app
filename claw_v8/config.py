@@ -136,6 +136,11 @@ TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~0.8R), muda stop fixo → tra
 ROI_TP_IMEDIATO     = 7.0    # % ROI → fecha imediatamente, sem esperar tempo
 TIME_TP_MIN_MIN     = 10     # minutos mínimos para TIME_TP (era 30)
 
+# Protecção de pico de lucro: fecha se recuar muito do máximo já atingido
+# E o sinal já não confirmar a direcção (evita fechar por simples ruído)
+PEAK_PROFIT_MIN_USDC = 1.5    # só actua se a trade já chegou a este PnL
+PEAK_DRAWDOWN_PCT     = 0.40  # fecha se recuar >=40% do pico desde então
+
 OBI_VETO        = 0.3
 EQUITY_EMA_N    = 20
 CORR_MAX        = 0.75
