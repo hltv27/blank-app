@@ -341,7 +341,6 @@ def run():
                         sync_sl = 0.0
                         if kl_sync and len(kl_sync) > 14:
                             from indicators import atr as calc_atr
-                            from exchange import place_stop_market as _psm
                             h_s = [float(k[2]) for k in kl_sync]
                             l_s = [float(k[3]) for k in kl_sync]
                             c_s = [float(k[4]) for k in kl_sync]
