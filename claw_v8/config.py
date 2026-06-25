@@ -19,6 +19,9 @@ BASE_URL = "https://fapi.binance.com"
 # ─────────────────────────────────────────────
 TOP_N_FUTURES = 50   # top 50 por volume — evita memecoins exóticos de baixo volume
 
+# Pares sempre scaneados, independentemente de estarem no top N por volume
+FORCE_INCLUDE_SYMBOLS = ["ZECUSDC"]
+
 # Lista base de fallback (usada se a fetch dinâmica falhar)
 SYMBOLS = [
     "BTCUSDC", "ETHUSDC", "BNBUSDC", "SOLUSDC",
@@ -44,7 +47,7 @@ BTC_SYMBOLS = {"BTCUSDC"}
 # ─────────────────────────────────────────────
 #  RISCO
 # ─────────────────────────────────────────────
-CAPITAL_MAX_BOT     = 300.0
+CAPITAL_MAX_BOT     = 370.0
 RISCO_USDC          = 5.0
 ALAVANCAGEM         = 6
 RATIO_ALVO          = 3.0
@@ -102,6 +105,7 @@ CVD_PERIOD = 20
 ATR_SL_MULT_MIN     = 1.8      # era 1.2 — SL mínimo mais largo
 ATR_SL_MULT_MAX     = 2.5      # era 1.8 — mercado volátil → SL ainda mais largo
 SL_MIN_PCT          = 0.005    # SL nunca a menos de 0.5% da entrada (Binance rejeita <0.1%)
+SL_MAX_PCT          = 0.03     # SL nunca a mais de 3% da entrada
 ATR_VOL_SCALE_PCT   = 0.003    # ATR/price acima disto → reduz qty
 TAKER_RATIO_MIN     = 0.52     # taker buy ratio mínimo para LONG
 
@@ -124,18 +128,24 @@ BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 # Guarda de capital — nunca perder mais de 25% em aberto
 MAX_DRAWDOWN_PCT    = 0.25   # 25% do saldo → fecha tudo
 MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
-MAX_MARGEM_TRADE    = 0.20   # máx 20% do capital por posição (60 USDC em 300)
-PROFIT_LOCK_USDC    = 1.0    # activa lock a partir deste PnL
+MAX_MARGEM_TRADE    = 0.20   # máx 20% do capital por posição (74 USDC em 370)
+PROFIT_LOCK_USDC    = 0.5    # activa lock a partir deste PnL
 PROFIT_LOCK_STEP    = 0.5    # a cada +0.5 USDC move o stop para esse nível
 TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~0.8R), muda stop fixo → trailing stop
 
 ROI_TP_IMEDIATO     = 7.0    # % ROI → fecha imediatamente, sem esperar tempo
 TIME_TP_MIN_MIN     = 10     # minutos mínimos para TIME_TP (era 30)
 
+# Protecção de pico de lucro: fecha se recuar muito do máximo já atingido
+# E o sinal já não confirmar a direcção (evita fechar por simples ruído)
+PEAK_PROFIT_MIN_USDC = 1.5    # só actua se a trade já chegou a este PnL
+PEAK_DRAWDOWN_PCT     = 0.40  # fecha se recuar >=40% do pico desde então
+
 OBI_VETO        = 0.3
 EQUITY_EMA_N    = 20
 CORR_MAX        = 0.75
 MACRO_CACHE_MIN = 60
+MACRO_LOOKBACK_MIN = 30  # bloqueia também N min DEPOIS de evento de alto impacto
 
 # Guard de liquidação global (conta inteira USDT+USDC)
 LIQUIDATION_GUARD_PCT = 50.0  # > 50% → fecha todas as posições a positivo

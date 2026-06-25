@@ -7,7 +7,7 @@ import requests
 import time
 from datetime import datetime, timezone, timedelta
 from config import (
-    BASE_URL, OBI_VETO, MACRO_CACHE_MIN, CORR_MAX,
+    BASE_URL, OBI_VETO, MACRO_CACHE_MIN, MACRO_LOOKBACK_MIN, CORR_MAX,
     ATR_REGIME_MULT, ATR_REGIME_LOOKBACK, ATR_PERIOD,
     SPREAD_MAX_PCT, BTC_CRASH_PCT, FUNDING_RATE_MAX, TAKER_RATIO_MIN
 )
@@ -31,8 +31,10 @@ def _log(symbol: str, direction: str, name: str, passed: bool,
 #  FILTROS GLOBAIS (não dependem de preço)
 # ─────────────────────────────────────────────
 
-def macro_event_proximo(look_ahead_min: int = 60) -> bool:
-    """ForexFactory XML — bloqueia 60min antes de FOMC/CPI/NFP. Fail-open."""
+def macro_event_proximo(look_ahead_min: int = 60,
+                         look_back_min: int = MACRO_LOOKBACK_MIN) -> bool:
+    """ForexFactory XML — bloqueia 60min antes E look_back_min depois de
+    FOMC/CPI/NFP (volatilidade tende a continuar após o anúncio). Fail-open."""
     global _macro_cache
     now = time.time()
     if now - _macro_cache["ts"] < MACRO_CACHE_MIN * 60:
@@ -45,9 +47,10 @@ def macro_event_proximo(look_ahead_min: int = 60) -> bool:
         if r.status_code != 200:
             _macro_cache = {"ts": now, "bloqueado": False}
             return False
-        root    = ET.fromstring(r.text)
-        now_dt  = datetime.now(timezone.utc)
-        look_dt = now_dt + timedelta(minutes=look_ahead_min)
+        root      = ET.fromstring(r.text)
+        now_dt    = datetime.now(timezone.utc)
+        look_dt   = now_dt + timedelta(minutes=look_ahead_min)
+        back_dt   = now_dt - timedelta(minutes=look_back_min)
         for event in root.findall(".//event"):
             impact = event.find("impact")
             if impact is None or (impact.text or "").strip().lower() != "high":
@@ -60,11 +63,16 @@ def macro_event_proximo(look_ahead_min: int = 60) -> bool:
                 evt_dt = datetime.strptime(
                     f"{date_el.text} {time_el.text}", "%b %d, %Y %I:%M%p"
                 ).replace(tzinfo=timezone.utc)
+                name_el = event.find("title")
+                name    = name_el.text if name_el is not None else "evento"
                 if now_dt <= evt_dt <= look_dt:
-                    name_el   = event.find("title")
-                    name      = name_el.text if name_el is not None else "evento"
                     mins_away = int((evt_dt - now_dt).total_seconds() / 60)
                     print(f"[MACRO] {name} em {mins_away}min — sem entrada")
+                    _macro_cache = {"ts": now, "bloqueado": True}
+                    return True
+                if back_dt <= evt_dt < now_dt:
+                    mins_ago = int((now_dt - evt_dt).total_seconds() / 60)
+                    print(f"[MACRO] {name} há {mins_ago}min — sem entrada (pós-evento)")
                     _macro_cache = {"ts": now, "bloqueado": True}
                     return True
             except ValueError:

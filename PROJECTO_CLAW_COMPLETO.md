@@ -282,6 +282,86 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 
 ---
 
+### LEU (Centrus Energy) — 🟢 MANTER — TESE DE LONGO PRAZO
+
+**O que é:** Única empresa norte-americana com capacidade activa de enriquecimento de urânio, incluindo HALEU (High-Assay Low-Enriched Uranium) — combustível crítico para os reactores nucleares de próxima geração (SMR, reactores avançados).
+
+**Pontos positivos:**
+- Monopólio de facto nos EUA para HALEU — sem concorrência doméstica no curto prazo
+- Contratos directos com o Departamento de Energia (DOE) para produção de HALEU — receita garantida pelo governo
+- A lei de proibição de urânio russo (2024) obrigou as utilities americanas a procurar alternativas domésticas — Centrus beneficia directamente
+- Renascimento nuclear global: SMR da NuScale, TerraPower, Oklo — todos precisam de HALEU
+- A IA está a aumentar o consumo energético nos data centers → energia nuclear volta a ser prioritária nos EUA (Microsoft, Google já assinaram contratos com centrais nucleares)
+
+**Riscos:**
+- Small cap (~$400M market cap) — muito sensível a notícias e contratos
+- Receita concentrada em contratos governamentais — atrasos em renovações afectam o preço
+- Ciclo nuclear é longo: os SMR mais avançados não estarão operacionais antes de 2030-2032
+- Posição pequena (€8.13) — mesmo com upside de 3-5x, o impacto no portfólio é limitado
+
+**Estratégia recomendada:** Manter. A tese é sólida mas de horizonte longo (3-5 anos). Considerar reforçar para €20-30 se o DOE anunciar extensão ou expansão dos contratos HALEU. Não é para trading — é para deixar quieto.
+
+---
+
+### FTNT (Fortinet) — 🟢 MANTER + ACUMULAR EM DIPS
+
+**O que é:** Líder mundial em firewalls e segurança de rede (FortiGate). Caminha para plataforma SASE/zero-trust completa — um único vendor para firewall, SD-WAN, endpoint e cloud security.
+
+**Pontos positivos:**
+- Billings a recuperar após abrandamento 2023-2024: crescimento voltou a acelerar em 2025
+- Receita recorrente (subscriptions + suporte) já >50% do total — modelo previsível
+- Free cash flow margin ~25-30% — empresa extremamente eficiente
+- Setor em crescimento estrutural: IA a criar novas superfícies de ataque, ransomware em alta, zero-trust a tornar-se mandatório nas empresas
+- No teu portfólio desde ~Abr-2026: +14.35% já registado; AutoInvest de €1/dia activo
+
+**Riscos:**
+- Competição da Palo Alto Networks (PANW) que está mais agressiva em bundling e a oferecer produto gratuito para ganhar quota
+- Valuation não barato: ~7-8x revenue — exige execução consistente
+- Ciclo de renovação de firewalls físicos pode ser mais lento nos próximos 2 anos
+
+**Estratégia recomendada:** Manter e continuar AutoInvest diário. Em correções de -10 a -15% adicionar parcela extra. É a tua melhor posição individual em termos de risco/retorno no médio prazo (2-3 anos).
+
+---
+
+### VWCE (Vanguard FTSE All-World) — 🟢 CORE — AUMENTAR SEMPRE
+
+**O que é:** ETF UCITS que replica o FTSE All-World Index — ~3,700 empresas de 50 países. ~63% EUA, ~6% Japão, ~4% UK, resto do mundo. TER: 0.22%.
+
+**Pontos positivos:**
+- Diversificação máxima num único instrumento — elimina risco idiossincrático
+- Retorno histórico ajustado ~7-10% a.a. no longo prazo
+- Acumula automaticamente dividendos (acc) — eficiente fiscalmente
+- Já é a tua maior posição (€867) e é assim que deve ser
+
+**Pontos a considerar:**
+- Concentração elevada em mega-caps US tech (Nvidia, Apple, Microsoft, Amazon, Google = ~18% do índice) — que é um risco mas também o que está a puxar os retornos
+- Em correções de mercado cai com tudo (2022: -18%) — mas é o melhor ativo para DCA nesses momentos
+
+**Estratégia recomendada:** Esta é a âncora do portfólio. Devias ter AutoInvest em VWCE pelo menos igual ao de FTNT — idealmente mais. Em qualquer mês em que não saibas onde investir, vai para VWCE. Meta: crescer esta posição até representar 50%+ do portfólio de stocks (actualmente ~65% do T212, já bem posicionado).
+
+---
+
+### IONQ (IonQ) — 🟡 MANTER PEQUENO — NÃO AUMENTAR JÁ
+
+**O que é:** Empresa de computação quântica pura (pure play), NYSE. Usa arquitectura de iões aprisionados (trapped-ion) — tecnologia diferenciada vs qubits supercondutores da IBM/Google.
+
+**Pontos positivos:**
+- Crescimento de receita ~100% em 2025 (base pequena, mas momentum real)
+- Contratos com US Air Force, US Army, governo federal — validação de performance
+- Parceria com AWS, Azure, Google Cloud — os 3 grandes hiperescalers
+- Arquitectura trapped-ion tem vantagem em fidelidade de qubits vs concorrentes
+
+**Riscos:**
+- Pré-lucro: continuam a queimar cash (~$50-70M/ano)
+- Computação quântica com impacto comercial real: estimado 2028-2032 no mínimo
+- Volatilidade extrema: o stock já fez -60% e +200% em períodos de 6 meses
+- Competição de IBM, Google, Microsoft com muito mais recursos
+- A tua posição actual (€3.08) é micro — o upside em euros é insignificante mesmo que o stock duplique
+
+**Estratégia recomendada:** Manter como "lottery ticket" — a posição de €3 está bem. Considerar aumentar para €20-30 se e quando reportarem receita >$100M com path credível para breakeven (provavelmente 2027). Não adicionar agora só por especulação.
+
+---
+
 ### SUI Token — 🟡 ACUMULAR EM DCA
 
 **O que é:** Layer 1 da Mysten Labs (ex-Meta/Diem). Modelo de dados por objectos, processamento paralelo de transacções, linguagem Move.
@@ -526,6 +606,233 @@ python3 claw_v8/spot_scanner.py --daemon --top 100
 | ANET (Arista Networks) | 2.23166 | $173.85 | €334.61 | +€54.20 (+19.33%) |
 
 *Custo médio ANET: €125.65/acção. SMH migrado para Trading 212.*
+
+---
+
+### Snapshot 2026-06-12
+| Carteira | Moeda | Valor | Δ vs 03 Jun |
+|----------|-------|-------|-------------|
+| Tangem Wallet | USD | $3,313 | -$102 (-3.0%) |
+| Invest (Trading 212) | EUR | €1,328 | -€145 (-9.8%) |
+| Robinhood | EUR | €678 | +€343 (+102%) |
+| Binance Futures (bot) | USD | ~$150 USDC | — |
+| **Total aprox.** | | **~€5,231** | **+€143 (+2.8%)** |
+
+*Nota: Tangem em queda ligeira (BTC $65,244→$63,832, ETH -6.6%). Trading 212 perdeu €145 com RGTI e SMH removidos e CEG a cair -13.7%. Robinhood duplicou com SMH de volta + QQQ e VTI adicionados. Portfolio altamente diversificado: 13 posições em Trading 212, 5 no Robinhood.*
+
+### Activos Tangem (2026-06-12)
+| Activo | Qtd | Preço | Valor USD | Δ vs 03 Jun |
+|--------|-----|-------|-----------|-------------|
+| BTC | 0.0348942 | $63,832 | $2,227 | -$50 |
+| ETH | 0.44191314 | $1,680 | $743 | -$52 |
+| SOL | 3.26187746 | $67.72 | $221 (APY 5.77%) | -$13 |
+| XRP | 84.566087 | $1.15 | $97 | -$5 |
+| Base ETH | 0.009798 | $1,680 | $16 | novo |
+| LINK | 0.96250677 | $7.93 | $8 | — |
+| DOT | 1.00 | $0.97 | $1 | — |
+| **Total** | | | **$3,313** | **-$102** |
+
+*Novo: Base ETH (0.009798 ETH na rede Base).*
+
+### Invest — Trading 212 (2026-06-12)
+| Ticker | Qtd | Valor EUR | Var |
+|--------|-----|-----------|-----|
+| VWCE (Vanguard FTSE All-World) | 5.34529036 | €866.74 | +1.04% |
+| CEG (Constellation Energy) | 0.95436341 | €205.46 | -13.71% |
+| FTNT (Fortinet) | 1.45056673 | €182.19 | +14.35% |
+| ALOY (REalloys) | 2.25364349 | €31.43 | +12.41% |
+| ASTS (AST SpaceMobile) | 0.09750445 | €7.32 | -8.39% |
+| LEU (Centrus Energy) | 0.05773685 | €8.13 | +1.75% |
+| MRVL (Marvell Technology) | 0.03434547 | €8.48 | +6.13% |
+| CRWV (CoreWeave) | 0.03606306 | €3.22 | +7.33% |
+| SOLS (Solstice Advanced Materials) | 0.04329377 | €3.10 | +3.33% |
+| IONQ (IonQ) | 0.0601098 | €3.08 | +2.67% |
+| AMTM (Amentum Holdings) | 0.15404932 | €3.04 | +1.33% |
+| S (SentinelOne) | 0.23462755 | €2.98 | -0.67% |
+| FB2A (Meta Platforms) | 0.00600559 | €2.95 | -1.67% |
+| **Total** | | **~€1,328** | |
+
+*Removidos vs Jun-03: RGTI, SMH europeia. Adicionados: ALOY, ASTS, MRVL, CRWV, SOLS, IONQ, AMTM, S, FB2A.*
+
+### Robinhood (2026-06-12) — €678.19 total
+| Activo | Qtd | Preço |
+|--------|-----|-------|
+| ANET (Arista Networks) | 2.3034 | $163.04 |
+| SMH (VanEck Semiconductor ETF) | 0.56218 | $618.76 |
+| QQQ (Invesco Nasdaq-100 ETF) | 0.06418 | $720.05 |
+| VTI (Vanguard Total Market ETF) | 0.00319 | $366.51 |
+| ETN (Eaton) | 0.00273 | $394.15 |
+
+*SMH americana mantida/aumentada no Robinhood (versão diferente da SMH europeia que saiu do T212). Adicionados QQQ e VTI (ETFs de índice amplo).*
+
+---
+
+### Snapshot 2026-06-15
+| Carteira | Moeda | Valor | Δ vs 12 Jun |
+|----------|-------|-------|-------------|
+| Tangem Wallet | USD | $3,542 | +$229 (+6.9%) |
+| Invest (Trading 212) | EUR | €1,466 | +€138 (+10.4%) |
+| Robinhood | EUR | €698 | +€20 (+3.0%) |
+| Binance Futures (bot) | USD | ~$165 USDC | +$15 |
+| **Total aprox.** | | **~€5,574** | **+€343 (+6.2%)** |
+
+*Nota: Mercado cripto em recuperação forte — BTC +4.8% ($63,832→$67,192), ETH +10.5%, SOL +11.9%, XRP +13.2%. Tangem recuperou $229. T212 cresceu €138 com posições significativamente reforçadas (ALOY, MRVL, IONQ, CRWV, FB2A, LEU). AutoInvest expandido para €274/mês.*
+
+### Activos Tangem (2026-06-15)
+| Activo | Qtd | Preço | Valor USD | Δ vs 12 Jun |
+|--------|-----|-------|-----------|-------------|
+| BTC | 0.0348942 | $67,192 | $2,345 | +$118 |
+| ETH | 0.44191314 | $1,842 | $814 | +$71 |
+| SOL | 3.2628276 | $75.74 | $247 (APY 5.75%) | +$26 |
+| XRP | 84.566087 | $1.29 | $109 | +$12 |
+| Base ETH | 0.009798 | $1,842 | $18 | — |
+| LINK | 0.96250677 | $8.55 | $8 | — |
+| **Total** | | | **$3,542** | **+$229** |
+
+*DOT já não aparece na carteira (vendido ou valor negligenciável).*
+
+### Invest — Trading 212 (2026-06-15)
+| Ticker | Qtd | Valor EUR | Var | Δ qtd vs Jun-12 |
+|--------|-----|-----------|-----|-----------------|
+| VWCE (Vanguard FTSE All-World) | 5.40631806 | €889.88 | +2.55% | +0.06 |
+| CEG (Constellation Energy) | 0.95436341 | €216.45 | -9.10% | — |
+| FTNT (Fortinet) | 1.45846945 | €186.89 | +16.57% | +0.008 |
+| ALOY (REalloys) | 4.06864039 | €57.82 | +5.30% | **+1.82** |
+| MRVL (Marvell Technology) | 0.2011094 | €51.92 | +5.19% | **+0.167** |
+| LEU (Centrus Energy) | 0.13281743 | €20.23 | +8.07% | +0.075 |
+| IONQ (IonQ) | 0.24858356 | €13.48 | +3.85% | **+0.188** |
+| CRWV (CoreWeave) | 0.13168071 | €12.29 | +4.06% | **+0.096** |
+| DRON (Drone Acc) | 1.68690958 | €10.05 | +0.50% | novo |
+| FB2A (Meta Platforms) | 0.01201983 | €6.19 | +3.17% | +0.006 |
+| EBS (Emergent BioSolutions) | 0.13682567 | €0.98 | -2.00% | novo |
+| **Total** | | **€1,466** | | |
+
+*Removidos vs Jun-12: ASTS, SOLS, AMTM, S. Adicionados: DRON, EBS. AutoInvest expandido para €274/mês (novos: MRVL, META, LEU, IONQ, ALOY, EBS, CEG a €1/dia cada).*
+
+### Robinhood (2026-06-15) — €698.42 total
+| Activo | Qtd | Preço | Δ qtd vs Jun-12 |
+|--------|-----|-------|-----------------|
+| ANET (Arista Networks) | 2.59102 | $166.57 | +0.288 |
+| SMH (VanEck Semiconductor ETF) | 0.56218 | $646.94 | — |
+| QQQ, VTI, ETN | — | — | mantidos |
+
+---
+
+### Activos Tangem (2026-06-18)
+| Activo | Qtd | Preço | Valor USD | Δ vs 15 Jun |
+|--------|-----|-------|-----------|-------------|
+| BTC | 0.0348942 | $63,618.57 | $2,219.92 | -$125 |
+| ETH | 0.44191314 | $1,733.97 | $766.27 | -$48 |
+| SOL | 3.26472832 | $70.74 | $230.93 (APY 5.75%) | -$16 |
+| XRP | 84.566087 | $1.16 | $97.92 | -$11 |
+| Base ETH | 0.009798 | $1,733.97 | $16.99 | -$1 |
+| LINK | 0.96250677 | $7.99 | $7.69 | — |
+| **Total** | | | **$3,341** | **-$201** |
+
+### Invest — Trading 212 (2026-06-18) — €1,545.62 total
+| Ticker | Qtd | Valor EUR | Var hoje |
+|--------|-----|-----------|----------|
+| VWCE (Vanguard FTSE All-World) | 5.67667402 | €940.68 | +3.08% |
+| CEG (Constellation Energy) | 0.95877895 | €231.77 | -3.07% |
+| FTNT (Fortinet) | 1.04051011 | €131.44 | +10.23% |
+| MRVL (Marvell Technology) | 0.3779996 | €107.27 | +8.05% |
+| LEU (Centrus Energy) | 0.44170761 | €72.88 | +4.65% |
+| CRWV (CoreWeave) | 0.59074987 | €61.58 | +5.03% |
+
+*IONQ e EBS já não aparecem — vendidos, conforme decidido. Conta total +€26.17 (+1.9%) hoje.*
+
+### Robinhood (2026-06-18) — €709.35 total
+| Activo | Qtd | Preço |
+|--------|-----|-------|
+| ANET (Arista Networks) | 2.95008 | $168.91 |
+| SMH (VanEck Semiconductor ETF) | 0.45925 | $658.12 |
+
+*+€13.45 (+1.93%) hoje.*
+
+### Invest — Trading 212 (2026-06-19) — €1.428,96 total
+| Ticker | Qtd | Valor EUR | Var hoje | Δ vs Jun-18 |
+|--------|-----|-----------|----------|-------------|
+| VWCE (Vanguard FTSE All-World) | 5,67667402 | €939,26 | +2,92% | — |
+| CEG (Constellation Energy) | 0,95877895 | €234,59 | -1,89% | — |
+| FTNT (Fortinet) | 1,04051011 | €130,91 | +9,79% | — |
+| MRVL (Marvell Technology) | 0,18439326 | €52,01 | +7,39% | **vendido a meio** |
+| LEU (Centrus Energy) | 0,44583732 | €72,19 | +2,31% | — |
+| CRWV (CoreWeave) | — | — | — | **vendido por completo** |
+
+*Reequilíbrio do tema IA conforme decidido: CRWV liquidado, MRVL reduzido a metade. ~€117 libertados.*
+
+### Robinhood (2026-06-19) — €707,39 total
+| Activo | Qtd | Preço | Δ vs Jun-18 |
+|--------|-----|-------|-------------|
+| ANET (Arista Networks) | 1,70895 | $169,03 | reduzido (-1,24) |
+| SMH (VanEck Semiconductor ETF) | 0,31906 | $657,01 | reduzido (-0,14) |
+
+*ANET e SMH aliviados. ~€280 libertados. Exposição IA/semis das acções caiu de ~52% para bem menos de metade. Cash libertado (~€397 total) ainda por deployar — plano: metade VWCE, metade buffer.*
+
+---
+
+### Snapshot 2026-06-22
+| Carteira | Moeda | Valor | Δ vs Jun-19 |
+|----------|-------|-------|-------------|
+| Tangem Wallet | USD | $3.376,37 | +$35 |
+| Invest (Trading 212) | EUR | €1.534,95 | +€106 |
+| Robinhood (acções + cripto) | EUR | €718,15 | +€11 |
+| Binance Futures (bot) | USD | ~$165 USDC + $290 ZEC (sem actualização) | — |
+| **Total aprox.** | | **~€5.801** | **+€150 (+2,7%)** |
+
+*Recuperação ligeira em todas as contas. T212 cresceu €106 com VWCE em alta. Robinhood passou a render juros via "Euro Interest" (cash a 5% APY) e trocou QQQ por QQQM.*
+
+### Activos Tangem (2026-06-22)
+| Activo | Qtd | Valor USD | Δ vs Jun-19 |
+|--------|-----|-----------|-------------|
+| BTC | 0,0348942 | $2.250,04 (+0,61%) | — |
+| ETH | 0,44191314 | $767,00 (+0,33%) | — |
+| SOL | 3,26662273 | $237,72 (APY 5,72%, -2,08%) | — |
+| XRP | 84,566087 | $95,99 (-0,88%) | — |
+| Base ETH | 0,009798 | $17,01 (+0,33%) | — |
+| LINK | 0,96250677 | $7,62 (-0,30%) | — |
+| **Total** | | **$3.376,37** | **+$35** |
+
+### Invest — Trading 212 (2026-06-22) — €1.534,95 total
+| Ticker | Qtd | Valor EUR | Var hoje |
+|--------|-----|-----------|----------|
+| VWCE (Vanguard FTSE All-World) | 5,82069771 | €966,47 | +3,19% |
+| FTNT (Fortinet) | 1,07177698 | €136,34 | +10,63% |
+| CEG (Constellation Energy) | 0,95877895 | €230,81 | -3,47% |
+| MRVL (Marvell Technology) | 0,29554497 | €79,67 | +1,65% |
+| LEU (Centrus Energy) | 0,75705578 | €121,66 | +0,98% |
+
+*AutoInvest reduzido para ~€61/mês (era €274/mês em Jun-15). Posições reforçadas em VWCE, FTNT, LEU desde Jun-19; MRVL e CEG mantidos.*
+
+### Robinhood (2026-06-22) — €718,15 total
+| Activo | Qtd / Detalhe | Valor | Δ vs Jun-19 |
+|--------|---------------|-------|-------------|
+| ANET (Arista Networks) | 1,70895 | $174,00 | +$5 |
+| QQQM (Invesco NASDAQ 100 ETF) | 0,96694 | $303,94 | substitui QQQ |
+| SMH (VanEck Semiconductor ETF) | 0,32241 | $667,90 | +0,003 unid. |
+| Euro Interest (cash a render) | — | 5% APY, €0,03 ganho este mês, €0,53 em juros | novo |
+
+*Passou a render juros em EUR via "Euro Interest". QQQ trocado por QQQM. (Aerodrome Finance e Eigenlayer vistos no ecrã são apenas um carrossel de "movers" de mercado — market cap e variação do dia — não são posições da carteira.)*
+
+---
+
+### Evolução do Portfólio Total
+| Data | Tangem | T212 | Robinhood | Outros | **Total €** | Δ |
+|------|--------|------|-----------|--------|-------------|---|
+| Mai-03 | $3,749 | €1,705 | — | $220 Spot | **~€5,219** | base |
+| Mai-06 | $3,990 | €1,666 | — | — | **~€4,996** | -€223 |
+| Mai-10 | $4,064 | €1,887 | — | €770 Binance | **~€6,189** | +€1,193 |
+| **Mai-14** | **$4,290** | **€1,323** | **€695** | **€770** | **~€6,601** | **+€412 ← PICO** |
+| Mai-16 | $4,080 | €1,299 | €695 | €770 | **~€6,393** | -€208 |
+| Jun-01 | $3,726 | €1,465 | €606 | $57 bot | **~€5,420** | -€973 |
+| Jun-03 | $3,415 | €1,473 | €335 | $154 bot | **~€5,088** | -€332 |
+| Jun-12 | $3,313 | €1,328 | €678 | $150 bot | **~€5,231** | +€143 |
+| Jun-15 | $3,542 | €1,466 | €698 | $165 bot + $290 ZEC | **~€5,842** | +€611 |
+| Jun-18 | $3,341 | €1,546 | €709 | $165 bot + $290 ZEC (sem actualização) | **~€5,770** | -€72 |
+| Jun-19 | $3,341 (sem actualização) | €1,429 | €707 | $165 bot + $290 ZEC (sem actualização) | **~€5,651** | -€119 |
+| Jun-22 | $3.376 | €1.535 | €718 | $165 bot + $290 ZEC (sem actualização) | **~€5.801** | +€150 |
+
+*Taxa EUR/USD ~1.08 usada para conversões. ZEC Spot Binance: 0.5424 ZEC ≈ $290 (ganho via Earn, custo $0). Pico histórico: €6,601 em Mai-14 (BTC $81,522). Distância ao pico: -€800 (-12.1%). Recuperação desde mínimo Jun-03: +€713 (+14.0%). Jun-22: recuperação ligeira e generalizada; Robinhood passou a render juros EUR via "Euro Interest" e trocou QQQ por QQQM, T212 reforçou VWCE/FTNT/LEU com AutoInvest reduzido para ~€61/mês.*
 
 ---
 

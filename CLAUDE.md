@@ -17,7 +17,7 @@ O `ultimo_relatorio_dia` é persistido no SQLite — restarts não perdem dias n
 
 ## O que é este projecto
 Bot de trading automático para Binance Futures USDC-M (perpétuos).
-- Capital: ~240 USDC | Alavancagem: 6x | Margem: Cross
+- Capital: ~370 USDC | Alavancagem: 6x | Margem: Cross
 - Conta europeia **BNFCR** (Binance France Crypto Receipt) — tem restrições de API
 - Corre no **VPS** `178.105.52.219` — IP fixo whitelisted na Binance
 - Ficheiros em `/root/blank-app/claw_v8/` | Log: `/root/claw.log`
@@ -88,12 +88,12 @@ O profit lock cancela o stop antigo ANTES de colocar o novo. Ver `execution.py`.
 ## Parâmetros actuais em `config.py`
 
 ```python
-CAPITAL_MAX_BOT     = 300.0    # capital máximo que o bot usa
+CAPITAL_MAX_BOT     = 370.0    # capital máximo que o bot usa
 RISCO_USDC          = 5.0      # risco por trade em USDC
 ALAVANCAGEM         = 6        # leverage
 MAX_TRADES_ABERTOS  = 5
 MAX_MARGEM_TRADE    = 0.20     # máx 20% do capital por posição
-PROFIT_LOCK_USDC    = 1.0      # activa lock a partir de +1 USDC
+PROFIT_LOCK_USDC    = 0.5      # activa lock a partir de +0.5 USDC
 PROFIT_LOCK_STEP    = 0.5      # move stop a cada +0.5 USDC
 TRAILING_LOCK_USDC  = 4.0      # ao atingir 4 USDC muda para trailing stop
 EMERGENCY_ROI_CUT   = -5.5     # % ROI para corte de emergência
@@ -137,12 +137,15 @@ TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
 - Drawdown 25% do saldo → fecha tudo do bot
 - Margem > 35% → fecha tudo do bot
 - Margem global > 50% → fecha posições a positivo (liquidation guard)
-- **Nunca tocam em posições manuais**
+- **Guards de drawdown/margem/BTC-crash nunca tocam em posições manuais**
 
 ### Posições manuais (detectadas no scan)
 - Sem `pending_sync` → vai para `posicoes_externas`
 - Bot envia alertas de ROI (-5%, -3%, +3%, +5%, +10%, +15%, +20%)
-- Bot NÃO coloca stops, NÃO fecha, P&L NÃO conta para circuit breaker
+- Bot NÃO fecha, P&L NÃO conta para circuit breaker
+- **Profit lock activo**: a partir de `PROFIT_LOCK_USDC` (+0.5 USDC) o bot coloca/move um `STOP_MARKET closePosition` a cada `PROFIT_LOCK_STEP` (+0.5 USDC), igual ao que faz nas trades do próprio bot
+- Na primeira activação cancela qualquer stop pré-existente no símbolo (`get_open_algo_orders` + `cancel_algo_order`) antes de colocar o seu — evita conflito com stop manual já colocado pelo utilizador (só pode existir 1 `closePosition` stop por símbolo)
+- Implementado em `main.py`, bloco "Monitorização de posições externas"
 
 ### Circuit breaker
 - `MAX_LOSS_DIA = 15 USDC` → cooldown 120min

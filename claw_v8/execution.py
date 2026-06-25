@@ -3,18 +3,17 @@ Claw Agent v8.0 — Execução de trades e gestão de posições
 Mesma lógica da v7.1 + logging SQLite completo.
 """
 import time
-import math
 import requests
 from config import (
     BASE_URL, CAPITAL_MAX_BOT, RISCO_USDC, ALAVANCAGEM,
     SYMBOL_PRECISION, STOP_RETRY_MAX, EMERGENCY_ROI_CUT,
     PARTIAL_TP_RATIO, PARTIAL_TP_QTY, PARTIAL_TP2_RATIO, PARTIAL_TP2_QTY,
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
-    MAX_MARGEM_TRADE, PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, BTC_CRASH_PCT, CORR_MAX,
+    MAX_MARGEM_TRADE, BTC_CRASH_PCT, CORR_MAX,
     BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
-    ROI_TP_IMEDIATO, TIME_TP_MIN_MIN, SCORE_FORTE, EMERGENCY_PNL_CUT,
+    ROI_TP_IMEDIATO, SCORE_FORTE, SCORE_ALERTA, EMERGENCY_PNL_CUT,
     LIQUIDATION_GUARD_PCT, LIQUIDATION_WARN1_PCT, LIQUIDATION_WARN2_PCT, LIQUIDATION_WARN3_PCT,
-    TRAILING_LOCK_USDC
+    TRAILING_LOCK_USDC, PEAK_PROFIT_MIN_USDC, PEAK_DRAWDOWN_PCT
 )
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_margin_ratio_global, get_price,
@@ -27,6 +26,7 @@ from strategy import calc_sl_tp, calc_qty, signal_trending
 
 # Timestamp do último check de reversão de sinal por símbolo (rate-limit 60s)
 _signal_inv_ts: dict = {}
+_peak_drawdown_ts: dict = {}
 
 
 def _fechar_com_retry(symbol: str, qty: float, side: str, tentativas: int = 3) -> bool:
@@ -211,9 +211,17 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             print(f"[AVISO] {symbol}: stop falhou (tentativa {tentativa}/{STOP_RETRY_MAX})")
             time.sleep(2)
         if not stop_id:
-            # Exchange stop não suportado (conta EU/BNFCR) — software SL protege a posição
-            print(f"[AVISO] {symbol}: stop na exchange falhou — software SL activo em {sl:.4f}")
-            tg(f"⚠️ <b>{symbol}</b> aberto | SL @ {sl:.4f} (software)\nStop na exchange falhou — bot vigia preço a cada 10s.")
+            # Stop falhou após todas as tentativas — fechar posição e abortar trade
+            print(f"[ERRO] {symbol}: stop falhou {STOP_RETRY_MAX}x — a fechar posição por segurança")
+            close_position(symbol, qty, direction)
+            mem.get("pending_sync", {}).pop(symbol, None)
+            save_memory(mem)
+            tg(
+                f"🚨 <b>{symbol} — TRADE ABORTADO</b>\n"
+                f"Stop na exchange falhou após {STOP_RETRY_MAX} tentativas.\n"
+                f"Posição fechada por segurança."
+            )
+            return
 
         # TP como ordem real
         tp_side      = "SELL" if direction == "LONG" else "BUY"
@@ -436,6 +444,12 @@ def gerir_posicoes(mem: dict):
 
         mem["trades_abertos"][symbol]["pnl_ultimo"] = pos["pnl"]
 
+        # Regista o pico de PnL já atingido — usado pela protecção de recuo
+        peak_pnl = trade.get("peak_pnl", pos["pnl"])
+        if pos["pnl"] > peak_pnl:
+            peak_pnl = pos["pnl"]
+            mem["trades_abertos"][symbol]["peak_pnl"] = peak_pnl
+
         entry    = trade.get("entry", 0)
         qty      = abs(pos["qty"])
         qty_base = trade.get("qty_inicial", qty)
@@ -456,17 +470,44 @@ def gerir_posicoes(mem: dict):
                 )
             continue
 
-        # Saída por tempo + ROI ≥ 5%
-        if elapsed >= TIME_TP_MIN_MIN * 60 and roi >= 5.0:
-            if not _fechar_com_retry(symbol, pos["qty"], side):
+        # ── ROI ≥ 5%: fecha se mercado não confirmar, deixa correr se confirmar ──
+        # Evita sair prematuramente de winners em tendência forte.
+        if (roi >= 5.0
+                and not trade.get("trailing_lock_done")):
+            sinal_ok = False
+            score5   = 0
+            try:
+                kl5 = get_klines(symbol)
+                if kl5 and len(kl5) >= 104:
+                    c5 = [float(k[4]) for k in kl5]
+                    h5 = [float(k[2]) for k in kl5]
+                    l5 = [float(k[3]) for k in kl5]
+                    v5 = [float(k[5]) for k in kl5]
+                    dir5, score5, _ = signal_trending(c5, h5, l5, v5, symbol)
+                    if dir5 == side and score5 >= SCORE_ALERTA:
+                        sinal_ok = True
+            except Exception as _e:
+                print(f"[AVISO] roi5_check {symbol}: {_e}")
+
+            if not sinal_ok:
+                if _fechar_com_retry(symbol, pos["qty"], side):
+                    _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                    pos["pnl"], "ROI5_TP", True, mem)
+                    tg(
+                        f"🎯 <b>ROI 5% TP</b> — {symbol}\n"
+                        f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} USDC\n"
+                        f"Sinal enfraqueceu — saída confirmada."
+                    )
                 continue
-            _registar_fecho(symbol, side, entry, sl, tp, qty,
-                            pos["pnl"], "TIME_TP", True, mem)
-            tg(
-                f"⏱️ <b>TEMPO+LUCRO</b> — {symbol}\n"
-                f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} | {int(elapsed/60)}min"
-            )
-            continue
+            else:
+                # Mercado ainda favorável — notifica 1x por 15min e deixa correr
+                if time.time() - trade.get("roi5_skip_ts", 0) > 900:
+                    mem["trades_abertos"][symbol]["roi5_skip_ts"] = time.time()
+                    save_memory(mem)
+                    tg(
+                        f"🚀 <b>ROI 5% — DEIXA CORRER</b> — {symbol}\n"
+                        f"ROI: {roi:.1f}% | Score: {score5} | Mercado confirma {side}."
+                    )
 
         # ── Saída por reversão de sinal ──────────────────────────────────
         # Se o sinal original inverteu completamente (score forte na direcção oposta),
@@ -499,14 +540,74 @@ def gerir_posicoes(mem: dict):
             except Exception as _e:
                 print(f"[AVISO] signal_inv {symbol}: {_e}")
 
+        # ── Saída por recuo do pico de lucro ──────────────────────────────
+        # Se a trade já chegou a um lucro relevante (>= PEAK_PROFIT_MIN_USDC)
+        # e recuou >= PEAK_DRAWDOWN_PCT desse pico, fecha — mas só se o sinal
+        # já não confirmar a direcção (evita fechar por simples ruído).
+        if (peak_pnl >= PEAK_PROFIT_MIN_USDC
+                and not trade.get("trailing_lock_done")
+                and time.time() - _peak_drawdown_ts.get(symbol, 0) > 60):
+            drawdown_pnl = peak_pnl - pos["pnl"]
+            if drawdown_pnl >= peak_pnl * PEAK_DRAWDOWN_PCT:
+                _peak_drawdown_ts[symbol] = time.time()
+                try:
+                    kl_pk = get_klines(symbol)
+                    pk_dir, pk_score = None, 0
+                    if kl_pk and len(kl_pk) >= 104:
+                        c_pk = [float(k[4]) for k in kl_pk]
+                        h_pk = [float(k[2]) for k in kl_pk]
+                        l_pk = [float(k[3]) for k in kl_pk]
+                        v_pk = [float(k[5]) for k in kl_pk]
+                        pk_dir, pk_score, _ = signal_trending(c_pk, h_pk, l_pk, v_pk, symbol)
+                    sinal_ok = pk_dir == side and pk_score >= SCORE_ALERTA
+                    if not sinal_ok:
+                        if _fechar_com_retry(symbol, pos["qty"], side):
+                            _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                            pos["pnl"], "PEAK_DRAWDOWN", pos["pnl"] > 0, mem)
+                            tg(
+                                f"📉 <b>RECUO DE PICO</b> — {symbol}\n"
+                                f"Pico: +{peak_pnl:.2f} USDC → Agora: {pos['pnl']:+.2f} USDC\n"
+                                f"Sinal já não confirma {side} — saída antecipada."
+                            )
+                        continue
+                except Exception as _e:
+                    print(f"[AVISO] peak_drawdown {symbol}: {_e}")
+
         # ── Saída por estagnação ──────────────────────────────────────────
         # Só fecha se aberto > 60min E PnL entre -0.5 e +1.0 (verdadeira estagnação).
-        # Posições muito negativas ficam para emergency cut (-3 USDC / -5.5% ROI).
-        # Posições lucrativas ficam para profit lock / TIME_TP.
+        # Antes de fechar, verifica se o mercado ainda confirma a direcção —
+        # se score >= SCORE_ALERTA na mesma direcção, suspende o fecho e deixa correr.
         tempo_min = elapsed / 60
         if (tempo_min >= 60
                 and -0.5 <= pos["pnl"] < 1.0
                 and not trade.get("trailing_lock_done")):
+            mercado_ok = False
+            try:
+                kl_stag = get_klines(symbol)
+                if kl_stag and len(kl_stag) >= 104:
+                    c_s = [float(k[4]) for k in kl_stag]
+                    h_s = [float(k[2]) for k in kl_stag]
+                    l_s = [float(k[3]) for k in kl_stag]
+                    v_s = [float(k[5]) for k in kl_stag]
+                    stag_dir, stag_score, _ = signal_trending(c_s, h_s, l_s, v_s, symbol)
+                    if stag_dir == side and stag_score >= SCORE_ALERTA:
+                        mercado_ok = True
+            except Exception as _e:
+                print(f"[AVISO] stagnado_check {symbol}: {_e}")
+
+            if mercado_ok:
+                # Notifica no máximo uma vez a cada 15min para não fazer spam
+                ultimo_skip = trade.get("stagnado_skip_ts", 0)
+                if time.time() - ultimo_skip > 900:
+                    mem["trades_abertos"][symbol]["stagnado_skip_ts"] = time.time()
+                    save_memory(mem)
+                    tg(
+                        f"⏳ <b>STAGNADO SUSPENSO</b> — {symbol}\n"
+                        f"{tempo_min:.0f}min | PnL: {pos['pnl']:+.2f} USDC\n"
+                        f"Mercado ainda favorável (score {stag_score}) — a aguardar."
+                    )
+                continue
+
             if not _fechar_com_retry(symbol, pos["qty"], side):
                 continue
             _registar_fecho(symbol, side, entry, sl, tp, qty,
@@ -556,76 +657,44 @@ def gerir_posicoes(mem: dict):
                 f"PnL: +{pos['pnl']:.2f} USDC | {stop_txt}"
             )
 
-        # ── Lock de lucro progressivo: a cada PROFIT_LOCK_STEP USDC ─────
-        lock_side = "SELL" if side == "LONG" else "BUY"
-        if (not trade.get("partial_tp_done") and entry > 0 and qty > 0
-                and pos["pnl"] >= PROFIT_LOCK_USDC
-                and not trade.get("trailing_lock_done")):
-            current_lock = trade.get("profit_lock_level", 0.0)
-            new_lock = math.floor(pos["pnl"] / PROFIT_LOCK_STEP) * PROFIT_LOCK_STEP
-            if new_lock >= PROFIT_LOCK_USDC and new_lock > current_lock + 1e-9:
-                # Stop no nível ANTERIOR garante distância mínima ao preço actual.
-                # Binance rejeita stops a < 0.1% do mark price — a fórmula "entry + new_lock/qty"
-                # coincide quase exactamente com o preço corrente quando o PnL acabou de cruzar o limiar.
-                lock_usdc = max(new_lock - PROFIT_LOCK_STEP, 0.0)
-                if side == "LONG":
-                    lock_price = round(entry + lock_usdc / qty, 8) if lock_usdc > 0 else round(entry * 1.0005, 8)
-                else:
-                    lock_price = round(entry - lock_usdc / qty, 8) if lock_usdc > 0 else round(entry * 0.9995, 8)
-
-                # Cancela stop antigo PRIMEIRO (closePosition só permite um de cada vez)
-                old_stop_lock = trade.get("stop_order_id")
-                if old_stop_lock:
-                    cancel_algo_order(symbol, old_stop_lock)
-                    mem["trades_abertos"][symbol]["stop_order_id"] = None
-
-                # Tenta colocar stop — 3 tentativas com buffer crescente se falhar
-                new_lock_id = None
-                for attempt in range(3):
-                    new_lock_id = place_stop_market(symbol, lock_side, lock_price, qty)
-                    if new_lock_id:
-                        break
-                    # Afasta o stop 0.15% a cada tentativa para evitar rejeição Binance
-                    if side == "LONG":
-                        lock_price = round(lock_price * (1 - 0.0015), 8)
-                    else:
-                        lock_price = round(lock_price * (1 + 0.0015), 8)
-                    time.sleep(0.5)
-
-                mem["trades_abertos"][symbol]["profit_lock_level"] = new_lock
-                mem["trades_abertos"][symbol]["sl"]                = lock_price
-                if new_lock_id:
-                    mem["trades_abertos"][symbol]["stop_order_id"] = new_lock_id
-                else:
-                    print(f"[AVISO] {symbol}: lock stop falhou após 3 tentativas — software SL activo")
-                    tg(f"⚠️ <b>{symbol}</b> — stop lock FALHOU (3 tentativas)\nSL software: {lock_price:.4f} | PnL: +{pos['pnl']:.2f}")
-                save_memory(mem)
-                emoji = "🔒" if current_lock == 0.0 else "📈"
-                stop_info = f"#{new_lock_id}" if new_lock_id else "SOFTWARE ⚠️"
-                tg(
-                    f"{emoji} <b>LOCK +{new_lock:.1f} USDC</b> — {symbol}\n"
-                    f"Stop → {lock_price:.4f} ({stop_info}) | PnL: +{pos['pnl']:.2f} USDC"
-                )
-
-        # ── Software profit lock: fecha se exchange stop falhou e PnL recuou ──
-        # Quando o exchange stop não existe (falha persistente) e o PnL caiu abaixo
-        # do nível locked, o software reproduz o comportamento do exchange stop.
-        profit_lock_lvl = trade.get("profit_lock_level", 0.0)
-        if (profit_lock_lvl >= PROFIT_LOCK_USDC
-                and not trade.get("stop_order_id")
-                and not trade.get("trailing_lock_done")
-                and pos["pnl"] < profit_lock_lvl - PROFIT_LOCK_STEP):
-            if _fechar_com_retry(symbol, pos["qty"], side):
-                _registar_fecho(symbol, side, entry, sl, tp, qty,
-                                pos["pnl"], "SOFTWARE_PROFIT_LOCK", pos["pnl"] > 0, mem)
-                tg(
-                    f"🔒 <b>LOCK FECHADO (software)</b> — {symbol}\n"
-                    f"PnL recuou: <b>+{pos['pnl']:.2f} USDC</b> | Lock: +{profit_lock_lvl:.1f} USDC\n"
-                    f"Exchange stop falhou — software lock protegeu lucro."
-                )
+        # ── Breakeven a 1R: protege lucro antes do TP1 (2R) ───────────────
+        # Sem isto, uma trade que esteve em lucro mas nunca chegou a 2R
+        # pode reverter e fechar no SL original (perda), apesar de ter
+        # passado tempo claramente positiva.
+        entry_trade0 = trade.get("entry", 0)
+        sl_orig      = trade.get("sl", entry_trade0)
+        sl_dist      = abs(entry_trade0 - sl_orig)
+        if (sl_dist > 0 and entry_trade0 > 0
+                and not trade.get("partial_tp_done")
+                and not trade.get("breakeven_1r_done")):
+            if side == "LONG":
+                r1_level = entry_trade0 + sl_dist
+                hit_r1   = price >= r1_level
+                be_price1 = round(entry_trade0 * (1 + BREAKEVEN_OFFSET), 8)
             else:
-                tg(f"🚨 <b>SOFTWARE LOCK FALHOU</b> — {symbol}\nPnL: +{pos['pnl']:.2f} | fecha MANUALMENTE")
-            continue
+                r1_level = entry_trade0 - sl_dist
+                hit_r1   = price <= r1_level
+                be_price1 = round(entry_trade0 * (1 - BREAKEVEN_OFFSET), 8)
+            if hit_r1:
+                old_stop1 = trade.get("stop_order_id")
+                if old_stop1:
+                    try:
+                        cancel_algo_order(symbol, old_stop1)
+                    except Exception:
+                        pass
+                be_side1     = "SELL" if side == "LONG" else "BUY"
+                new_stop_id1 = place_stop_market(symbol, be_side1, be_price1, abs(pos["qty"]))
+                mem["trades_abertos"][symbol]["breakeven_1r_done"] = True
+                mem["trades_abertos"][symbol]["sl"]                = be_price1
+                mem["trades_abertos"][symbol]["stop_order_id"]     = new_stop_id1
+                save_memory(mem)
+                stop_txt1 = f"#{new_stop_id1}" if new_stop_id1 else "SOFTWARE ⚠️"
+                tg(
+                    f"🔒 <b>BREAKEVEN 1R</b> — {symbol}\n"
+                    f"Preço: {price:.4f} | Stop movido para: {be_price1:.4f}\n"
+                    f"{stop_txt1}"
+                )
+                sl = be_price1
 
         # ── TP1: fecha 33% a 2R, move stop para breakeven ────────────────
         entry_trade = trade.get("entry", 0)

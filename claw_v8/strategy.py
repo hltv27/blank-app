@@ -7,7 +7,7 @@ from config import (
     RSI_OVERSOLD, RSI_OVERBOUGHT, STOCH_VETO_LONG, STOCH_VETO_SHORT,
     SCORE_ALERTA, SCORE_FORTE, ATR_MIN_PCT, RATIO_ALVO,
     RISCO_USDC, SYMBOL_PRECISION, BB_PERIOD,
-    ATR_SL_MULT_MIN, ATR_SL_MULT_MAX, SL_MIN_PCT,
+    ATR_SL_MULT_MIN, ATR_SL_MULT_MAX, SL_MIN_PCT, SL_MAX_PCT,
     ADX_TREND_MIN, ADX_TREND_MIN_MAJOR, ADX_TREND_MIN_ALT, EMA_SLOPE_MIN
 )
 
@@ -154,8 +154,9 @@ def calc_sl_tp(direction: str, price: float, atr_val: float, mode: str,
     else:
         sl_mult = 1.5
 
-    # Distância mínima: 0.5% do preço (Binance rejeita stops a <0.1%; software SL dispara imediatamente se SL muito próximo)
+    # Distância: mínimo 0.5% (Binance rejeita <0.1%), máximo 3% (evita SLs demasiado largos)
     sl_dist = max(atr_val * sl_mult, price * SL_MIN_PCT)
+    sl_dist = min(sl_dist, price * SL_MAX_PCT)
     if score >= SCORE_FORTE and adx_val > 45:
         ratio = 4.0
     elif score >= SCORE_FORTE and adx_val > 35:

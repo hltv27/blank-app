@@ -289,16 +289,18 @@ def place_order(symbol: str, side: str, qty: float) -> dict | None:
 
 def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> int | None:
     """STOP_MARKET via /fapi/v1/algoOrder com closePosition=true.
-    Binance rejeita STOP_MARKET no endpoint regular para contas BNFCR — usa algoOrder."""
+    Binance exige algoType=CONDITIONAL e o tipo no parâmetro "type" (não "orderType")."""
     try:
         decimals = PRICE_PRECISION.get(symbol, 2)
         params = {
             "symbol":        symbol,
             "side":          side,
-            "orderType":     "STOP_MARKET",
             "algoType":      "CONDITIONAL",
-            "stopPrice":     f"{stop_price:.{decimals}f}",
+            "type":          "STOP_MARKET",
+            "triggerPrice":  f"{stop_price:.{decimals}f}",
             "closePosition": "true",
+            "workingType":   "MARK_PRICE",
+            "priceProtect":  "true",
         }
         for attempt in range(3):
             signed = _sign(params)
@@ -320,30 +322,34 @@ def place_stop_market(symbol: str, side: str, stop_price: float, qty: float) -> 
 
 
 def place_take_profit(symbol: str, side: str, tp_price: float) -> int | None:
-    """TAKE_PROFIT_MARKET via /fapi/v1/order com closePosition=true.
-    O algoOrder rejeita com 'type missing' para TAKE_PROFIT_MARKET — usa endpoint regular."""
+    """TAKE_PROFIT_MARKET via /fapi/v1/algoOrder com closePosition=true.
+    Binance BNFCR: endpoint regular rejeita TAKE_PROFIT_MARKET — usa algoOrder.
+    Exige algoType=CONDITIONAL e o tipo no parâmetro "type" (não "orderType")."""
     try:
         decimals = PRICE_PRECISION.get(symbol, 2)
         params = {
             "symbol":        symbol,
             "side":          side,
+            "algoType":      "CONDITIONAL",
             "type":          "TAKE_PROFIT_MARKET",
-            "stopPrice":     f"{tp_price:.{decimals}f}",
+            "triggerPrice":  f"{tp_price:.{decimals}f}",
             "closePosition": "true",
+            "workingType":   "MARK_PRICE",
+            "priceProtect":  "true",
         }
-        r = requests.post(
-            f"{BASE_URL}/fapi/v1/order",
-            params=_sign(params), headers=_headers(), timeout=10
-        )
-        data = r.json()
-        if _is_timestamp_error(data):
-            sync_time()
-            r = requests.post(f"{BASE_URL}/fapi/v1/order",
-                              params=_sign(params), headers=_headers(), timeout=10)
+        for attempt in range(2):
+            r = requests.post(
+                f"{BASE_URL}/fapi/v1/algoOrder",
+                params=_sign(params), headers=_headers(), timeout=10
+            )
             data = r.json()
-        if "orderId" in data:
-            return data["orderId"]
-        print(f"[AVISO] take_profit {symbol}: {data.get('msg', data)}")
+            if _is_timestamp_error(data):
+                sync_time()
+                continue
+            if "algoId" in data:
+                return data["algoId"]
+            print(f"[AVISO] take_profit {symbol}: {data.get('msg', data)}")
+            break
     except Exception as e:
         print(f"[ERRO] place_take_profit {symbol}: {e}")
     return None
@@ -356,11 +362,12 @@ def place_trailing_stop(symbol: str, side: str, callback_rate: float,
         params = {
             "symbol":          symbol,
             "side":            side,
-            "orderType":       "TRAILING_STOP_MARKET",
             "algoType":        "CONDITIONAL",
+            "type":            "TRAILING_STOP_MARKET",
             "callbackRate":    f"{callback_rate}",
             "activationPrice": f"{activation_price:.{decimals}f}",
             "closePosition":   "true",
+            "workingType":     "MARK_PRICE",
         }
         r    = requests.post(f"{BASE_URL}/fapi/v1/algoOrder",
                              params=_sign(params), headers=_headers(), timeout=10)
@@ -482,6 +489,32 @@ def cancel_order(symbol: str, order_id) -> bool:
     except Exception as e:
         print(f"[AVISO] cancel_order {symbol} #{order_id}: {e}")
         return False
+
+
+def get_open_algo_orders(symbol: str) -> list:
+    """Lista algoIds de STOP_MARKET/TAKE_PROFIT_MARKET abertos para o símbolo.
+    Usado antes do primeiro lock numa posição externa — pode já existir um stop
+    colocado manualmente pelo utilizador, que tem de ser cancelado primeiro
+    (a conta só permite um STOP_MARKET closePosition por símbolo)."""
+    try:
+        r = requests.get(
+            f"{_SAPI_URL}/sapi/v1/algo/futures/openOrders",
+            params=_sign({"symbol": symbol}), headers=_headers(), timeout=10
+        )
+        data = r.json()
+        if _is_timestamp_error(data):
+            sync_time()
+            r = requests.get(
+                f"{_SAPI_URL}/sapi/v1/algo/futures/openOrders",
+                params=_sign({"symbol": symbol}), headers=_headers(), timeout=10
+            )
+            data = r.json()
+        orders = data.get("data", data) if isinstance(data, dict) else data
+        if isinstance(orders, list):
+            return [o["algoId"] for o in orders if o.get("symbol") == symbol and "algoId" in o]
+    except Exception as e:
+        print(f"[AVISO] get_open_algo_orders {symbol}: {e}")
+    return []
 
 
 def cancel_algo_order(symbol: str, algo_id) -> bool:
