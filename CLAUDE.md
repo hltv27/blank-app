@@ -26,11 +26,13 @@ Bot de trading automático para Binance Futures USDC-M (perpétuos).
 
 ## Como arrancar o bot (Termux, ambiente actual)
 ```bash
-pkill -f "python.*main.py"; sleep 2
+pkill -f "python.*main.py"; pkill -f "run_loop.sh"; sleep 2
 cd ~/blank-app && git pull origin main
-cd claw_v8 && python -u main.py > ~/claw.log 2>&1 &
+cd claw_v8 && chmod +x run_loop.sh && nohup ./run_loop.sh &
 sleep 3 && tail -20 ~/claw.log
 ```
+`run_loop.sh` reinicia automaticamente o `main.py` sempre que ele terminar (crash ou watchdog) — não correr `python -u main.py` directamente em produção, senão perde-se o auto-restart.
+
 Esta sessão remota **não tem acesso SSH/Termux** ao dispositivo do utilizador — qualquer diagnóstico depende de output/screenshots colados pelo utilizador.
 
 ## ⚠️ IP instável (Termux/dados móveis) — requer whitelist manual frequente
@@ -211,6 +213,10 @@ TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
 - **Causa**: guard de margem usava `get_margin_ratio()` que soma `maintMargin` do asset BNFCR; quando existe posição USDT-M com cross-collateral (ex: BTCUSDT 150x), o `maintMargin` do BNFCR inclui os requisitos dessa posição → rácio aparece 244-360% em vez dos verdadeiros 18%
 - **Fix**: guard usa agora `get_margin_ratio_global()` que lê `totalMaintMargin / totalMarginBalance` da conta inteira — valor correcto independentemente de posições USDT-M
 - **GitHub**: SHA 0487fd0
+
+### 12. Loop principal ficava preso indefinidamente (sem trades há horas, `status.json` nunca actualizava)
+- **Causa**: o watchdog (`main.py`) só enviava alerta no Telegram quando o loop ficava 5min sem heartbeat, mas nunca reiniciava o processo — bot ficava preso (provavelmente em `_relatorio_diario`, que corre uma vez por dia às 23:00 UTC e nunca mais actualizou desde Jun-03)
+- **Fix**: watchdog agora força `os._exit(1)` ao detectar 5min sem heartbeat; novo `run_loop.sh` reinicia automaticamente o `main.py` sempre que ele terminar (Termux não tem systemd/cron). Arrancar sempre via `run_loop.sh`, nunca `python -u main.py` directamente.
 
 ---
 
