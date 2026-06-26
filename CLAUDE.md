@@ -19,33 +19,41 @@ O `ultimo_relatorio_dia` é persistido no SQLite — restarts não perdem dias n
 Bot de trading automático para Binance Futures USDC-M (perpétuos).
 - Capital: ~370 USDC | Alavancagem: 6x | Margem: Cross
 - Conta europeia **BNFCR** (Binance France Crypto Receipt) — tem restrições de API
-- Corre no **VPS** `178.105.52.219` — IP fixo whitelisted na Binance
-- Ficheiros em `/root/blank-app/claw_v8/` | Log: `/root/claw.log`
-- Auto-deploy activo: `auto_deploy.sh` detecta commits em `main` e reinicia o bot
+- Corre actualmente no **Termux (Android)** do utilizador — ver secção abaixo
+- Histórico: Termux → VPS `178.105.52.219` → voltou para Termux (ver `PROJECTO_CLAW_COMPLETO.md` secção 9)
+- Ficheiros em `~/blank-app/claw_v8/` | Log: `~/claw.log`
+- **Sem auto-deploy no Termux** — após cada `git push` para `main`, o utilizador tem de fazer `git pull` + restart manualmente (ver abaixo)
 
-## Como aceder ao VPS
+## Como arrancar o bot (Termux, ambiente actual)
 ```bash
-ssh root@178.105.52.219
+pkill -f "python.*main.py"; pkill -f "run_loop.sh"; sleep 2
+cd ~/blank-app && git pull origin main
+cd claw_v8 && chmod +x run_loop.sh && nohup ./run_loop.sh &
+sleep 3 && tail -20 ~/claw.log
 ```
+`run_loop.sh` reinicia automaticamente o `main.py` sempre que ele terminar (crash ou watchdog) — não correr `python -u main.py` directamente em produção, senão perde-se o auto-restart.
 
-## Como arrancar o bot (no VPS)
-```bash
-cd /root/blank-app && git pull origin main
-pkill -f "python.*main.py"; sleep 2
-cd /root/blank-app/claw_v8
-PYTHONUNBUFFERED=1 nohup python3 main.py > /root/claw.log 2>&1 &
-echo $! > /root/claw.pid
-sleep 3 && tail -20 /root/claw.log
-```
+Esta sessão remota **não tem acesso SSH/Termux** ao dispositivo do utilizador — qualquer diagnóstico depende de output/screenshots colados pelo utilizador.
 
-## Monitorizar log em tempo real
-```bash
-ssh root@178.105.52.219 "tail -f /root/claw.log"
-```
+## ⚠️ IP instável (Termux/dados móveis) — requer whitelist manual frequente
+O Termux corre em dados móveis (ou Wi-Fi doméstico), **sem IP fixo**. Sempre que o IP mudar (reinício do telemóvel, troca de torre/rede), a Binance bloqueia as chamadas da API e o bot envia `🔒 IP bloqueado` no Telegram repetidamente (1x/10min, ver `exchange.py:171`) até o IP ser adicionado.
+- **Acção quando aparecer "IP bloqueado"**: Binance → API Management → Edit restrictions → adicionar o IP indicado na mensagem em "Restrict access to trusted IPs only"
+- Isto NÃO é um bug do bot — é uma limitação inerente a correr sem IP fixo. Vai repetir-se.
+- (Infra antiga, já não em uso) Comandos VPS com IP fixo `178.105.52.219` — mantidos apenas como referência histórica caso o bot volte para lá:
+  ```bash
+  ssh root@178.105.52.219
+  cd /root/blank-app && git pull origin main
+  pkill -f "python.*main.py"; sleep 2
+  cd /root/blank-app/claw_v8
+  PYTHONUNBUFFERED=1 nohup python3 main.py > /root/claw.log 2>&1 &
+  echo $! > /root/claw.pid
+  sleep 3 && tail -20 /root/claw.log
+  ```
 
 ## Kill switch de emergência
+No Termux, criar o ficheiro directamente:
 ```bash
-ssh root@178.105.52.219 "touch /root/blank-app/claw_v8/KILL_SWITCH"
+touch ~/blank-app/claw_v8/KILL_SWITCH
 ```
 
 ## Branches
@@ -205,6 +213,10 @@ TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
 - **Causa**: guard de margem usava `get_margin_ratio()` que soma `maintMargin` do asset BNFCR; quando existe posição USDT-M com cross-collateral (ex: BTCUSDT 150x), o `maintMargin` do BNFCR inclui os requisitos dessa posição → rácio aparece 244-360% em vez dos verdadeiros 18%
 - **Fix**: guard usa agora `get_margin_ratio_global()` que lê `totalMaintMargin / totalMarginBalance` da conta inteira — valor correcto independentemente de posições USDT-M
 - **GitHub**: SHA 0487fd0
+
+### 12. Loop principal ficava preso indefinidamente (sem trades há horas, `status.json` nunca actualizava)
+- **Causa**: o watchdog (`main.py`) só enviava alerta no Telegram quando o loop ficava 5min sem heartbeat, mas nunca reiniciava o processo — bot ficava preso (provavelmente em `_relatorio_diario`, que corre uma vez por dia às 23:00 UTC e nunca mais actualizou desde Jun-03)
+- **Fix**: watchdog agora força `os._exit(1)` ao detectar 5min sem heartbeat; novo `run_loop.sh` reinicia automaticamente o `main.py` sempre que ele terminar (Termux não tem systemd/cron). Arrancar sempre via `run_loop.sh`, nunca `python -u main.py` directamente.
 
 ---
 

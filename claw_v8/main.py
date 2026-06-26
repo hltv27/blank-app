@@ -177,16 +177,12 @@ def run():
     _heartbeat = [time.time()]
 
     def _watchdog():
-        _alerted = [False]
         while True:
             time.sleep(120)
             if time.time() - _heartbeat[0] > 300:
-                if not _alerted[0]:
-                    tg("🚨 <b>WATCHDOG</b> — loop principal inativo há 5min!\nVerifica o bot no VPS.")
-                    print("[WATCHDOG] loop principal parado há 5min")
-                    _alerted[0] = True
-            else:
-                _alerted[0] = False
+                tg("🚨 <b>WATCHDOG</b> — loop principal inativo há 5min. A reiniciar processo...")
+                print("[WATCHDOG] loop principal parado há 5min — a forçar saída para reinício automático")
+                os._exit(1)
 
     threading.Thread(target=_watchdog, daemon=True).start()
 
