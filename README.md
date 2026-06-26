@@ -1,39 +1,39 @@
-# Claw Agent v7
+# Claw Agent v8
 
-Bot de trading automático para Binance Futures USDC.
-Cross Margin | 10 pares | Modos Trending + Ranging.
+Bot de trading automático para Binance Futures USDC-M (perpétuos).
+Cross Margin | Top 150 pares por volume | Modo Trending.
+
+Código em `claw_v8/` (refactor modular da v7 — mesma estratégia base, ficheiros separados por responsabilidade).
 
 ## Estratégia
 
-- **Trending mode:** EMA 9/21/99 + RSI + ATR + StochRSI
-- **Ranging mode:** Bollinger Bands mean-reversion
-- **Risco fixo:** 1.0 USDC por trade | Capital máx: 50 USDC
-- **Alavancagem:** 10x Cross Margin
-- **Circuit breaker:** loss diária 3 USDC ou 4 perdas seguidas → pausa 15 min
-- **Sessões UTC:** 07h–12h e 13h–20h
-- **Ciclo:** 4 minutos
+- **Trending mode:** EMA + RSI + ADX + ATR + Supertrend + VWAP, com filtros HTF (4H+1H), Fear&Greed, BB squeeze, CVD, OBI
+- **Risco fixo:** 5.0 USDC por trade | Capital máx: 370 USDC
+- **Alavancagem:** 6x Cross Margin
+- **Circuit breaker:** loss diária 15 USDC ou 3 perdas seguidas → pausa 120 min
+- **Sessões UTC:** 05h–23h
+- **Ciclo:** scan a cada 4 min, gestão de posições a cada 10-30s
 
 ## Pares
 
-`BTCUSDC` `ETHUSDC` `BNBUSDC` `SOLUSDC` `XRPUSDC`
-`DOGEUSDC` `AVAXUSDC` `LINKUSDC` `SUIUSDC` `PEPEUSDC`
+Top 150 pares Futures USDC-M por volume (`TOP_N_FUTURES`), seleccionados dinamicamente — não é uma lista fixa.
 
 ## Requisitos
 
 - Python 3.10+
-- Conta Binance Futures com saldo USDC
+- Conta Binance Futures (BNFCR — Binance France Crypto Receipt) com saldo USDC
 - Bot Telegram criado via @BotFather
 
 ## Instalação
 
 ```bash
 git clone https://github.com/hltv27/blank-app.git
-cd blank-app
+cd blank-app/claw_v8
 
 python -m venv venv
 source venv/bin/activate   # Windows: venv\Scripts\activate
 
-pip install -r requirements.txt
+pip install -r ../requirements.txt
 ```
 
 ## Configuração
@@ -47,20 +47,40 @@ export BINANCE_API_KEY="<api_key>"
 export BINANCE_API_SECRET="<api_secret>"
 ```
 
-Ou edita directamente as constantes no topo de `claw_agent_v7.py`.
+Ou edita directamente as constantes em `claw_v8/config.py`.
 
 ## Execução
 
+Em produção (Termux/Android, sem systemd/cron), correr sempre via `run_loop.sh` para garantir auto-restart após crash ou watchdog:
+
 ```bash
-python main.py
+cd claw_v8
+chmod +x run_loop.sh
+nohup ./run_loop.sh &
 ```
 
-## Ficheiros de Estado
+## Ficheiros principais
+
+| Ficheiro | Função |
+|---|---|
+| `config.py` | Constantes (risco, estratégia, pares) |
+| `main.py` | Loop principal, scan de pares, sync de posições, watchdog |
+| `execution.py` | Abrir trades, gerir posições, profit lock, guards |
+| `exchange.py` | Chamadas HTTP à Binance e Telegram |
+| `strategy.py` | Sinais trending, cálculo SL/TP, market mode |
+| `filters.py` | Filtros HTF, funding rate, volatility regime |
+| `risk.py` | Circuit breaker, veto por símbolo, sessão |
+| `storage.py` | SQLite + memória JSON |
+| `indicators.py` | ATR, ADX, RSI, Supertrend, VWAP |
+| `run_loop.sh` | Wrapper que reinicia `main.py` automaticamente (Termux) |
+
+## Ficheiros de estado
 
 | Ficheiro | Descrição |
 |---|---|
-| `claw_memory_v7.json` | Estado do bot (trades abertos, circuit breaker, PnL diário) |
-| `claw_pnl_v7.json` | Histórico de todos os trades |
+| SQLite (via `storage.py`) | Trades abertos, circuit breaker, histórico, posições externas |
+| `status.json` | Snapshot do relatório diário (actualizado às 23:00 UTC) |
+| `status_history.jsonl` | Histórico diário, nunca sobrescrito |
 
 ## Aviso
 
