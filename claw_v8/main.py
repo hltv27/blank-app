@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import json
 import subprocess
 import time
+import traceback
 import threading
 from datetime import datetime, timezone
 import config
@@ -622,8 +623,10 @@ def run():
             print_full_report()
             break
         except Exception as e:
-            print(f"[ERRO GERAL] {e}")
-            tg(f"⚠️ Claw Agent v8.0 erro: {e}")
+            tb = traceback.format_exc()
+            print(f"[ERRO GERAL] {e}\n{tb}")
+            tb_short = "\n".join(tb.strip().splitlines()[-6:])
+            tg(f"⚠️ Claw Agent v8.0 erro: {e}\n<pre>{tb_short}</pre>")
 
         time.sleep(CHECK_POSICOES_FAST if mem.get("trades_abertos") else CHECK_POSICOES)
 
