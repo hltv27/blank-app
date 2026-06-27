@@ -26,7 +26,7 @@ from config import (
 import math
 from exchange import (
     tg, get_klines, get_positions, get_balance, get_price, sync_time, get_public_ip,
-    get_top_futures_symbols, place_stop_market as _psm, cancel_algo_order, get_open_algo_orders
+    get_top_futures_symbols, place_stop_market, cancel_algo_order, get_open_algo_orders
 )
 from indicators import atr, get_daily_vwap
 from strategy import detect_market_mode, signal_trending
@@ -347,7 +347,7 @@ def run():
                                 sync_sl = round(entry_s - atr_s * 1.5, 8)
                             else:
                                 sync_sl = round(entry_s + atr_s * 1.5, 8)
-                            sync_stop_id = _psm(symbol, stop_side_s, sync_sl, 0)
+                            sync_stop_id = place_stop_market(symbol, stop_side_s, sync_sl, 0)
 
                         mem.setdefault("trades_abertos", {})[symbol] = {
                             "direction":     pos["side"],
@@ -460,7 +460,7 @@ def run():
                             lock_side_ext = "SELL" if side_ext == "LONG" else "BUY"
                             new_lock_id_ext = None
                             for attempt in range(3):
-                                new_lock_id_ext = _psm(symbol, lock_side_ext, lock_price_ext, qty_ext)
+                                new_lock_id_ext = place_stop_market(symbol, lock_side_ext, lock_price_ext, qty_ext)
                                 if new_lock_id_ext:
                                     break
                                 if side_ext == "LONG":
