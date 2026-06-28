@@ -152,7 +152,7 @@ def calc_sl_tp(direction: str, price: float, atr_val: float, mode: str,
     elif atr_pct < 0.001:
         sl_mult = ATR_SL_MULT_MIN       # <0.1% ATR — mercado calmo
     else:
-        sl_mult = 1.5
+        sl_mult = 2.0
 
     # Distância: mínimo 0.5% (Binance rejeita <0.1%), máximo 3% (evita SLs demasiado largos)
     sl_dist = max(atr_val * sl_mult, price * SL_MIN_PCT)

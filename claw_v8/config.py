@@ -72,6 +72,7 @@ STOCH_VETO_LONG = 95.0
 STOCH_VETO_SHORT= 2.5
 SCORE_ALERTA    = 6
 SCORE_FORTE     = 6
+SCORE_LONG_MIN  = 8       # LONGs exigem score mais alto (SHORTs usam SCORE_ALERTA=6)
 
 # Markov regime detection
 MARKOV_LOOKBACK = 100   # candles for transition matrix
@@ -133,7 +134,7 @@ PROFIT_LOCK_USDC    = 0.5    # activa lock a partir deste PnL
 PROFIT_LOCK_STEP    = 0.5    # a cada +0.5 USDC move o stop para esse nível
 TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~0.8R), muda stop fixo → trailing stop
 
-ROI_TP_IMEDIATO     = 7.0    # % ROI → fecha imediatamente, sem esperar tempo
+ROI_TP_IMEDIATO     = 12.0   # % ROI → fecha imediatamente (era 7% — dava pouco espaço)
 TIME_TP_MIN_MIN     = 10     # minutos mínimos para TIME_TP (era 30)
 
 # Protecção de pico de lucro: fecha se recuar muito do máximo já atingido

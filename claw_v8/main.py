@@ -22,7 +22,7 @@ from config import (
     MAX_LONGS_ALT, MAX_SHORTS_ALT, LOOKBACK,
     CHECK_POSICOES_FAST, CHECK_POSICOES, CAPITAL_MAX_BOT, RISCO_USDC,
     ALAVANCAGEM, TOP_N_FUTURES, FORCE_INCLUDE_SYMBOLS,
-    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP
+    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, SCORE_LONG_MIN
 )
 import math
 from exchange import (
@@ -548,6 +548,10 @@ def run():
                 print(f"[{hora}] {symbol} {mode} {detalhe}")
 
                 if not direction:
+                    continue
+
+                if direction == "LONG" and score < SCORE_LONG_MIN:
+                    print(f"[{hora}] {symbol} LONG score {score} < {SCORE_LONG_MIN} — skip")
                     continue
 
                 # BTC crash lockout: não abre LONGs durante 1h após crash
