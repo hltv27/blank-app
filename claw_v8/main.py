@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import json
 import subprocess
 import time
+import traceback
 import threading
 from datetime import datetime, timezone
 import config
@@ -21,7 +22,7 @@ from config import (
     MAX_LONGS_ALT, MAX_SHORTS_ALT, LOOKBACK,
     CHECK_POSICOES_FAST, CHECK_POSICOES, CAPITAL_MAX_BOT, RISCO_USDC,
     ALAVANCAGEM, TOP_N_FUTURES, FORCE_INCLUDE_SYMBOLS,
-    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP
+    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, SCORE_LONG_MIN
 )
 import math
 from exchange import (
@@ -549,6 +550,10 @@ def run():
                 if not direction:
                     continue
 
+                if direction == "LONG" and score < SCORE_LONG_MIN:
+                    print(f"[{hora}] {symbol} LONG score {score} < {SCORE_LONG_MIN} — skip")
+                    continue
+
                 # BTC crash lockout: não abre LONGs durante 1h após crash
                 if direction == "LONG" and time.time() < mem.get("btc_crash_lockout_until", 0):
                     mins_lock = int((mem["btc_crash_lockout_until"] - time.time()) / 60)
@@ -622,8 +627,10 @@ def run():
             print_full_report()
             break
         except Exception as e:
-            print(f"[ERRO GERAL] {e}")
-            tg(f"⚠️ Claw Agent v8.0 erro: {e}")
+            tb = traceback.format_exc()
+            print(f"[ERRO GERAL] {e}\n{tb}")
+            tb_short = "\n".join(tb.strip().splitlines()[-6:])
+            tg(f"⚠️ Claw Agent v8.0 erro: {e}\n<pre>{tb_short}</pre>")
 
         time.sleep(CHECK_POSICOES_FAST if mem.get("trades_abertos") else CHECK_POSICOES)
 

@@ -57,7 +57,9 @@ _SKIP_EXT  = (".pdf",".jpg",".jpeg",".png",".gif",".svg",".webp",
               ".zip",".rar",".doc",".docx",".xls",".xlsx",
               ".mp3",".mp4",".avi",".mov",".woff",".woff2",".css",".js",".ico")
 _SKIP_PATH = ("/wp-admin/","/wp-login","/feed/","/xmlrpc",
-              "/cart/","/checkout/","/my-account/","/search/","/tag/","/author/")
+              "/cart/","/checkout/","/my-account/","/search/","/tag/","/author/",
+              "/admin/","/manager/","/cms/","/backend/",
+              "/login","/logout","/register","/api/")
 
 
 def _is_skip(url: str) -> bool:

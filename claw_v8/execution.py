@@ -574,12 +574,12 @@ def gerir_posicoes(mem: dict):
                     print(f"[AVISO] peak_drawdown {symbol}: {_e}")
 
         # ── Saída por estagnação ──────────────────────────────────────────
-        # Só fecha se aberto > 60min E PnL entre -0.5 e +1.0 (verdadeira estagnação).
+        # Só fecha se aberto > 90min E PnL negativo (trade perdedora estagnada).
         # Antes de fechar, verifica se o mercado ainda confirma a direcção —
         # se score >= SCORE_ALERTA na mesma direcção, suspende o fecho e deixa correr.
         tempo_min = elapsed / 60
-        if (tempo_min >= 60
-                and -0.5 <= pos["pnl"] < 1.0
+        if (tempo_min >= 90
+                and pos["pnl"] < 0
                 and not trade.get("trailing_lock_done")):
             mercado_ok = False
             try:
