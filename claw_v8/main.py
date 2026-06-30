@@ -27,7 +27,8 @@ from config import (
 import math
 from exchange import (
     tg, get_klines, get_positions, get_balance, get_price, sync_time, get_public_ip,
-    get_top_futures_symbols, place_stop_market, cancel_algo_order, get_open_algo_orders
+    get_top_futures_symbols, place_stop_market, cancel_algo_order, get_open_algo_orders,
+    close_position
 )
 from indicators import atr, get_daily_vwap
 from strategy import detect_market_mode, signal_trending
@@ -481,6 +482,29 @@ def run():
                                 f"{emoji_ext} <b>LOCK +{new_lock_ext:.1f} USDC</b> — {symbol} (externa)\n"
                                 f"Stop → {lock_price_ext:.6g} ({stop_info_ext}) | PnL: +{pnl_ext:.2f} USDC"
                             )
+
+                    # ── Software stop enforcement (externa) ─────────────────
+                    # Se lock activo + stop não colocado na exchange → fecha via MARKET
+                    # quando PnL cai abaixo do nível protegido
+                    current_lock_ext = ext.get("profit_lock_level", 0.0)
+                    if current_lock_ext > 0 and not ext.get("stop_order_id"):
+                        lock_floor = max(current_lock_ext - PROFIT_LOCK_STEP, 0.0)
+                        if pnl_ext <= lock_floor:
+                            close_side_ext = "SELL" if ext["direction"] == "LONG" else "BUY"
+                            close_result = close_position(symbol, qty_ext, ext["direction"])
+                            if close_result:
+                                fechadas_ext.append(symbol)
+                                tg(
+                                    f"🔒🔻 <b>SOFTWARE STOP</b> — {symbol} (externa)\n"
+                                    f"Lock era +{current_lock_ext:.1f} | PnL caiu para {pnl_ext:+.2f} USDC\n"
+                                    f"Fechada via MARKET (stop exchange não existia)"
+                                )
+                            else:
+                                tg(
+                                    f"⚠️ <b>SOFTWARE STOP FALHOU</b> — {symbol}\n"
+                                    f"PnL: {pnl_ext:+.2f} < lock {lock_floor:+.1f} — FECHAR MANUALMENTE!"
+                                )
+
                 else:
                     # Fechada — calcula P&L final
                     fechadas_ext.append(symbol)
