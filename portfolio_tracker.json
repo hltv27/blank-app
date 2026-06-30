@@ -231,5 +231,71 @@
         "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado)"
       }
     }
+    ,
+    {
+      "data": "2026-06-30",
+      "hora": "21:57",
+      "eur_usd_rate": 1.088,
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3099.78,
+          "variacao_vs_10maio_usd": -964.34,
+          "variacao_vs_10maio_pct": -23.73,
+          "ativos": {
+            "BTC":  { "qtd": 0.0348942,   "valor_usd": 2046.61, "preco_usd": 58651.81, "var_dia_pct": -2.59 },
+            "ETH":  { "qtd": 0.44191314,  "valor_usd": 695.44,  "preco_usd": 1573.70,  "var_dia_pct": -2.59, "staking_apy": 1.44 },
+            "SOL":  { "qtd": 3.35112572,  "valor_usd": 246.49,  "preco_usd": 73.56,    "var_dia_pct": -2.28, "staking_apy": 5.71 },
+            "XRP":  { "qtd": 84.566087,   "valor_usd": 88.07,   "preco_usd": 1.04,     "var_dia_pct": -1.97 },
+            "BASE_ETH": { "qtd": 0.009798, "valor_usd": 15.42,  "preco_usd": 1573.70 },
+            "LINK": { "qtd": 0.96250677,  "valor_usd": 6.90,    "preco_usd": 7.17,     "var_dia_pct": -3.63 }
+          },
+          "nota": "DOT e HBAR/TON não aparecem — possivelmente vendidos ou consolidados"
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 1655.21,
+          "variacao_vs_10maio_eur": 351.48,
+          "variacao_vs_10maio_pct": 26.96,
+          "nota": "Portfólio reestruturado: RGTI, PLTR, HO, LHX, META, Z4Q vendidos. Novos: FTNT, MRVL. VWCE aumentado significativamente. AutoInvest VWCE €3/dia (~€91/mês).",
+          "ativos": {
+            "VWCE": { "qtd": 5.96712187, "valor_eur": 985.89, "pl_eur": 25.31,  "pl_pct": 2.63  },
+            "FTNT": { "qtd": 2.03110161, "valor_eur": 272.08, "pl_eur": 17.51,  "pl_pct": 6.88, "novo": true },
+            "CEG":  { "qtd": 0.95877895, "valor_eur": 209.43, "pl_eur": -29.68, "pl_pct": -12.41 },
+            "LEU":  { "qtd": 0.75705578, "valor_eur": 111.21, "pl_eur": -9.27,  "pl_pct": -7.69 },
+            "MRVL": { "qtd": 0.29554497, "valor_eur": 76.60,  "pl_eur": -1.78,  "pl_pct": -2.27, "novo": true }
+          },
+          "autoinvest": {
+            "ativo": "VWCE",
+            "valor_diario_eur": 3,
+            "mensal_aprox_eur": 91,
+            "proximo": "2026-07-01"
+          }
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 260.70,
+          "nota": "Nova plataforma detectada (era Swissborg no screenshot anterior — corrigido para Robinhood).",
+          "ativos": {
+            "QQQM": { "qtd": 0.96694, "valor_usd": 302.87 }
+          },
+          "yield_euros": {
+            "apy_pct": 5.0,
+            "ganho_mes_eur": 0.10,
+            "fundos_em_yield_eur": 0.00
+          }
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3099.78,
+        "tangem_eur": 2849.06,
+        "invest_stocks_eur": 1655.21,
+        "robinhood_eur": 260.70,
+        "total_eur_aprox": 4764.97,
+        "variacao_vs_10maio_eur": -1424.61,
+        "nota_variacao": "Queda significativa: 1) Tangem -$964 (crypto em correcção: BTC -27%, ETH -32% vs Mai-10); 2) Stocks reestruturados (+€351, VWCE triplicou em qty); 3) Sem invest_crypto, invest_etf_usd, nova_carteira_crypto, binance_eur — possivelmente consolidados ou vendidos; 4) Nova plataforma Robinhood (+€261 em QQQM). Nota: comparação incompleta — carteiras anteriores podem ter sido movidas, não perdidas.",
+        "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado). MANTAUSDT SHORT manual aberto (-11.45 USDC no momento do snapshot)."
+      }
+    }
   ]
 }
