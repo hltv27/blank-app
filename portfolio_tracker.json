@@ -230,8 +230,570 @@
         "nota_variacao": "Aumento principal: RGTI compra significativa (+€437). PAXG quase totalmente vendido (-€256). Nova carteira crypto detectada (+€81). Tangem subiu +$73. EUR/USD praticamente estável (1.176→1.1781).",
         "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado)"
       }
-    }
-    ,
+    },
+    {
+      "data": "2026-05-14",
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 4290,
+          "variacao_vs_10maio_usd": 225.88,
+          "variacao_vs_10maio_pct": 5.6,
+          "ativos": {
+            "BTC":  { "qtd": 0.0348942,   "valor_usd": 2845, "preco_usd": 81522 },
+            "ETH":  { "qtd": 0.44191314,  "valor_usd": 1018, "preco_usd": 2304 },
+            "SOL":  { "qtd": 3.11664982,  "valor_usd": 289,  "preco_usd": 92.87, "staking_apy": 5.83 },
+            "XRP":  { "qtd": 84.566087,   "valor_usd": 126,  "preco_usd": 1.49 },
+            "LINK": { "qtd": 0.96250677,  "valor_usd": 10,   "preco_usd": 10.64 },
+            "DOT":  { "qtd": 1.00,        "valor_usd": 1,    "preco_usd": 1.40 }
+          }
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 1323,
+          "variacao_vs_10maio_eur": 19.27,
+          "variacao_vs_10maio_pct": 1.48,
+          "ativos": {
+            "VWCE": { "qtd": 1.843,       "valor_eur": 296.79, "pl_pct": 4.65 },
+            "CEG":  { "qtd": 0.954,       "valor_eur": 225.44, "pl_pct": -5.32 },
+            "PLTR": { "qtd": 1.357,       "valor_eur": 155.41, "pl_pct": -0.86 },
+            "RGTI": { "qtd": 8.442,       "valor_eur": 140.11, "pl_pct": 4.54 },
+            "HO":   { "qtd": 0.644,       "valor_eur": 143.63, "pl_pct": -15.17 },
+            "LEU":  { "qtd": 0.552,       "valor_eur": 89.98,  "pl_pct": -11.11 },
+            "HRS":  { "qtd": 0.334,       "valor_eur": 88.40,  "pl_pct": -11.60 },
+            "CMP":  { "qtd": 3.353,       "valor_eur": 87.37,  "pl_pct": 2.32 },
+            "FTNT": { "qtd": 0.742,       "valor_eur": 76.47,  "pl_pct": 5.61 },
+            "Kongsberg": { "qtd": 3.694,  "valor_eur": 19.60,  "novo": true }
+          }
+        },
+        "bux_etf_stocks": {
+          "moeda": "EUR",
+          "total": 491,
+          "nota": "MU, ANET, ETN — ex-invest_etf_usd migrados para Bux"
+        },
+        "bux_crypto": {
+          "moeda": "EUR",
+          "total": 221,
+          "nota": "PAXG recomprado"
+        },
+        "binance_eur": {
+          "moeda": "EUR",
+          "total": 770,
+          "nota": "Saldo EUR sem actualização desde Mai-10",
+          "ativos": {
+            "EUR": { "qtd": 770, "valor_eur": 770 }
+          }
+        }
+      },
+      "resumo": {
+        "tangem_usd": 4290,
+        "invest_stocks_eur": 1323,
+        "bux_etf_stocks_eur": 491,
+        "bux_crypto_eur": 221,
+        "binance_eur": 770,
+        "total_eur_aprox": 6601,
+        "variacao_vs_10maio_eur": 411,
+        "nota_variacao": "Pico histórico do portfólio. Tangem +5.6% (BTC $80,885→$81,522). Invest stocks reestruturado com novos tickers (HRS, CMP, FTNT, Kongsberg). RGTI reduzido de 16.59 para 8.44 unidades.",
+        "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado)"
+      }
+    },
+    {
+      "data": "2026-05-16",
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 4080,
+          "variacao_vs_14maio_usd": -210,
+          "variacao_vs_14maio_pct": -4.9,
+          "ativos": {
+            "BTC":  { "qtd": 0.0348942,   "valor_usd": 2720, "preco_usd": 77960 },
+            "ETH":  { "qtd": 0.44191314,  "valor_usd": 961,  "preco_usd": 2176 },
+            "SOL":  { "qtd": 3.11745595,  "valor_usd": 268,  "preco_usd": 86.05, "staking_apy": 5.83 },
+            "XRP":  { "qtd": 84.566087,   "valor_usd": 119,  "preco_usd": 1.41 },
+            "LINK": { "qtd": 0.96250677,  "valor_usd": 9,    "preco_usd": 9.64 },
+            "DOT":  { "qtd": 1.00,        "valor_usd": 1,    "preco_usd": 1.26 }
+          }
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 1299,
+          "variacao_vs_14maio_eur": -24,
+          "variacao_vs_14maio_pct": -1.8,
+          "nota": "MU (Micron) vendido. ANET aumentado (1.24→2.04), ETN aumentado (0.31→0.45).",
+          "ativos": {
+            "VWCE": { "qtd": 1.843,       "valor_eur": 293.87, "pl_pct": 3.62 },
+            "PLTR": { "qtd": 1.357,       "valor_eur": 155.29, "pl_pct": -0.94 },
+            "RGTI": { "qtd": 8.442,       "valor_eur": 129.75, "pl_pct": -3.19 },
+            "HRS":  { "qtd": 0.334,       "valor_eur": 87.24,  "pl_pct": -12.76 },
+            "CMP":  { "qtd": 3.353,       "valor_eur": 87.16,  "pl_pct": 2.07 },
+            "FTNT": { "qtd": 0.742,       "valor_eur": 78.21,  "pl_pct": 8.01 },
+            "Kongsberg": { "qtd": 3.694,  "valor_eur": 20.06, "novo": true }
+          },
+          "nota_ativos_ocultos": "CEG, HO, LEU scrolled — não visíveis no screenshot"
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 695.06,
+          "nota": "Nova plataforma — substitui Bux. MU vendido, ANET e ETN aumentados. PAXG recomprado.",
+          "ativos": {
+            "ANET": { "qtd": 2.0376, "preco_usd": 141.31, "valor_eur": 255 },
+            "ETN":  { "qtd": 0.4549, "preco_usd": 398.80, "valor_eur": 161 },
+            "PAXG": { "qtd": 0.052037, "valor_eur": 202.68, "preco_eur": 3895 },
+            "ETH":  { "qtd": 0.00351, "valor_eur": 6.58, "preco_eur": 1874 },
+            "buying_power": { "valor_eur": 75.17 }
+          }
+        },
+        "binance_eur": {
+          "moeda": "EUR",
+          "total": 770,
+          "nota": "Sem actualização",
+          "ativos": {
+            "EUR": { "qtd": 770, "valor_eur": 770 }
+          }
+        }
+      },
+      "resumo": {
+        "tangem_usd": 4080,
+        "invest_stocks_eur": 1299,
+        "robinhood_eur": 695,
+        "binance_eur": 770,
+        "total_eur_aprox": 6393,
+        "variacao_vs_14maio_eur": -208,
+        "variacao_vs_14maio_pct": -3.2,
+        "nota_variacao": "Queda por correção cripto generalizada (-3% a -6% em todos os activos). MU (Micron) vendido. ANET aumentado (1.24→2.04), ETN aumentado (0.31→0.45).",
+        "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado)"
+      }
+    },
+    {
+      "data": "2026-06-01",
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3726,
+          "variacao_vs_16maio_usd": -354,
+          "variacao_vs_16maio_pct": -8.7,
+          "ativos": {
+            "BTC":  { "qtd": 0.0348942,    "valor_usd": 2478, "preco_usd": 71027 },
+            "ETH":  { "qtd": 0.44191314,   "valor_usd": 870,  "preco_usd": 1968 },
+            "SOL":  { "qtd": 3.25616997,   "valor_usd": 259,  "preco_usd": 79.68, "staking_apy": 5.83 },
+            "XRP":  { "qtd": 84.566087,    "valor_usd": 109,  "preco_usd": 1.29 },
+            "LINK": { "qtd": 0.96250677,   "valor_usd": 9,    "preco_usd": 8.93 },
+            "DOT":  { "qtd": 1.00,         "valor_usd": 1,    "preco_usd": 1.13 }
+          }
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 1464.62,
+          "variacao_vs_16maio_eur": 165.62,
+          "variacao_vs_16maio_pct": 12.8,
+          "nota": "Vendidos vs Mai-16: PLTR, HRS, HO (Thales), Kongsberg. Adicionados: DXYZ, mais VWCE (+1.85 unid.), mais RGTI (+0.7 unid.), mais FTNT (+0.18 unid.).",
+          "ativos": {
+            "VWCE": { "qtd": 3.695,        "valor_eur": 605.66, "pl_pct": 3.35 },
+            "CEG":  { "qtd": 0.954,        "valor_eur": 223.10, "pl_pct": -6.30 },
+            "RGTI": { "qtd": 9.142,        "valor_eur": 198.37, "pl_pct": 11.32 },
+            "FTNT": { "qtd": 0.923,        "valor_eur": 114.79, "pl_pct": 24.26 },
+            "DXYZ": { "qtd": 3.360,        "valor_eur": 141.56, "pl_pct": -5.48, "novo": true },
+            "CMP":  { "qtd": 3.353,        "valor_eur": 93.97,  "pl_pct": 10.05 },
+            "LEU":  { "qtd": 0.552,        "valor_eur": 87.17,  "pl_pct": -13.89 }
+          }
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 605.97,
+          "variacao_vs_16maio_eur": -89.09,
+          "variacao_vs_16maio_pct": -12.8,
+          "nota": "PAXG liquidado, ETN quase totalmente vendido (0.45→0.006), SMH adicionado como nova posição principal.",
+          "ativos": {
+            "ANET": { "qtd": 2.11288, "preco_usd": 169.62, "valor_eur": 317 },
+            "SMH":  { "qtd": 0.52006, "preco_usd": 608.28, "valor_eur": 281 },
+            "ETN":  { "qtd": 0.00567, "preco_usd": 400.92, "valor_eur": 2 },
+            "buying_power": { "valor_eur": 12.59 }
+          }
+        },
+        "binance_futures": {
+          "moeda": "USD",
+          "total": 57,
+          "nota": "Bot Claw v8",
+          "ativos": {
+            "USDC": { "qtd": 57, "valor_usd": 57 }
+          }
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3726,
+        "invest_stocks_eur": 1465,
+        "robinhood_eur": 606,
+        "binance_futures_usd": 57,
+        "total_eur_aprox": 5420,
+        "nota_variacao": "BTC corrigiu de $77,960 → $71,027 (-8.9%), arrastando toda a Tangem. Invest subiu €166 graças a VWCE e RGTI — diversificação a amortecer a correção cripto. PAXG e ETN quase totalmente vendidos no Robinhood; SMH adicionado.",
+        "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado)"
+      }
+    },
+    {
+      "data": "2026-06-03",
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3415,
+          "variacao_vs_01jun_usd": -311,
+          "variacao_vs_01jun_pct": -8.3,
+          "ativos": {
+            "BTC":  { "qtd": 0.0348942,    "valor_usd": 2277, "preco_usd": 65244 },
+            "ETH":  { "qtd": 0.44191314,   "valor_usd": 795,  "preco_usd": 1798 },
+            "SOL":  { "qtd": 3.25711846,   "valor_usd": 234,  "preco_usd": 71.72, "staking_apy": 5.74 },
+            "XRP":  { "qtd": 84.566087,    "valor_usd": 102,  "preco_usd": 1.20 },
+            "LINK": { "qtd": 0.96250677,   "valor_usd": 8,    "preco_usd": 8.19 },
+            "DOT":  { "qtd": 1.00,         "valor_usd": 1,    "preco_usd": 1.09 }
+          }
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 1473.39,
+          "variacao_vs_01jun_eur": 8.77,
+          "variacao_vs_01jun_pct": 0.6,
+          "nota": "DXYZ, CMP, LEU vendidos. VWCE reforçado (+1.63 unid.), FTNT reforçado (+0.53 unid.), SMH migrado do Robinhood (+0.54 unid.), RGTI reduzido (-4.87 unid.).",
+          "ativos": {
+            "VWCE": { "qtd": 5.32660687,   "valor_eur": 874.31, "pl_pct": 2.29 },
+            "CEG":  { "qtd": 0.95436341,   "valor_eur": 220.07, "pl_pct": -7.58 },
+            "FTNT": { "qtd": 1.45056673,   "valor_eur": 183.19, "pl_pct": 14.98 },
+            "SMH":  { "qtd": 1.05989092,   "valor_eur": 107.84, "pl_pct": 0.89, "novo": true },
+            "RGTI": { "qtd": 4.27129751,   "valor_eur": 87.98,  "pl_pct": 5.67 }
+          }
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 334.61,
+          "nota": "SMH migrado para Trading 212. Apenas ANET mantido.",
+          "ativos": {
+            "ANET": { "qtd": 2.23166, "preco_usd": 173.85, "valor_eur": 334.61, "retorno_total_eur": 54.20, "retorno_total_pct": 19.33, "custo_medio_eur": 125.65 }
+          }
+        },
+        "binance_futures": {
+          "moeda": "USD",
+          "total": 154,
+          "nota": "Bot Claw v8",
+          "ativos": {
+            "USDC": { "qtd": 154, "valor_usd": 154 }
+          }
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3415,
+        "invest_stocks_eur": 1473,
+        "robinhood_eur": 335,
+        "binance_futures_usd": 154,
+        "total_eur_aprox": 5088,
+        "nota_variacao": "BTC caiu de $71,027 → $65,244 (-8.1%), ETH -8.5%, SOL -10.1%. Trading 212 estável graças a FTNT (+14.98%) e VWCE (+2.29%). Portfólio T212 reorganizado: DXYZ, CMP, LEU removidos; VWCE reforçado, SMH migrado do Robinhood, RGTI reduzido.",
+        "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado)"
+      }
+    },
+    {
+      "data": "2026-06-12",
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3313,
+          "variacao_vs_03jun_usd": -102,
+          "variacao_vs_03jun_pct": -3.0,
+          "ativos": {
+            "BTC":      { "qtd": 0.0348942,   "valor_usd": 2227, "preco_usd": 63832 },
+            "ETH":      { "qtd": 0.44191314,  "valor_usd": 743,  "preco_usd": 1680 },
+            "SOL":      { "qtd": 3.26187746,  "valor_usd": 221,  "preco_usd": 67.72, "staking_apy": 5.77 },
+            "XRP":      { "qtd": 84.566087,   "valor_usd": 97,   "preco_usd": 1.15 },
+            "BASE_ETH": { "qtd": 0.009798,    "valor_usd": 16,   "preco_usd": 1680, "novo": true },
+            "LINK":     { "qtd": 0.96250677,  "valor_usd": 8,    "preco_usd": 7.93 },
+            "DOT":      { "qtd": 1.00,        "valor_usd": 1,    "preco_usd": 0.97 }
+          }
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 1328,
+          "variacao_vs_03jun_eur": -145.39,
+          "variacao_vs_03jun_pct": -9.8,
+          "nota": "Removidos vs Jun-03: RGTI, SMH europeia. Adicionados: ALOY, ASTS, MRVL, CRWV, SOLS, IONQ, AMTM, S, FB2A. Portfólio altamente diversificado: 13 posições.",
+          "ativos": {
+            "VWCE": { "qtd": 5.34529036,  "valor_eur": 866.74, "pl_pct": 1.04 },
+            "CEG":  { "qtd": 0.95436341,  "valor_eur": 205.46, "pl_pct": -13.71 },
+            "FTNT": { "qtd": 1.45056673,  "valor_eur": 182.19, "pl_pct": 14.35 },
+            "ALOY": { "qtd": 2.25364349,  "valor_eur": 31.43,  "pl_pct": 12.41, "novo": true },
+            "ASTS": { "qtd": 0.09750445,  "valor_eur": 7.32,   "pl_pct": -8.39, "novo": true },
+            "LEU":  { "qtd": 0.05773685,  "valor_eur": 8.13,   "pl_pct": 1.75 },
+            "MRVL": { "qtd": 0.03434547,  "valor_eur": 8.48,   "pl_pct": 6.13, "novo": true },
+            "CRWV": { "qtd": 0.03606306,  "valor_eur": 3.22,   "pl_pct": 7.33, "novo": true },
+            "SOLS": { "qtd": 0.04329377,  "valor_eur": 3.10,   "pl_pct": 3.33, "novo": true },
+            "IONQ": { "qtd": 0.0601098,   "valor_eur": 3.08,   "pl_pct": 2.67, "novo": true },
+            "AMTM": { "qtd": 0.15404932,  "valor_eur": 3.04,   "pl_pct": 1.33, "novo": true },
+            "S":    { "qtd": 0.23462755,  "valor_eur": 2.98,   "pl_pct": -0.67, "novo": true },
+            "FB2A": { "qtd": 0.00600559,  "valor_eur": 2.95,   "pl_pct": -1.67, "novo": true }
+          }
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 678.19,
+          "variacao_vs_03jun_eur": 343.58,
+          "variacao_vs_03jun_pct": 102,
+          "nota": "SMH americana mantida/aumentada (versão diferente da SMH europeia que saiu do T212). Adicionados QQQ e VTI (ETFs de índice amplo).",
+          "ativos": {
+            "ANET": { "qtd": 2.3034,  "preco_usd": 163.04 },
+            "SMH":  { "qtd": 0.56218, "preco_usd": 618.76 },
+            "QQQ":  { "qtd": 0.06418, "preco_usd": 720.05, "novo": true },
+            "VTI":  { "qtd": 0.00319, "preco_usd": 366.51, "novo": true },
+            "ETN":  { "qtd": 0.00273, "preco_usd": 394.15 }
+          }
+        },
+        "binance_futures": {
+          "moeda": "USD",
+          "total": 150,
+          "nota": "Bot Claw v8",
+          "ativos": {
+            "USDC": { "qtd": 150, "valor_usd": 150 }
+          }
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3313,
+        "invest_stocks_eur": 1328,
+        "robinhood_eur": 678,
+        "binance_futures_usd": 150,
+        "total_eur_aprox": 5231,
+        "variacao_vs_03jun_eur": 143,
+        "variacao_vs_03jun_pct": 2.8,
+        "nota_variacao": "Tangem em queda ligeira (BTC $65,244→$63,832, ETH -6.6%). Trading 212 perdeu €145 com RGTI e SMH removidos e CEG a cair -13.7%. Robinhood duplicou com SMH de volta + QQQ e VTI adicionados.",
+        "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado)"
+      }
+    },
+    {
+      "data": "2026-06-15",
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3542,
+          "variacao_vs_12jun_usd": 229,
+          "variacao_vs_12jun_pct": 6.9,
+          "ativos": {
+            "BTC":      { "qtd": 0.0348942,   "valor_usd": 2345, "preco_usd": 67192 },
+            "ETH":      { "qtd": 0.44191314,  "valor_usd": 814,  "preco_usd": 1842 },
+            "SOL":      { "qtd": 3.2628276,   "valor_usd": 247,  "preco_usd": 75.74, "staking_apy": 5.75 },
+            "XRP":      { "qtd": 84.566087,   "valor_usd": 109,  "preco_usd": 1.29 },
+            "BASE_ETH": { "qtd": 0.009798,    "valor_usd": 18,   "preco_usd": 1842 },
+            "LINK":     { "qtd": 0.96250677,  "valor_usd": 8,    "preco_usd": 8.55 }
+          },
+          "nota": "DOT já não aparece na carteira (vendido ou valor negligenciável)."
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 1466,
+          "variacao_vs_12jun_eur": 138,
+          "variacao_vs_12jun_pct": 10.4,
+          "nota": "Removidos vs Jun-12: ASTS, SOLS, AMTM, S. Adicionados: DRON, EBS. AutoInvest expandido para €274/mês (novos: MRVL, META, LEU, IONQ, ALOY, EBS, CEG a €1/dia cada).",
+          "ativos": {
+            "VWCE": { "qtd": 5.40631806, "valor_eur": 889.88, "pl_pct": 2.55 },
+            "CEG":  { "qtd": 0.95436341, "valor_eur": 216.45, "pl_pct": -9.10 },
+            "FTNT": { "qtd": 1.45846945, "valor_eur": 186.89, "pl_pct": 16.57 },
+            "ALOY": { "qtd": 4.06864039, "valor_eur": 57.82,  "pl_pct": 5.30 },
+            "MRVL": { "qtd": 0.2011094,  "valor_eur": 51.92,  "pl_pct": 5.19 },
+            "LEU":  { "qtd": 0.13281743, "valor_eur": 20.23,  "pl_pct": 8.07 },
+            "IONQ": { "qtd": 0.24858356, "valor_eur": 13.48,  "pl_pct": 3.85 },
+            "CRWV": { "qtd": 0.13168071, "valor_eur": 12.29,  "pl_pct": 4.06 },
+            "DRON": { "qtd": 1.68690958, "valor_eur": 10.05,  "pl_pct": 0.50, "novo": true },
+            "FB2A": { "qtd": 0.01201983, "valor_eur": 6.19,   "pl_pct": 3.17 },
+            "EBS":  { "qtd": 0.13682567, "valor_eur": 0.98,   "pl_pct": -2.00, "novo": true }
+          },
+          "autoinvest": {
+            "valor_mensal_eur": 274,
+            "detalhes": "MRVL, META, LEU, IONQ, ALOY, EBS, CEG a €1/dia cada"
+          }
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 698.42,
+          "variacao_vs_12jun_eur": 20.23,
+          "variacao_vs_12jun_pct": 3.0,
+          "ativos": {
+            "ANET": { "qtd": 2.59102, "preco_usd": 166.57 },
+            "SMH":  { "qtd": 0.56218, "preco_usd": 646.94 },
+            "QQQ":  { "qtd": 0.06418 },
+            "VTI":  { "qtd": 0.00319 },
+            "ETN":  { "qtd": 0.00273 }
+          },
+          "nota": "ANET aumentado (+0.288 unid. vs Jun-12)."
+        },
+        "binance_futures": {
+          "moeda": "USD",
+          "total": 165,
+          "nota": "Bot Claw v8",
+          "ativos": {
+            "USDC": { "qtd": 165, "valor_usd": 165 }
+          }
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3542,
+        "invest_stocks_eur": 1466,
+        "robinhood_eur": 698,
+        "binance_futures_usd": 165,
+        "total_eur_aprox": 5574,
+        "variacao_vs_12jun_eur": 343,
+        "variacao_vs_12jun_pct": 6.2,
+        "nota_variacao": "Mercado cripto em recuperação forte — BTC +4.8% ($63,832→$67,192), ETH +10.5%, SOL +11.9%, XRP +13.2%. T212 cresceu €138 com posições significativamente reforçadas (ALOY, MRVL, IONQ, CRWV, FB2A, LEU). AutoInvest expandido para €274/mês.",
+        "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado)"
+      }
+    },
+    {
+      "data": "2026-06-18",
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3341,
+          "variacao_vs_15jun_usd": -201,
+          "variacao_vs_15jun_pct": -5.7,
+          "ativos": {
+            "BTC":      { "qtd": 0.0348942,   "valor_usd": 2219.92, "preco_usd": 63618.57 },
+            "ETH":      { "qtd": 0.44191314,  "valor_usd": 766.27,  "preco_usd": 1733.97 },
+            "SOL":      { "qtd": 3.26472832,  "valor_usd": 230.93,  "preco_usd": 70.74, "staking_apy": 5.75 },
+            "XRP":      { "qtd": 84.566087,   "valor_usd": 97.92,   "preco_usd": 1.16 },
+            "BASE_ETH": { "qtd": 0.009798,    "valor_usd": 16.99,   "preco_usd": 1733.97 },
+            "LINK":     { "qtd": 0.96250677,  "valor_usd": 7.69,    "preco_usd": 7.99 }
+          }
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 1545.62,
+          "variacao_vs_15jun_eur": 79.62,
+          "variacao_vs_15jun_pct": 5.4,
+          "nota": "IONQ e EBS vendidos. Conta total +€26.17 (+1.9%) hoje.",
+          "ativos": {
+            "VWCE": { "qtd": 5.67667402, "valor_eur": 940.68, "var_dia_pct": 3.08 },
+            "CEG":  { "qtd": 0.95877895, "valor_eur": 231.77, "var_dia_pct": -3.07 },
+            "FTNT": { "qtd": 1.04051011, "valor_eur": 131.44, "var_dia_pct": 10.23 },
+            "MRVL": { "qtd": 0.3779996,  "valor_eur": 107.27, "var_dia_pct": 8.05 },
+            "LEU":  { "qtd": 0.44170761, "valor_eur": 72.88,  "var_dia_pct": 4.65 },
+            "CRWV": { "qtd": 0.59074987, "valor_eur": 61.58,  "var_dia_pct": 5.03 }
+          }
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 709.35,
+          "variacao_vs_15jun_eur": 10.93,
+          "variacao_vs_15jun_pct": 1.6,
+          "nota": "+€13.45 (+1.93%) hoje.",
+          "ativos": {
+            "ANET": { "qtd": 2.95008, "preco_usd": 168.91 },
+            "SMH":  { "qtd": 0.45925, "preco_usd": 658.12 }
+          }
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3341,
+        "invest_stocks_eur": 1546,
+        "robinhood_eur": 709,
+        "total_eur_aprox": 5770,
+        "nota_variacao": "Tangem -$201 (crypto em correcção ligeira). T212 +€80 com VWCE +3.08%, FTNT +10.23%. IONQ e EBS vendidos. Robinhood +€11.",
+        "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado). Sem total do ficheiro fonte — estimativa ~€5,770 baseada na tabela de evolução."
+      }
+    },
+    {
+      "data": "2026-06-19",
+      "nota_cobertura": "Dados parciais — apenas Invest e Robinhood actualizados. Tangem sem actualização (usa Jun-18).",
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3341,
+          "nota": "Sem actualização — valor de Jun-18"
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 1428.96,
+          "variacao_vs_18jun_eur": -116.66,
+          "variacao_vs_18jun_pct": -7.5,
+          "nota": "Reequilíbrio do tema IA: CRWV liquidado, MRVL reduzido a metade. ~€117 libertados.",
+          "ativos": {
+            "VWCE": { "qtd": 5.67667402, "valor_eur": 939.26, "var_dia_pct": 2.92 },
+            "CEG":  { "qtd": 0.95877895, "valor_eur": 234.59, "var_dia_pct": -1.89 },
+            "FTNT": { "qtd": 1.04051011, "valor_eur": 130.91, "var_dia_pct": 9.79 },
+            "MRVL": { "qtd": 0.18439326, "valor_eur": 52.01,  "var_dia_pct": 7.39, "nota": "vendido a meio" },
+            "LEU":  { "qtd": 0.44583732, "valor_eur": 72.19,  "var_dia_pct": 2.31 },
+            "CRWV": { "nota": "vendido por completo" }
+          }
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 707.39,
+          "variacao_vs_18jun_eur": -1.96,
+          "variacao_vs_18jun_pct": -0.3,
+          "nota": "ANET e SMH aliviados. ~€280 libertados. Exposição IA/semis reduzida. Cash libertado (~€397 total) ainda por deployar.",
+          "ativos": {
+            "ANET": { "qtd": 1.70895, "preco_usd": 169.03, "nota": "reduzido (-1.24 unid.)" },
+            "SMH":  { "qtd": 0.31906, "preco_usd": 657.01, "nota": "reduzido (-0.14 unid.)" }
+          }
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3341,
+        "invest_stocks_eur": 1429,
+        "robinhood_eur": 707,
+        "total_eur_aprox": 5651,
+        "nota_variacao": "Reequilíbrio significativo: CRWV liquidado, MRVL reduzido a metade no T212. ANET e SMH aliviados no Robinhood. ~€397 total de cash libertado — plano: metade VWCE, metade buffer. Tangem sem actualização.",
+        "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado). Dados parciais neste snapshot."
+      }
+    },
+    {
+      "data": "2026-06-22",
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3376.37,
+          "variacao_vs_19jun_usd": 35,
+          "ativos": {
+            "BTC":      { "qtd": 0.0348942,   "valor_usd": 2250.04, "var_dia_pct": 0.61 },
+            "ETH":      { "qtd": 0.44191314,  "valor_usd": 767.00,  "var_dia_pct": 0.33 },
+            "SOL":      { "qtd": 3.26662273,  "valor_usd": 237.72,  "staking_apy": 5.72, "var_dia_pct": -2.08 },
+            "XRP":      { "qtd": 84.566087,   "valor_usd": 95.99,   "var_dia_pct": -0.88 },
+            "BASE_ETH": { "qtd": 0.009798,    "valor_usd": 17.01,   "var_dia_pct": 0.33 },
+            "LINK":     { "qtd": 0.96250677,  "valor_usd": 7.62,    "var_dia_pct": -0.30 }
+          }
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 1534.95,
+          "variacao_vs_19jun_eur": 105.99,
+          "nota": "AutoInvest reduzido para ~€61/mês (era €274/mês em Jun-15). Posições reforçadas em VWCE, FTNT, LEU desde Jun-19; MRVL e CEG mantidos.",
+          "ativos": {
+            "VWCE": { "qtd": 5.82069771, "valor_eur": 966.47, "var_dia_pct": 3.19 },
+            "FTNT": { "qtd": 1.07177698, "valor_eur": 136.34, "var_dia_pct": 10.63 },
+            "CEG":  { "qtd": 0.95877895, "valor_eur": 230.81, "var_dia_pct": -3.47 },
+            "MRVL": { "qtd": 0.29554497, "valor_eur": 79.67,  "var_dia_pct": 1.65 },
+            "LEU":  { "qtd": 0.75705578, "valor_eur": 121.66, "var_dia_pct": 0.98 }
+          },
+          "autoinvest": {
+            "valor_mensal_eur": 61,
+            "nota": "Reduzido de €274/mês em Jun-15"
+          }
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 718.15,
+          "variacao_vs_19jun_eur": 10.76,
+          "nota": "Passou a render juros via Euro Interest (cash a 5% APY). QQQ trocado por QQQM.",
+          "ativos": {
+            "ANET": { "qtd": 1.70895, "preco_usd": 174.00 },
+            "QQQM": { "qtd": 0.96694, "preco_usd": 303.94, "nota": "substitui QQQ" },
+            "SMH":  { "qtd": 0.32241, "preco_usd": 667.90 },
+            "euro_interest": { "apy_pct": 5.0, "ganho_mes_eur": 0.03, "juros_total_eur": 0.53, "novo": true }
+          }
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3376.37,
+        "invest_stocks_eur": 1534.95,
+        "robinhood_eur": 718.15,
+        "total_eur_aprox": 5801,
+        "variacao_vs_19jun_eur": 150,
+        "variacao_vs_19jun_pct": 2.7,
+        "nota_variacao": "Recuperação ligeira em todas as contas. T212 cresceu €106 com VWCE em alta. Robinhood passou a render juros via Euro Interest e trocou QQQ por QQQM.",
+        "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado)"
+      }
+    },
     {
       "data": "2026-06-30",
       "hora": "21:57",
