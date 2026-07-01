@@ -15,7 +15,7 @@ import subprocess
 import time
 import traceback
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import config
 from config import (
     BTC_SYMBOLS, MAX_TRADES_ABERTOS,
@@ -217,11 +217,14 @@ def run():
                 sync_time()
                 ultima_sync_hora = now_utc.hour
 
-            # Relatório diário às 23:00 UTC — persiste no SQLite para sobreviver a restarts
-            if now_utc.hour == 23 and now_utc.day != ultimo_relatorio_dia:
-                ultimo_relatorio_dia = now_utc.day
-                state_set("ultimo_relatorio_dia", ultimo_relatorio_dia)
-                _relatorio_diario(mem)
+            # Relatório diário: 23:00 UTC normalmente, catch-up imediato se houve dia(s) sem relatório
+            if now_utc.day != ultimo_relatorio_dia:
+                yesterday = (now_utc - timedelta(days=1)).day
+                missed_day = (ultimo_relatorio_dia != yesterday and ultimo_relatorio_dia != -1)
+                if now_utc.hour == 23 or missed_day:
+                    ultimo_relatorio_dia = now_utc.day
+                    state_set("ultimo_relatorio_dia", ultimo_relatorio_dia)
+                    _relatorio_diario(mem)
 
             # Actualiza lista de pares a cada 24h
             if time.time() - ultima_actualizacao_symbols > 86400:
