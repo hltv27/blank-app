@@ -13,13 +13,16 @@ from config import (
     BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
     ROI_TP_IMEDIATO, SCORE_FORTE, SCORE_ALERTA, EMERGENCY_PNL_CUT,
     LIQUIDATION_GUARD_PCT, LIQUIDATION_WARN1_PCT, LIQUIDATION_WARN2_PCT, LIQUIDATION_WARN3_PCT,
-    TRAILING_LOCK_USDC, PEAK_PROFIT_MIN_USDC, PEAK_DRAWDOWN_PCT
+    TRAILING_LOCK_USDC, PEAK_PROFIT_MIN_USDC, PEAK_DRAWDOWN_PCT,
+    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, PRICE_PRECISION
 )
+import math
 from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_margin_ratio_global, get_price,
     get_klines,
     set_leverage, place_order, place_stop_market, place_trailing_stop,
-    place_take_profit, close_position, cancel_order, cancel_algo_order
+    place_take_profit, close_position, cancel_order, cancel_algo_order,
+    get_open_algo_orders
 )
 from indicators import atr, adx
 from strategy import calc_sl_tp, calc_qty, signal_trending
@@ -459,6 +462,76 @@ def gerir_posicoes(mem: dict):
         opened_at = trade.get("opened_at")
         elapsed   = (time.time() - opened_at) if opened_at else 1800
 
+        # ── Profit lock progressivo (+0.5 USDC) — NUNCA perder após lucro ──
+        # A cada +0.5 USDC, move stop para o nível anterior.
+        # Se stop exchange falhar, enforcement por software fecha via MARKET.
+        current_lock = trade.get("profit_lock_level", 0.0)
+        if qty > 0 and entry > 0 and pos["pnl"] >= PROFIT_LOCK_USDC:
+            new_lock = math.floor(pos["pnl"] / PROFIT_LOCK_STEP) * PROFIT_LOCK_STEP
+            if new_lock >= PROFIT_LOCK_USDC and new_lock > current_lock + 1e-9:
+                lock_usdc = max(new_lock - PROFIT_LOCK_STEP, 0.0)
+                price_prec = PRICE_PRECISION.get(symbol, 2)
+                if side == "LONG":
+                    lock_price = (round(entry + lock_usdc / qty, price_prec)
+                                  if lock_usdc > 0 else round(entry * (1 + BREAKEVEN_OFFSET), price_prec))
+                else:
+                    lock_price = (round(entry - lock_usdc / qty, price_prec)
+                                  if lock_usdc > 0 else round(entry * (1 - BREAKEVEN_OFFSET), price_prec))
+
+                if current_lock == 0.0:
+                    for old_algo_id in get_open_algo_orders(symbol):
+                        cancel_algo_order(symbol, old_algo_id)
+                old_stop_bot = trade.get("stop_order_id")
+                if old_stop_bot:
+                    cancel_algo_order(symbol, old_stop_bot)
+                    mem["trades_abertos"][symbol]["stop_order_id"] = None
+
+                lock_side = "SELL" if side == "LONG" else "BUY"
+                new_lock_id = None
+                for _attempt in range(3):
+                    new_lock_id = place_stop_market(symbol, lock_side, lock_price, qty)
+                    if new_lock_id:
+                        break
+                    if side == "LONG":
+                        lock_price = round(lock_price * (1 - 0.0015), price_prec)
+                    else:
+                        lock_price = round(lock_price * (1 + 0.0015), price_prec)
+                    time.sleep(0.5)
+
+                mem["trades_abertos"][symbol]["profit_lock_level"] = new_lock
+                mem["trades_abertos"][symbol]["stop_order_id"]     = new_lock_id
+                mem["trades_abertos"][symbol]["sl"]                = lock_price
+                save_memory(mem)
+                sl = lock_price
+                current_lock = new_lock
+                emoji_lock = "🔒" if trade.get("profit_lock_level", 0) == 0 else "📈"
+                stop_txt_lk = f"#{new_lock_id}" if new_lock_id else "SOFTWARE ⚠️"
+                if not new_lock_id:
+                    print(f"[AVISO] {symbol}: profit lock stop falhou após 3 tentativas")
+                tg(
+                    f"{emoji_lock} <b>LOCK +{new_lock:.1f} USDC</b> — {symbol}\n"
+                    f"Stop → {lock_price:.6g} ({stop_txt_lk}) | PnL: +{pos['pnl']:.2f} USDC"
+                )
+
+        # Software enforcement: se lock activo + stop não na exchange → fecha via MARKET
+        if current_lock > 0 and not trade.get("stop_order_id"):
+            lock_floor = max(current_lock - PROFIT_LOCK_STEP, 0.0)
+            if pos["pnl"] <= lock_floor:
+                if _fechar_com_retry(symbol, pos["qty"], side):
+                    _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                    pos["pnl"], "PROFIT_LOCK_SW", pos["pnl"] > 0, mem)
+                    tg(
+                        f"🔒🔻 <b>SOFTWARE STOP</b> — {symbol}\n"
+                        f"Lock era +{current_lock:.1f} | PnL caiu para {pos['pnl']:+.2f} USDC\n"
+                        f"Fechada via MARKET (stop exchange não existia)"
+                    )
+                else:
+                    tg(
+                        f"⚠️ <b>SOFTWARE STOP FALHOU</b> — {symbol}\n"
+                        f"PnL: {pos['pnl']:+.2f} < lock {lock_floor:+.1f} — FECHAR MANUALMENTE!"
+                    )
+                continue
+
         # ROI alto → fecha imediatamente, sem esperar tempo
         if roi >= ROI_TP_IMEDIATO:
             if _fechar_com_retry(symbol, pos["qty"], side):
@@ -666,7 +739,8 @@ def gerir_posicoes(mem: dict):
         sl_dist      = abs(entry_trade0 - sl_orig)
         if (sl_dist > 0 and entry_trade0 > 0
                 and not trade.get("partial_tp_done")
-                and not trade.get("breakeven_1r_done")):
+                and not trade.get("breakeven_1r_done")
+                and not trade.get("profit_lock_level", 0)):
             if side == "LONG":
                 r1_level = entry_trade0 + sl_dist
                 hit_r1   = price >= r1_level
@@ -713,10 +787,13 @@ def gerir_posicoes(mem: dict):
                     close_position(symbol, qty_tp1, side)
                     qty_restante = round(qty_total - qty_tp1, decimals_p)
                     # Breakeven stop: entrada + 0.2% (cobre fees)
+                    # Nunca downgrade o stop se profit lock já o moveu mais acima
                     if side == "LONG":
                         be_price = round(entry_trade * (1 + BREAKEVEN_OFFSET), 8)
+                        be_price = max(be_price, sl)
                     else:
                         be_price = round(entry_trade * (1 - BREAKEVEN_OFFSET), 8)
+                        be_price = min(be_price, sl) if sl > 0 else be_price
                     # Cancela trailing stop antigo e coloca stop de breakeven
                     old_stop = trade.get("stop_order_id")
                     if old_stop:
@@ -761,13 +838,16 @@ def gerir_posicoes(mem: dict):
                     close_position(symbol, qty_tp2, side)
                     qty_restante = round(qty_total - qty_tp2, decimals_p)
                     # Stop para +1R (lock de lucro no runner)
-                    sl_dist = abs(entry_trade - trade.get("sl", entry_trade))
-                    if sl_dist == 0:
-                        sl_dist = abs(entry_trade - tp) / 3.0
+                    # Nunca downgrade o stop se profit lock já o moveu mais acima
+                    sl_dist_tp2 = abs(entry_trade - trade.get("sl", entry_trade))
+                    if sl_dist_tp2 == 0:
+                        sl_dist_tp2 = abs(entry_trade - tp) / 3.0
                     if side == "LONG":
-                        lock_price = round(entry_trade + sl_dist, 8)
+                        lock_price = round(entry_trade + sl_dist_tp2, 8)
+                        lock_price = max(lock_price, sl)
                     else:
-                        lock_price = round(entry_trade - sl_dist, 8)
+                        lock_price = round(entry_trade - sl_dist_tp2, 8)
+                        lock_price = min(lock_price, sl) if sl > 0 else lock_price
                     old_stop2 = trade.get("stop_order_id")
                     if old_stop2:
                         try:
