@@ -67,21 +67,21 @@ touch ~/blank-app/claw_v8/KILL_SWITCH
 
 ---
 
-## ⚠️ Segunda via de execução: GitHub Actions (`run_bot.yml`)
+## ⚠️ Segunda via de execução (histórico): GitHub Actions (`run_bot.yml`) — DESACTIVADA em 2026-07-02
 
-Além do Termux, o bot também corre **diariamente via GitHub Actions** — isto é intencional (confirmado pelo utilizador), não um resíduo esquecido:
+Durante algum tempo o bot correu **também diariamente via GitHub Actions**, em paralelo com o Termux, sem que o utilizador tivesse noção disso — **não era intencional**. Foi desactivado assim que descoberto.
 
 ```
 .github/workflows/run_bot.yml
 ```
 
-- **Trigger**: `schedule: cron '0 5 * * *'` (arranca 05:00 UTC) + `workflow_dispatch` manual
-- **Duração**: `timeout-minutes: 350` (~5h50m, fica abaixo do limite de 6h do GitHub) — corre `python3 claw_v8/main.py` directamente (sem `run_loop.sh`, portanto sem auto-restart do watchdog dentro dessa janela)
+- **Estado actual**: o trigger `schedule` está comentado no ficheiro (só resta `workflow_dispatch` manual) — não corre mais sozinho
+- **Como corria antes**: `cron '0 5 * * *'` (arrancava 05:00 UTC), `timeout-minutes: 350` (~5h50m), corria `python3 claw_v8/main.py` directamente (sem `run_loop.sh`, sem auto-restart do watchdog)
 - **Credenciais**: usa GitHub Secrets (`TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`, `BINANCE_API_KEY`, `BINANCE_API_SECRET`) — as mesmas contas Binance/Telegram do Termux
-- **Estado**: cada run é um checkout limpo — SQLite (`claw_v8.db`) e `KILL_SWITCH` locais ao runner, **não persistem** entre execuções e **não são partilhados** com o Termux
-- **Confirmado activo**: 44 runs consecutivos com sucesso (23 Jun – 2 Jul 2026), todos no branch `main`
+- **Estado (SQLite)**: cada run era um checkout limpo — `claw_v8.db` e `KILL_SWITCH` locais ao runner, não persistiam entre execuções nem eram partilhados com o Termux
+- **Confirmado que esteve activo**: 44 runs diários consecutivos com sucesso (23 Jun – 2 Jul 2026), todos no branch `main`, cada um a correr ~5h50m com as credenciais reais — ou seja, dois processos do bot a gerir a mesma conta Binance em simultâneo nesse período, cada um com a sua própria memória `trades_abertos`
 
-Ao investigar bugs de "posição tratada como manual" ou conflitos de STOP_MARKET, considerar que **pode haver dois processos do bot a correr em simultâneo** (Termux + Actions) na mesma conta Binance, cada um com a sua própria memória `trades_abertos`. Se precisares de confirmar se o Actions está a correr num dado momento, usa `mcp__github__actions_list` (`list_workflow_runs`, `resource_id: "run_bot.yml"`).
+Se aparecerem bugs antigos de "posição tratada como manual" ou conflitos de STOP_MARKET datados deste período (23 Jun – 2 Jul), considerar esta execução duplicada como causa provável. Para reactivar esta via no futuro (só se o Termux deixar de ser produção), descomentar o bloco `schedule` — ver comentário no próprio ficheiro. Para confirmar se voltou a correr nalgum momento, usa `mcp__github__actions_list` (`list_workflow_runs`, `resource_id: "run_bot.yml"`).
 
 ---
 
