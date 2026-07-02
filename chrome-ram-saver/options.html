@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <title>RAM Saver — Definições</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <main>
+    <h1><img src="icons/icon48.png" alt="" width="28" height="28" /> RAM Saver — Definições</h1>
+
+    <section class="card">
+      <label class="row">
+        <span>
+          <strong>Suspensão automática</strong>
+          <small>Suspende separadores inactivos em segundo plano para libertar RAM.</small>
+        </span>
+        <label class="switch">
+          <input type="checkbox" id="enabled" />
+          <span class="slider"></span>
+        </label>
+      </label>
+
+      <label class="row">
+        <span>
+          <strong>Suspender após</strong>
+          <small>Minutos de inactividade antes de um separador ser suspenso.</small>
+        </span>
+        <span class="field">
+          <input type="number" id="idleMinutes" min="1" max="1440" step="1" />
+          min
+        </span>
+      </label>
+
+      <label class="row">
+        <span>
+          <strong>Não suspender separadores fixos</strong>
+          <small>Separadores marcados como "pinned" nunca são suspensos.</small>
+        </span>
+        <input type="checkbox" id="excludePinned" />
+      </label>
+
+      <label class="row">
+        <span>
+          <strong>Não suspender com áudio/vídeo</strong>
+          <small>Separadores a reproduzir som (música, chamadas, vídeo) não são suspensos.</small>
+        </span>
+        <input type="checkbox" id="excludeAudio" />
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Lista branca</h2>
+      <p class="hint">Sites nesta lista nunca são suspensos automaticamente (o domínio e todos os subdomínios).</p>
+      <form id="whitelistForm" class="whitelist-form">
+        <input type="text" id="whitelistInput" placeholder="exemplo.com" autocomplete="off" />
+        <button type="submit" class="btn primary">Adicionar</button>
+      </form>
+      <ul id="whitelistList" class="whitelist-list">
+        <li class="empty">A lista branca está vazia.</li>
+      </ul>
+    </section>
+
+    <p id="status" class="status" role="status"></p>
+  </main>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>
