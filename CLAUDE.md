@@ -62,8 +62,26 @@ touch ~/blank-app/claw_v8/KILL_SWITCH
 - NUNCA fazer push para main sem confirmar com o utilizador
 
 ## Credenciais
-**NUNCA mostrar no chat.** Estão em `~/.bashrc` e `/etc/environment` no VPS:
+**NUNCA mostrar no chat.** Estão em `~/.bashrc` e `/etc/environment` no VPS, e em GitHub Secrets (ver secção "Segunda via de execução" abaixo):
 `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`, `BINANCE_API_KEY`, `BINANCE_API_SECRET`
+
+---
+
+## ⚠️ Segunda via de execução: GitHub Actions (`run_bot.yml`)
+
+Além do Termux, o bot também corre **diariamente via GitHub Actions** — isto é intencional (confirmado pelo utilizador), não um resíduo esquecido:
+
+```
+.github/workflows/run_bot.yml
+```
+
+- **Trigger**: `schedule: cron '0 5 * * *'` (arranca 05:00 UTC) + `workflow_dispatch` manual
+- **Duração**: `timeout-minutes: 350` (~5h50m, fica abaixo do limite de 6h do GitHub) — corre `python3 claw_v8/main.py` directamente (sem `run_loop.sh`, portanto sem auto-restart do watchdog dentro dessa janela)
+- **Credenciais**: usa GitHub Secrets (`TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`, `BINANCE_API_KEY`, `BINANCE_API_SECRET`) — as mesmas contas Binance/Telegram do Termux
+- **Estado**: cada run é um checkout limpo — SQLite (`claw_v8.db`) e `KILL_SWITCH` locais ao runner, **não persistem** entre execuções e **não são partilhados** com o Termux
+- **Confirmado activo**: 44 runs consecutivos com sucesso (23 Jun – 2 Jul 2026), todos no branch `main`
+
+Ao investigar bugs de "posição tratada como manual" ou conflitos de STOP_MARKET, considerar que **pode haver dois processos do bot a correr em simultâneo** (Termux + Actions) na mesma conta Binance, cada um com a sua própria memória `trades_abertos`. Se precisares de confirmar se o Actions está a correr num dado momento, usa `mcp__github__actions_list` (`list_workflow_runs`, `resource_id: "run_bot.yml"`).
 
 ---
 
@@ -72,14 +90,21 @@ touch ~/blank-app/claw_v8/KILL_SWITCH
 | Ficheiro | Função |
 |---|---|
 | `config.py` | Todas as constantes (risco, estratégia, pares) |
-| `main.py` | Loop principal, scan de pares, sync de posições |
-| `execution.py` | Abrir trades, gerir posições, profit lock, guards |
+| `main.py` | Loop principal, scan de pares, sync de posições, watchdog, relatório diário |
+| `execution.py` | Abrir trades, gerir posições, profit lock (bot + externas), guards |
 | `exchange.py` | Todas as chamadas HTTP à Binance e Telegram |
 | `strategy.py` | Sinais trending, cálculo SL/TP, market mode |
 | `filters.py` | Filtros HTF, funding rate, volatility regime, etc. |
 | `risk.py` | Circuit breaker, veto por símbolo, sessão |
 | `storage.py` | SQLite + memória JSON |
 | `indicators.py` | ATR, ADX, RSI, Supertrend, VWAP, etc. |
+| `markov.py` | Detecção de regime via cadeia de Markov (5 estados: BULL/BEAR/VOL_UP/VOL_DOWN/RANGING), +2 ao score quando confirma direcção |
+| `telegram_handler.py` | Comandos Telegram (`/status /fechar /pause /resume /pairs /help`), poll a cada 15s |
+| `analytics.py` | Relatórios de performance por filtro (filter attribution) a partir do SQLite |
+| `backtest.py` | Motor de backtest standalone sobre dados históricos públicos da Binance (`python backtest.py --symbol BTCUSDC --days 90`) |
+| `spot_scanner.py` | Scanner multi-timeframe independente para Binance Spot (não é o bot de futures; alertas Telegram apenas, não executa ordens) |
+| `check_results.py` | Query rápida ao SQLite (`../claw_v8.db`) para win/loss e stats — corre manualmente, não faz parte do loop |
+| `run_loop.sh` | Wrapper que reinicia `main.py` automaticamente (Termux) |
 
 ---
 
@@ -95,25 +120,35 @@ O profit lock cancela o stop antigo ANTES de colocar o novo. Ver `execution.py`.
 
 ## Parâmetros actuais em `config.py`
 
+**Nota:** este bloco reflecte `claw_v8/config.py` no branch `main`; confirmar sempre no ficheiro antes de assumir valores desactualizados aqui.
+
 ```python
 CAPITAL_MAX_BOT     = 370.0    # capital máximo que o bot usa
 RISCO_USDC          = 5.0      # risco por trade em USDC
 ALAVANCAGEM         = 6        # leverage
 MAX_TRADES_ABERTOS  = 5
-MAX_MARGEM_TRADE    = 0.20     # máx 20% do capital por posição
-PROFIT_LOCK_USDC    = 0.5      # activa lock a partir de +0.5 USDC
+MAX_MARGEM_TRADE    = 0.20     # máx 20% do capital por posição (74 USDC em 370)
+PROFIT_LOCK_USDC    = 0.5      # activa lock a partir de +0.5 USDC (bot E posições externas)
 PROFIT_LOCK_STEP    = 0.5      # move stop a cada +0.5 USDC
 TRAILING_LOCK_USDC  = 4.0      # ao atingir 4 USDC muda para trailing stop
 EMERGENCY_ROI_CUT   = -5.5     # % ROI para corte de emergência
 EMERGENCY_PNL_CUT   = 3.0      # fecha se perda absoluta > 3 USDC
-SCORE_ALERTA        = 6        # score mínimo para abrir trade (era 4)
+SCORE_ALERTA        = 6        # score mínimo para abrir trade (SHORTs)
+SCORE_LONG_MIN      = 8        # LONGs exigem score mais alto que SHORTs
 SCORE_FORTE         = 6        # score considerado forte
 ADX_TREND_MIN_MAJOR = 22.5     # BTC/ETH/BNB
-ADX_TREND_MIN_ALT   = 30.0     # alts — exige tendência mais forte
-ROI_TP_IMEDIATO     = 7.0      # % ROI → fecha imediatamente
+ADX_TREND_MIN_ALT   = 25.0     # alts (era 30 — bloqueava demasiadas entradas)
+ATR_SL_MULT_MIN     = 1.8      # SL mínimo (era 1.2 — alargado para dar mais espaço)
+ATR_SL_MULT_MAX     = 2.5      # SL em mercado volátil (era 1.8)
+ROI_TP_IMEDIATO     = 12.0     # % ROI → fecha imediatamente (era 7 — dava pouco espaço)
 TIME_TP_MIN_MIN     = 10       # minutos mínimos para TIME_TP
+PEAK_PROFIT_MIN_USDC= 1.5      # protecção de recuo de pico: só actua acima disto
+PEAK_DRAWDOWN_PCT   = 0.40     # fecha se recuar ≥40% do pico atingido
+MARKOV_LOOKBACK     = 100      # candles para a matriz de transição
+MARKOV_SCORE        = 2        # pontos de score quando o regime confirma direcção
+LIQUIDATION_GUARD_PCT = 50.0   # margem global > 50% → fecha posições a positivo
 SESSOES_UTC         = [(5, 23)]
-TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
+TOP_N_FUTURES       = 50       # top 50 pares USDC-M por volume (era 150 — cortava memecoins ilíquidos)
 ```
 
 ---
@@ -129,16 +164,21 @@ TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
 ### Saídas (`gerir_posicoes`, ciclo de 10s quando há posições)
 | Regra | Condição | Acção |
 |---|---|---|
-| **Profit lock** | PnL > 1 USDC | Move SL a cada +0.5 USDC |
+| **Profit lock progressivo** | PnL ≥ `PROFIT_LOCK_USDC` (0.5 USDC) | Move SL a cada +0.5 USDC; breakeven_1R/TP1/TP2 nunca fazem downgrade do stop se o lock já o moveu mais acima. Aplica-se a **trades do bot e a posições externas** (ver bug #14 abaixo) |
+| **Software stop enforcement** | Stop da exchange falhou (marcado "SOFTWARE ⚠️") e PnL cai abaixo do nível protegido pelo lock | Fecha imediatamente via MARKET — antes só movia o stop para cima, nunca actuava na reversão (ver bug #13) |
 | **Trailing lock** | PnL ≥ 4 USDC | Muda stop fixo → trailing stop |
 | **TP1** | 2R atingido | Fecha 33%, trailing para breakeven |
 | **TP2** | 3R atingido | Fecha mais 33% |
-| **TIME_TP** | >10min + ROI ≥ 7% | Fecha tudo |
 | **SIGNAL_INV** | Sinal oposto score≥6 após 5min | Fecha tudo |
 | **STAGNADO** | >60min + PnL entre -0.5 e +1.0 | Fecha (sem trailing lock) |
 | **EMERGENCY_PNL** | Perda > 3 USDC absolutos | Fecha imediatamente |
 | **EMERGENCY_ROI** | ROI ≤ -5.5% | Fecha imediatamente |
-| **Software SL** | price ≤ sl (LONG) / price ≥ sl (SHORT) | Fecha via MARKET |
+| **Software SL** | price ≤ sl (LONG) / price ≥ sl (SHORT) | Fecha via MARKET (grace period de 3min após abertura antes de poder disparar) |
+
+`TIME_TP` foi removido (cortava winners antes do TP da exchange disparar — ver `decisions.md`); `ROI_TP_IMEDIATO` (12%) continua activo como saída directa por ROI.
+
+### Relatório diário
+`_relatorio_diario` corre normalmente às 23:00 UTC e escreve `status.json` + `status_history.jsonl`. O último dia reportado (`ultimo_relatorio_dia`) é persistido no SQLite; se o bot esteve em baixo à hora do relatório (IP bloqueado, restart), faz **catch-up imediato** no primeiro ciclo do dia seguinte em vez de saltar o dia.
 
 ### Guards de risco
 - BTC crash > 3% → fecha todos os LONGs do bot
@@ -152,6 +192,7 @@ TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
 - Bot envia alertas de ROI (-5%, -3%, +3%, +5%, +10%, +15%, +20%)
 - Bot NÃO fecha, P&L NÃO conta para circuit breaker
 - **Profit lock activo**: a partir de `PROFIT_LOCK_USDC` (+0.5 USDC) o bot coloca/move um `STOP_MARKET closePosition` a cada `PROFIT_LOCK_STEP` (+0.5 USDC), igual ao que faz nas trades do próprio bot
+- **Software stop enforcement**: se o stop da exchange falhar, o bot fecha via MARKET assim que o PnL cai abaixo do nível já protegido pelo lock (ver bug #13) — antes disso só actualizava o stop, nunca reagia à reversão
 - Na primeira activação cancela qualquer stop pré-existente no símbolo (`get_open_algo_orders` + `cancel_algo_order`) antes de colocar o seu — evita conflito com stop manual já colocado pelo utilizador (só pode existir 1 `closePosition` stop por símbolo)
 - Implementado em `main.py`, bloco "Monitorização de posições externas"
 
@@ -218,6 +259,21 @@ TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
 - **Causa**: o watchdog (`main.py`) só enviava alerta no Telegram quando o loop ficava 5min sem heartbeat, mas nunca reiniciava o processo — bot ficava preso (provavelmente em `_relatorio_diario`, que corre uma vez por dia às 23:00 UTC e nunca mais actualizou desde Jun-03)
 - **Fix**: watchdog agora força `os._exit(1)` ao detectar 5min sem heartbeat; novo `run_loop.sh` reinicia automaticamente o `main.py` sempre que ele terminar (Termux não tem systemd/cron). Arrancar sempre via `run_loop.sh`, nunca `python -u main.py` directamente.
 
+### 13. Profit lock não reagia quando o stop da exchange falhava (posições externas)
+- **Causa**: quando o profit lock estava activo mas o STOP_MARKET na exchange falhou ("SOFTWARE ⚠️"), o bot continuava a mover o nível protegido para cima mas nunca fechava quando o preço revertia abaixo desse nível
+- **Fix**: a cada ciclo verifica se PnL caiu abaixo do lock e fecha imediatamente via MARKET (`main.py`)
+- **GitHub**: SHA a364799
+
+### 14. Trades do próprio bot sem profit lock progressivo
+- **Causa**: o profit lock a cada +0.5 USDC só existia para posições externas; trades do bot podiam chegar a +1.5 USDC e reverter até ao SL original (perda real registada: -2.56 USDC)
+- **Fix**: mesmo mecanismo de lock progressivo + enforcement por software aplicado a `trades_abertos` (não só `posicoes_externas`); breakeven_1R e TP1/TP2 já não fazem downgrade do stop se o profit lock o moveu mais acima (`execution.py`)
+- **GitHub**: SHA f65fb83
+
+### 15. Relatório diário saltava dias quando o bot estava em baixo às 23:00 UTC
+- **Causa**: `_relatorio_diario` só corria exactamente às 23:00 UTC; se o processo estivesse parado nessa hora (IP bloqueado, restart), o dia ficava sem relatório em `status.json`/`status_history.jsonl`
+- **Fix**: detecta `ultimo_relatorio_dia` (SQLite) diferente de "ontem" e gera catch-up imediato no primeiro ciclo do dia seguinte (`main.py`)
+- **GitHub**: SHA ae6030e
+
 ---
 
 ## Regras importantes que NÃO mudar
@@ -229,3 +285,29 @@ TOP_N_FUTURES       = 150      # top 150 pares USDC-M por volume
 5. `get_balance` usa `/fapi/v2/account` assets[].marginBalance com fallback totalMarginBalance
 6. Nunca mostrar credenciais no chat
 7. NUNCA push para main sem confirmar com o utilizador
+
+---
+
+## Resto do repositório — fora do âmbito do bot
+
+Este repositório (`hltv27/blank-app`) começou como um template Streamlit em branco e acumulou vários subprojectos não relacionados. **Não editar nem assumir relação com o Claw Agent** a menos que explicitamente pedido:
+
+| Caminho | O que é | Estado |
+|---|---|---|
+| `claw_v8/` | **Claw Agent v8 — o bot descrito neste documento** | Activo |
+| `claw_agent_v7.py`, `main.py` (raiz), `claw_v8_single.py` | Versões anteriores do bot (v7 monolítico, v8 em ficheiro único) | Arquivadas — não usar, mantidas por referência histórica |
+| `spot_signal.py` | Bot de sinais Binance Spot standalone (só alertas Telegram, não abre ordens) | Independente do `claw_v8/spot_scanner.py`; verificar qual está em uso antes de mexer |
+| `affiliate_bot/`, `bot.py`, `start_bot.sh`, `stop_bot.sh`, `setup_termux.sh` | Bot de afiliados (AliExpress → Telegram/Instagram/TikTok), ver `PROGRESSO.md` | Projecto separado, infra própria (Hetzner/Termux) |
+| `douroetamega/`, `guidedbynature/`, `guidedbynature_crawler.py`, `find_api.py` | Web crawlers para projectos de scraping distintos | Projectos separados |
+| `streamlit_app.py`, `.devcontainer/` | Boilerplate do template original do repo | Não usado pelo bot |
+| `biblioteca_cw` | Ficheiro solto vazio (1 byte) | Resíduo, sem conteúdo |
+| `portfolio_tracker.json` | Snapshots manuais do portfólio pessoal do utilizador (múltiplas carteiras/exchanges), mantido por sessões Claude via commits directos | Dados, não código — não é lido pelo `claw_v8` |
+| `PROJECTO_CLAW_COMPLETO.md`, `CLAW_MASTER.md`, `CHANGELOG.md`, `SESSAO_*.md`, `.claude/memory/*.md` | Documentação histórica/notas de sessões anteriores sobre o bot | Podem estar desactualizadas — `CLAUDE.md` (este ficheiro) e `claw_v8/status.json` são as fontes de verdade actuais; `.claude/memory/` reflecte estado de 2026-06-15, já ultrapassado pelas secções acima |
+
+## Convenções de desenvolvimento (Claw Agent v8)
+
+- **Mensagens de commit**: descritivas, em português, focadas no "porquê" (ex: `Profit lock progressivo para trades do bot (+0.5 USDC)`), seguidas de rodapé `Co-Authored-By` — ver `git log` para o estilo exacto
+- **Sem suite de testes automatizada** para `claw_v8/` — validação é feita por: `backtest.py` (dados históricos), `check_results.py` (consulta ao SQLite em produção), e observação directa via Telegram/`status.json` depois do deploy
+- **Sem CI de lint/type-check** — o único workflow GitHub Actions (`run_bot.yml`) corre o bot em produção, não testes
+- Alterações a `config.py` ou lógica de saída/entrada devem, idealmente, ser validadas com `backtest.py` antes do deploy, dado que afectam dinheiro real
+- Este projecto não usa `requirements.txt` da raiz (esse é do `affiliate_bot/`) — `claw_v8` depende apenas de `requests` (ver imports em `exchange.py`); confirmar dependências reais no código antes de assumir
