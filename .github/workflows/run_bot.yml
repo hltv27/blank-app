@@ -2,8 +2,12 @@ name: Claw Agent v8
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 5 * * *'   # arranca às 05:00 UTC (sessão 05:00-23:00)
+  # Desactivado 2026-07-02: corria em paralelo ao bot no Termux, ambos na mesma
+  # conta Binance com estado (SQLite) separado — risco de STOP_MARKET em
+  # conflito e trades duplicadas. Ver CLAUDE.md, secção "Segunda via de
+  # execução". Reactivar só se o Termux deixar de ser a via de produção.
+  # schedule:
+  #   - cron: '0 5 * * *'   # arrancava às 05:00 UTC (sessão 05:00-23:00)
 
 jobs:
   run-bot:
