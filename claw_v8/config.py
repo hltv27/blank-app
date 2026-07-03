@@ -123,7 +123,7 @@ ATR_REGIME_LOOKBACK = 50
 BTC_CRASH_PCT       = 3.0
 STOP_RETRY_MAX      = 3
 EMERGENCY_ROI_CUT   = -5.5
-EMERGENCY_PNL_CUT   = 3.0    # fecha se posição perde > 3 USDC absolutos
+EMERGENCY_PNL_CUT   = 2.0    # fecha se posição perde > 2 USDC absolutos
 BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 
 # Guarda de capital — nunca perder mais de 25% em aberto

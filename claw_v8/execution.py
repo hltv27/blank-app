@@ -646,30 +646,41 @@ def gerir_posicoes(mem: dict):
                 except Exception as _e:
                     print(f"[AVISO] peak_drawdown {symbol}: {_e}")
 
-        # ── Saída por estagnação ──────────────────────────────────────────
-        # Só fecha se aberto > 90min E PnL negativo (trade perdedora estagnada).
-        # Antes de fechar, verifica se o mercado ainda confirma a direcção —
-        # se score >= SCORE_ALERTA na mesma direcção, suspende o fecho e deixa correr.
+        # ── Tempo máximo: 4 horas → fecha incondicionalmente ────────────
         tempo_min = elapsed / 60
+        if tempo_min >= 240 and not trade.get("trailing_lock_done"):
+            if _fechar_com_retry(symbol, pos["qty"], side):
+                _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                pos["pnl"], "MAX_TEMPO", pos["pnl"] > 0, mem)
+                tg(
+                    f"⏰ <b>TEMPO MÁXIMO 4H</b> — {symbol}\n"
+                    f"{tempo_min:.0f}min | PnL: {pos['pnl']:+.2f} USDC\n"
+                    f"Sinal original expirado — fecho forçado."
+                )
+            continue
+
+        # ── Saída por estagnação ──────────────────────────────────────────
+        # 90min-180min + PnL negativo: fecha se sinal não confirmar.
+        # >180min + PnL negativo: fecha incondicionalmente (não deixa sangrar).
         if (tempo_min >= 90
                 and pos["pnl"] < 0
                 and not trade.get("trailing_lock_done")):
             mercado_ok = False
-            try:
-                kl_stag = get_klines(symbol)
-                if kl_stag and len(kl_stag) >= 104:
-                    c_s = [float(k[4]) for k in kl_stag]
-                    h_s = [float(k[2]) for k in kl_stag]
-                    l_s = [float(k[3]) for k in kl_stag]
-                    v_s = [float(k[5]) for k in kl_stag]
-                    stag_dir, stag_score, _ = signal_trending(c_s, h_s, l_s, v_s, symbol)
-                    if stag_dir == side and stag_score >= SCORE_ALERTA:
-                        mercado_ok = True
-            except Exception as _e:
-                print(f"[AVISO] stagnado_check {symbol}: {_e}")
+            if tempo_min < 180:
+                try:
+                    kl_stag = get_klines(symbol)
+                    if kl_stag and len(kl_stag) >= 104:
+                        c_s = [float(k[4]) for k in kl_stag]
+                        h_s = [float(k[2]) for k in kl_stag]
+                        l_s = [float(k[3]) for k in kl_stag]
+                        v_s = [float(k[5]) for k in kl_stag]
+                        stag_dir, stag_score, _ = signal_trending(c_s, h_s, l_s, v_s, symbol)
+                        if stag_dir == side and stag_score >= SCORE_ALERTA:
+                            mercado_ok = True
+                except Exception as _e:
+                    print(f"[AVISO] stagnado_check {symbol}: {_e}")
 
             if mercado_ok:
-                # Notifica no máximo uma vez a cada 15min para não fazer spam
                 ultimo_skip = trade.get("stagnado_skip_ts", 0)
                 if time.time() - ultimo_skip > 900:
                     mem["trades_abertos"][symbol]["stagnado_skip_ts"] = time.time()
@@ -683,10 +694,11 @@ def gerir_posicoes(mem: dict):
 
             if not _fechar_com_retry(symbol, pos["qty"], side):
                 continue
+            reason_stag = "STAGNADO_3H" if tempo_min >= 180 else "STAGNADO"
             _registar_fecho(symbol, side, entry, sl, tp, qty,
-                            pos["pnl"], "STAGNADO", pos["pnl"] > 0, mem)
+                            pos["pnl"], reason_stag, pos["pnl"] > 0, mem)
             tg(
-                f"⏳ <b>STAGNADO</b> — {symbol}\n"
+                f"⏳ <b>{reason_stag}</b> — {symbol}\n"
                 f"{tempo_min:.0f}min sem progressão | PnL: {pos['pnl']:+.2f} USDC"
             )
             continue
