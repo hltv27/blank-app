@@ -585,13 +585,12 @@ def gerir_posicoes(mem: dict):
         # ── Saída por reversão de sinal ──────────────────────────────────
         # Se o sinal original inverteu completamente (score forte na direcção oposta),
         # fecha antes de o preço atingir o SL. Não actua se trailing já protege.
-        # NUNCA fecha abaixo do profit lock floor — o stop da exchange trata disso.
+        # DESACTIVADO quando profit lock activo — o stop da exchange protege a saída.
         _lock_level = trade.get("profit_lock_level", 0.0)
-        _lock_floor_sig = max(_lock_level - PROFIT_LOCK_STEP, 0.0) if _lock_level > 0 else -999
         if (elapsed > 300
+                and _lock_level == 0
                 and not trade.get("trailing_lock_done")
                 and not trade.get("partial_tp2_done")
-                and pos["pnl"] >= _lock_floor_sig
                 and time.time() - _signal_inv_ts.get(symbol, 0) > 60):
             _signal_inv_ts[symbol] = time.time()
             try:
@@ -621,10 +620,10 @@ def gerir_posicoes(mem: dict):
         # Se a trade já chegou a um lucro relevante (>= PEAK_PROFIT_MIN_USDC)
         # e recuou >= PEAK_DRAWDOWN_PCT desse pico, fecha — mas só se o sinal
         # já não confirmar a direcção (evita fechar por simples ruído).
-        # NUNCA fecha abaixo do profit lock floor — o stop da exchange trata disso.
+        # DESACTIVADO quando profit lock activo — o stop da exchange protege a saída.
         if (peak_pnl >= PEAK_PROFIT_MIN_USDC
                 and not trade.get("trailing_lock_done")
-                and pos["pnl"] >= _lock_floor_sig
+                and _lock_level == 0
                 and time.time() - _peak_drawdown_ts.get(symbol, 0) > 60):
             drawdown_pnl = peak_pnl - pos["pnl"]
             if drawdown_pnl >= peak_pnl * PEAK_DRAWDOWN_PCT:
