@@ -264,7 +264,7 @@ def run():
                     sample = list(BTC_SYMBOLS) + [s for s in SYMBOLS if s not in BTC_SYMBOLS][:8]
                     trending_list, morto_list = [], []
                     for sym in sample:
-                        kl = get_klines(sym)
+                        kl = get_klines(sym, interval=SIGNAL_INTERVAL)
                         if not kl or len(kl) < 30:
                             continue
                         h_r = [float(k[2]) for k in kl]
