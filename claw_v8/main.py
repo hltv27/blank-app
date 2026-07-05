@@ -22,7 +22,8 @@ from config import (
     MAX_LONGS_ALT, MAX_SHORTS_ALT, LOOKBACK,
     CHECK_POSICOES_FAST, CHECK_POSICOES, CAPITAL_MAX_BOT, RISCO_USDC,
     ALAVANCAGEM, TOP_N_FUTURES, FORCE_INCLUDE_SYMBOLS,
-    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, SCORE_LONG_MIN
+    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, SCORE_LONG_MIN,
+    SIGNAL_INTERVAL, SCAN_ALIGN_MIN
 )
 import math
 from exchange import (
@@ -193,7 +194,7 @@ def run():
         "🤖 <b>Claw Agent v8.0 iniciado</b>\n"
         f"Pares: {len(SYMBOLS)} (top {TOP_N_FUTURES} USDC-M) | Capital: {CAPITAL_MAX_BOT} USDC\n"
         f"Cross Margin | Alavancagem: {ALAVANCAGEM}x\n"
-        f"Modo: TRENDING | SQLite: ativo\n"
+        f"Modo: TRENDING | TF: <b>{SIGNAL_INTERVAL.upper()}</b> | SQLite: ativo\n"
         f"IP: <code>{ip_atual}</code>"
     )
     print(f"[v8.0] Claw Agent a correr — {len(SYMBOLS)} pares")
@@ -301,10 +302,10 @@ def run():
             gerir_posicoes(mem)
             mem = load_memory()
 
-            # ── Scan alinhado com velas de 5 min ──────────────────────────
+            # ── Scan alinhado com velas de 15 min ─────────────────────────
             minuto         = now_utc.minute
             sleep_interval = CHECK_POSICOES_FAST if tem_posicoes else CHECK_POSICOES
-            if minuto % 5 != 0 or minuto == ultimo_minuto_scan:
+            if minuto % SCAN_ALIGN_MIN != 0 or minuto == ultimo_minuto_scan:
                 time.sleep(sleep_interval)
                 continue
 
@@ -553,7 +554,7 @@ def run():
                 if symbol in posicoes_reais:
                     continue
 
-                klines = get_klines(symbol)
+                klines = get_klines(symbol, interval=SIGNAL_INTERVAL)
                 if not klines or len(klines) < LOOKBACK // 2:
                     continue
 
@@ -645,7 +646,7 @@ def run():
                     break
                 # Máx 1 nova posição por ciclo de scan — evita abrir 5 posições correlacionadas ao mesmo tempo
                 if len(mem.get("trades_abertos", {})) > len(posicoes_reais):
-                    print(f"[{hora}] 1 trade aberto neste ciclo — próximo scan em 5min")
+                    print(f"[{hora}] 1 trade aberto neste ciclo — próximo scan em {SCAN_ALIGN_MIN}min")
                     break
 
         except KeyboardInterrupt:

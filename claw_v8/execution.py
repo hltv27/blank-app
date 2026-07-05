@@ -550,8 +550,8 @@ def gerir_posicoes(mem: dict):
             sinal_ok = False
             score5   = 0
             try:
-                kl5 = get_klines(symbol)
-                if kl5 and len(kl5) >= 104:
+                kl5 = get_klines(symbol, interval="1h")
+                if kl5 and len(kl5) >= 50:
                     c5 = [float(k[4]) for k in kl5]
                     h5 = [float(k[2]) for k in kl5]
                     l5 = [float(k[3]) for k in kl5]
@@ -587,15 +587,15 @@ def gerir_posicoes(mem: dict):
         # fecha antes de o preço atingir o SL. Não actua se trailing já protege.
         # DESACTIVADO quando profit lock activo — o stop da exchange protege a saída.
         _lock_level = trade.get("profit_lock_level", 0.0)
-        if (elapsed > 300
+        if (elapsed > 3600
                 and _lock_level == 0
                 and not trade.get("trailing_lock_done")
                 and not trade.get("partial_tp2_done")
-                and time.time() - _signal_inv_ts.get(symbol, 0) > 60):
+                and time.time() - _signal_inv_ts.get(symbol, 0) > 300):
             _signal_inv_ts[symbol] = time.time()
             try:
-                kl_inv = get_klines(symbol)
-                if kl_inv and len(kl_inv) >= 104:
+                kl_inv = get_klines(symbol, interval="1h")
+                if kl_inv and len(kl_inv) >= 50:
                     c_inv = [float(k[4]) for k in kl_inv]
                     h_inv = [float(k[2]) for k in kl_inv]
                     l_inv = [float(k[3]) for k in kl_inv]
@@ -629,9 +629,9 @@ def gerir_posicoes(mem: dict):
             if drawdown_pnl >= peak_pnl * PEAK_DRAWDOWN_PCT:
                 _peak_drawdown_ts[symbol] = time.time()
                 try:
-                    kl_pk = get_klines(symbol)
+                    kl_pk = get_klines(symbol, interval="1h")
                     pk_dir, pk_score = None, 0
-                    if kl_pk and len(kl_pk) >= 104:
+                    if kl_pk and len(kl_pk) >= 50:
                         c_pk = [float(k[4]) for k in kl_pk]
                         h_pk = [float(k[2]) for k in kl_pk]
                         l_pk = [float(k[3]) for k in kl_pk]
@@ -651,30 +651,30 @@ def gerir_posicoes(mem: dict):
                 except Exception as _e:
                     print(f"[AVISO] peak_drawdown {symbol}: {_e}")
 
-        # ── Tempo máximo: 4 horas → fecha incondicionalmente ────────────
+        # ── Tempo máximo: 48 horas → fecha incondicionalmente ───────────
         tempo_min = elapsed / 60
-        if tempo_min >= 240 and not trade.get("trailing_lock_done"):
+        if tempo_min >= 2880 and not trade.get("trailing_lock_done"):
             if _fechar_com_retry(symbol, pos["qty"], side):
                 _registar_fecho(symbol, side, entry, sl, tp, qty,
                                 pos["pnl"], "MAX_TEMPO", pos["pnl"] > 0, mem)
                 tg(
-                    f"⏰ <b>TEMPO MÁXIMO 4H</b> — {symbol}\n"
-                    f"{tempo_min:.0f}min | PnL: {pos['pnl']:+.2f} USDC\n"
+                    f"⏰ <b>TEMPO MÁXIMO 48H</b> — {symbol}\n"
+                    f"{tempo_min/60:.1f}h | PnL: {pos['pnl']:+.2f} USDC\n"
                     f"Sinal original expirado — fecho forçado."
                 )
             continue
 
         # ── Saída por estagnação ──────────────────────────────────────────
-        # 90min-180min + PnL negativo: fecha se sinal não confirmar.
-        # >180min + PnL negativo: fecha incondicionalmente (não deixa sangrar).
-        if (tempo_min >= 90
+        # 8h-12h + PnL negativo: fecha se sinal não confirmar.
+        # >12h + PnL negativo: fecha incondicionalmente (não deixa sangrar).
+        if (tempo_min >= 480
                 and pos["pnl"] < 0
                 and not trade.get("trailing_lock_done")):
             mercado_ok = False
-            if tempo_min < 180:
+            if tempo_min < 720:
                 try:
-                    kl_stag = get_klines(symbol)
-                    if kl_stag and len(kl_stag) >= 104:
+                    kl_stag = get_klines(symbol, interval="1h")
+                    if kl_stag and len(kl_stag) >= 50:
                         c_s = [float(k[4]) for k in kl_stag]
                         h_s = [float(k[2]) for k in kl_stag]
                         l_s = [float(k[3]) for k in kl_stag]
@@ -687,30 +687,30 @@ def gerir_posicoes(mem: dict):
 
             if mercado_ok:
                 ultimo_skip = trade.get("stagnado_skip_ts", 0)
-                if time.time() - ultimo_skip > 900:
+                if time.time() - ultimo_skip > 3600:
                     mem["trades_abertos"][symbol]["stagnado_skip_ts"] = time.time()
                     save_memory(mem)
                     tg(
                         f"⏳ <b>STAGNADO SUSPENSO</b> — {symbol}\n"
-                        f"{tempo_min:.0f}min | PnL: {pos['pnl']:+.2f} USDC\n"
+                        f"{tempo_min/60:.1f}h | PnL: {pos['pnl']:+.2f} USDC\n"
                         f"Mercado ainda favorável (score {stag_score}) — a aguardar."
                     )
                 continue
 
             if not _fechar_com_retry(symbol, pos["qty"], side):
                 continue
-            reason_stag = "STAGNADO_3H" if tempo_min >= 180 else "STAGNADO"
+            reason_stag = "STAGNADO_12H" if tempo_min >= 720 else "STAGNADO"
             _registar_fecho(symbol, side, entry, sl, tp, qty,
                             pos["pnl"], reason_stag, pos["pnl"] > 0, mem)
             tg(
                 f"⏳ <b>{reason_stag}</b> — {symbol}\n"
-                f"{tempo_min:.0f}min sem progressão | PnL: {pos['pnl']:+.2f} USDC"
+                f"{tempo_min/60:.1f}h sem progressão | PnL: {pos['pnl']:+.2f} USDC"
             )
             continue
         # Alerta quando marginal e no-man's-land (não fecha automaticamente)
-        if (25 <= tempo_min < 60 and 0.5 <= pos["pnl"] <= 2.0
+        if (120 <= tempo_min < 360 and 0.5 <= pos["pnl"] <= 2.0
                 and not trade.get("partial_tp_done")
-                and time.time() - trade.get("stag_alerta_ts", 0) > 1800):
+                and time.time() - trade.get("stag_alerta_ts", 0) > 3600):
             mem["trades_abertos"][symbol]["stag_alerta_ts"] = time.time()
             save_memory(mem)
             tg(

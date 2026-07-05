@@ -17,7 +17,7 @@ BASE_URL = "https://fapi.binance.com"
 # ─────────────────────────────────────────────
 #  PARES
 # ─────────────────────────────────────────────
-TOP_N_FUTURES = 50   # top 50 por volume — evita memecoins exóticos de baixo volume
+TOP_N_FUTURES = 30   # top 30 por volume — só pares líquidos para TF alto
 
 # Pares sempre scaneados, independentemente de estarem no top N por volume
 FORCE_INCLUDE_SYMBOLS = ["ZECUSDC"]
@@ -48,31 +48,34 @@ BTC_SYMBOLS = {"BTCUSDC"}
 #  RISCO
 # ─────────────────────────────────────────────
 CAPITAL_MAX_BOT     = 370.0
-RISCO_USDC          = 5.0
+RISCO_USDC          = 4.0
 ALAVANCAGEM         = 6
 RATIO_ALVO          = 3.0
-MAX_LOSS_DIA        = 15.0
+MAX_LOSS_DIA        = 10.0
 MAX_PERDAS_SEGUIDAS = 3
 COOLDOWN_MIN        = 120
-MAX_TRADES_ABERTOS  = 5
-MAX_LONGS_ALT       = 3
-MAX_SHORTS_ALT      = 3
+MAX_TRADES_ABERTOS  = 3
+MAX_LONGS_ALT       = 2
+MAX_SHORTS_ALT      = 2
 
 # ─────────────────────────────────────────────
 #  ESTRATÉGIA
 # ─────────────────────────────────────────────
+SIGNAL_INTERVAL     = "1h"   # timeframe do sinal (era "5m")
+SCAN_ALIGN_MIN      = 15     # scan alinhado com velas de 15 min (era 5)
+
 ADX_TREND_MIN       = 22.5   # ADX mínimo (fallback / detect_market_mode)
 ADX_TREND_MIN_MAJOR = 22.5   # BTC, ETH, BNB — tendências mais limpas
-ADX_TREND_MIN_ALT   = 25.0   # era 30 — alts com ADX 25+ já têm tendência suficiente
-EMA_SLOPE_MIN   = 0.0005 # era 0.0008 — slope mínimo da EMA99 (0.05% em 5 velas)
+ADX_TREND_MIN_ALT   = 25.0   # alts com ADX 25+ já têm tendência suficiente
+EMA_SLOPE_MIN   = 0.0005 # slope mínimo da EMA99
 
-RSI_OVERSOLD    = 45.0   # era 42 — dá +3 LONG com RSI < 45 (mais comum)
-RSI_OVERBOUGHT  = 55.0   # era 58 — dá +3 SHORT com RSI > 55 (mais comum)
+RSI_OVERSOLD    = 45.0
+RSI_OVERBOUGHT  = 55.0
 STOCH_VETO_LONG = 95.0
 STOCH_VETO_SHORT= 2.5
 SCORE_ALERTA    = 6
 SCORE_FORTE     = 6
-SCORE_LONG_MIN  = 8       # LONGs exigem score mais alto (SHORTs usam SCORE_ALERTA=6)
+SCORE_LONG_MIN  = 7       # LONGs: score mínimo (era 8 — demasiado restritivo num possível fundo)
 
 # Markov regime detection
 MARKOV_LOOKBACK = 100   # candles for transition matrix
@@ -103,11 +106,11 @@ MFI_PERIOD = 10
 ROC_PERIOD = 10
 CVD_PERIOD = 20
 
-ATR_SL_MULT_MIN     = 1.8      # era 1.2 — SL mínimo mais largo
-ATR_SL_MULT_MAX     = 2.5      # era 1.8 — mercado volátil → SL ainda mais largo
-SL_MIN_PCT          = 0.005    # SL nunca a menos de 0.5% da entrada (Binance rejeita <0.1%)
-SL_MAX_PCT          = 0.03     # SL nunca a mais de 3% da entrada
-ATR_VOL_SCALE_PCT   = 0.003    # ATR/price acima disto → reduz qty
+ATR_SL_MULT_MIN     = 2.0      # SL mínimo (1H ATR — mais largo que 5m)
+ATR_SL_MULT_MAX     = 2.5      # mercado volátil → SL ainda mais largo
+SL_MIN_PCT          = 0.008    # SL nunca a menos de 0.8% (1H precisa de mais espaço)
+SL_MAX_PCT          = 0.04     # SL máximo 4% (era 3% — 1H pode precisar de mais)
+ATR_VOL_SCALE_PCT   = 0.006    # ATR/price acima disto → reduz qty (era 0.3%, agora 0.6% para 1H)
 TAKER_RATIO_MIN     = 0.52     # taker buy ratio mínimo para LONG
 
 TRAILING_CB_BTC     = 0.5      # callback trailing BTC/ETH/BNB (%)
@@ -130,16 +133,16 @@ BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 MAX_DRAWDOWN_PCT    = 0.25   # 25% do saldo → fecha tudo
 MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
 MAX_MARGEM_TRADE    = 0.20   # máx 20% do capital por posição (74 USDC em 370)
-PROFIT_LOCK_USDC    = 0.5    # activa lock a partir deste PnL
-PROFIT_LOCK_STEP    = 0.5    # a cada +0.5 USDC move o stop para esse nível
-TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~0.8R), muda stop fixo → trailing stop
+PROFIT_LOCK_USDC    = 1.5    # activa lock a partir deste PnL (era 0.5 — dava pouco espaço em 1H)
+PROFIT_LOCK_STEP    = 1.0    # a cada +1.0 USDC move o stop (era 0.5 — escala com TF maior)
+TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~1R), muda stop fixo → trailing stop
 
 ROI_TP_IMEDIATO     = 12.0   # % ROI → fecha imediatamente (era 7% — dava pouco espaço)
 TIME_TP_MIN_MIN     = 10     # minutos mínimos para TIME_TP (era 30)
 
 # Protecção de pico de lucro: fecha se recuar muito do máximo já atingido
 # E o sinal já não confirmar a direcção (evita fechar por simples ruído)
-PEAK_PROFIT_MIN_USDC = 1.5    # só actua se a trade já chegou a este PnL
+PEAK_PROFIT_MIN_USDC = 2.0    # só actua se a trade já chegou a este PnL (era 1.5)
 PEAK_DRAWDOWN_PCT     = 0.40  # fecha se recuar >=40% do pico desde então
 
 OBI_VETO        = 0.3
@@ -158,9 +161,9 @@ LIQUIDATION_WARN3_PCT = 70.0  # aviso 🔴 crítico
 #  SESSÃO / TIMING
 # ─────────────────────────────────────────────
 SESSOES_UTC         = [(5, 23)]
-CHECK_EVERY         = 240
+CHECK_EVERY         = 900    # scan a cada 15 min (era 4 min — 1H não precisa de mais)
 CHECK_POSICOES      = 30
-CHECK_POSICOES_FAST = 10
+CHECK_POSICOES_FAST = 15     # gestão de posições a cada 15s (era 10)
 
 # ─────────────────────────────────────────────
 #  FICHEIROS / MODO
@@ -173,8 +176,8 @@ PAPER_TRADING = False
 # Referência para futura migração de TP1/TP2 — lógica actual já equivale a isto.
 ROI_STEPS = [
     (0,    1.0, 0.0),
-    (30,   1.5, 0.0),
-    (60,   2.0, 0.33),
-    (120,  3.0, 0.33),
-    (240,  4.0, 0.0),
+    (120,  1.5, 0.0),
+    (360,  2.0, 0.33),
+    (720,  3.0, 0.33),
+    (1440, 4.0, 0.0),
 ]
