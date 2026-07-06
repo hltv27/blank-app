@@ -859,5 +859,35 @@
         "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado). MANTAUSDT SHORT manual aberto (-11.45 USDC no momento do snapshot)."
       }
     }
-  ]
+  ],
+  "compras": [
+    {
+      "ativo": "VANRY",
+      "data": "2026-07-05",
+      "moeda": "EUR",
+      "valor_gasto": 55,
+      "qtd": 10440,
+      "preco_unitario_eur": 0.0052682,
+      "eur_usd_rate": 1.14307,
+      "preco_unitario_usdc": 0.0060221
+    },
+    {
+      "ativo": "VANRY",
+      "data": "2026-07-06",
+      "moeda": "EUR",
+      "valor_gasto": 80.46,
+      "qtd": 13102.708,
+      "preco_unitario_eur": 0.0061407,
+      "eur_usd_rate": 1.14198,
+      "preco_unitario_usdc": 0.0070126
+    }
+  ],
+  "compras_resumo": {
+    "VANRY": {
+      "qtd_total": 23542.708,
+      "valor_total_eur": 135.46,
+      "preco_medio_eur": 0.0057538,
+      "preco_medio_usdc_aprox": 0.006574
+    }
+  }
 }
