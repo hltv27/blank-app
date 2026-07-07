@@ -859,5 +859,42 @@
         "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado). MANTAUSDT SHORT manual aberto (-11.45 USDC no momento do snapshot)."
       }
     }
-  ]
+  ],
+  "vanry": {
+    "qtd_total": 30942.06693754,
+    "preco_medio_eur": 0.005268,
+    "custo_total_eur_aprox": 163.00,
+    "fonte_preco_medio": "Preço de custo mostrado na app Binance (rótulo $, mas a conta BNFCR opera em EUR)",
+    "nota": "As duas compras abaixo foram as únicas compras diretas de VANRY. O restante do saldo (7399.35893754 moedas) vem da conversão automática TVK→VANRY (rebrand Vanar Chain).",
+    "componentes": [
+      {
+        "tipo": "conversao",
+        "origem": "TVK",
+        "qtd": 7399.35893754,
+        "custo_estimado_eur": 27.54,
+        "preco_unitario_estimado_eur": 0.0037220,
+        "nota": "Custo estimado por diferença (custo total reportado pela Binance menos o custo das duas compras diretas). Custo real herdado da compra original de TVK — data desconhecida."
+      },
+      {
+        "tipo": "compra",
+        "data": "2026-07-05",
+        "moeda": "EUR",
+        "valor_gasto": 55,
+        "qtd": 10440,
+        "preco_unitario_eur": 0.0052682,
+        "eur_usd_rate": 1.14307,
+        "preco_unitario_usdc": 0.0060221
+      },
+      {
+        "tipo": "compra",
+        "data": "2026-07-06",
+        "moeda": "EUR",
+        "valor_gasto": 80.46,
+        "qtd": 13102.708,
+        "preco_unitario_eur": 0.0061407,
+        "eur_usd_rate": 1.14198,
+        "preco_unitario_usdc": 0.0070126
+      }
+    ]
+  }
 }
