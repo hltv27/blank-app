@@ -384,7 +384,7 @@ def run():
                             f"Entrada: {pos['entry']:.4f} | 🔒 {stop_txt}"
                         )
 
-                    elif symbol not in mem.get("posicoes_externas", {}):
+                    elif config.MONITOR_EXTERNAS and symbol not in mem.get("posicoes_externas", {}):
                         # Posição manual (sem marcador pending_sync) — monitorizar sem gerir
                         externas = mem.setdefault("posicoes_externas", {})
                         externas[symbol] = {
@@ -409,7 +409,7 @@ def run():
 
 
             # ── Monitorização de posições externas ───────────────────────
-            externas = mem.get("posicoes_externas", {})
+            externas = mem.get("posicoes_externas", {}) if config.MONITOR_EXTERNAS else {}
             fechadas_ext = []
             for symbol, ext in externas.items():
                 if symbol in posicoes_reais:
