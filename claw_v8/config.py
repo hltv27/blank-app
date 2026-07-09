@@ -133,8 +133,8 @@ BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 MAX_DRAWDOWN_PCT    = 0.25   # 25% do saldo → fecha tudo
 MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
 MAX_MARGEM_TRADE    = 0.20   # máx 20% do capital por posição (74 USDC em 370)
-PROFIT_LOCK_USDC    = 1.5    # activa lock a partir deste PnL (era 0.5 — dava pouco espaço em 1H)
-PROFIT_LOCK_STEP    = 1.0    # a cada +1.0 USDC move o stop (era 0.5 — escala com TF maior)
+PROFIT_LOCK_USDC    = 0.8    # activa lock a partir deste PnL
+PROFIT_LOCK_STEP    = 0.8    # a cada +0.8 USDC move o stop
 TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~1R), muda stop fixo → trailing stop
 
 ROI_TP_IMEDIATO     = 12.0   # % ROI → fecha imediatamente (era 7% — dava pouco espaço)
