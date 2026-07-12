@@ -48,7 +48,7 @@ BTC_SYMBOLS = {"BTCUSDC"}
 #  RISCO
 # ─────────────────────────────────────────────
 CAPITAL_MAX_BOT     = 370.0
-RISCO_USDC          = 4.0
+RISCO_USDC          = 6.0
 ALAVANCAGEM         = 6
 RATIO_ALVO          = 3.0
 MAX_LOSS_DIA        = 10.0
@@ -132,7 +132,7 @@ BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 # Guarda de capital — nunca perder mais de 25% em aberto
 MAX_DRAWDOWN_PCT    = 0.25   # 25% do saldo → fecha tudo
 MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
-MAX_MARGEM_TRADE    = 0.20   # máx 20% do capital por posição (74 USDC em 370)
+MAX_MARGEM_TRADE    = 0.30   # máx 30% do capital por posição
 PROFIT_LOCK_USDC    = 0.8    # activa lock a partir deste PnL
 PROFIT_LOCK_STEP    = 0.8    # a cada +0.8 USDC move o stop
 TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~1R), muda stop fixo → trailing stop
