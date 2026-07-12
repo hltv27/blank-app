@@ -54,9 +54,9 @@ RATIO_ALVO          = 3.0
 MAX_LOSS_DIA        = 10.0
 MAX_PERDAS_SEGUIDAS = 3
 COOLDOWN_MIN        = 120
-MAX_TRADES_ABERTOS  = 3
-MAX_LONGS_ALT       = 2
-MAX_SHORTS_ALT      = 2
+MAX_TRADES_ABERTOS  = 5
+MAX_LONGS_ALT       = 3
+MAX_SHORTS_ALT      = 3
 
 # ─────────────────────────────────────────────
 #  ESTRATÉGIA
