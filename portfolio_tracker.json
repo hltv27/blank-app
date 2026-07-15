@@ -230,6 +230,82 @@
         "nota_variacao": "Aumento principal: RGTI compra significativa (+€437). PAXG quase totalmente vendido (-€256). Nova carteira crypto detectada (+€81). Tangem subiu +$73. EUR/USD praticamente estável (1.176→1.1781).",
         "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado)"
       }
+    },
+    {
+      "data": "2026-07-15",
+      "hora": "11:12",
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3851.04,
+          "variacao_vs_30jun_usd": 751.26,
+          "variacao_vs_30jun_pct": 24.2,
+          "ativos": {
+            "BTC":      { "qtd": 0.03586924, "valor_usd": 2323.43, "preco_usd": 64775.00, "var_dia_pct": 3.40 },
+            "ETH":      { "qtd": 0.44719806, "valor_usd": 842.19,  "preco_usd": 1883.27,  "var_dia_pct": 5.33 },
+            "ZEC":      { "qtd": 0.54264371, "valor_usd": 304.52,  "preco_usd": 561.18,   "var_dia_pct": 10.88 },
+            "SOL":      { "qtd": 3.35770553, "valor_usd": 260.62,  "preco_usd": 77.62,    "var_dia_pct": 3.31, "staking_apy": 5.69 },
+            "XRP":      { "qtd": 84.566087,  "valor_usd": 93.77,   "preco_usd": 1.11,     "var_dia_pct": 3.83 },
+            "BASE_ETH": { "qtd": 0.009798,   "valor_usd": 18.45,   "preco_usd": 1883.27,  "var_dia_pct": 5.33 },
+            "LINK":     { "qtd": 0.96250677, "valor_usd": 8.06,    "preco_usd": 8.37,     "var_dia_pct": 5.57 }
+          }
+        },
+        "invest_stocks": {
+          "moeda": "EUR",
+          "total": 1729.67,
+          "variacao_vs_30jun_eur": 74.46,
+          "variacao_vs_30jun_pct": 4.5,
+          "nota": "VWCE reforçado (5.97→6.20). FTNT reforçado (2.03→2.16).",
+          "ativos": {
+            "VWCE": { "qtd": 6.20294227, "valor_eur": 1030.74, "pl_pct": 3.12 },
+            "FTNT": { "qtd": 2.16074397, "valor_eur": 317.66,  "pl_pct": 16.54 },
+            "CEG":  { "qtd": 0.95877895, "valor_eur": 216.31,  "pl_pct": -9.54 },
+            "LEU":  { "qtd": 0.75705578, "valor_eur": 106.77,  "pl_pct": -11.38 },
+            "MRVL": { "qtd": 0.29554497, "valor_eur": 58.19,   "pl_pct": -25.76 }
+          }
+        },
+        "binance_spot": {
+          "moeda": "USD",
+          "total": 743.34,
+          "nota": "Visao Geral da conta Binance (spot + outros). PnL dia: -$3.33 (-0.18%).",
+          "ativos": {
+            "BTC":   { "qtd": 0.0239708181,     "valor_usd": 1553.93, "pl_usd": -691.49, "pl_pct": -30.80 },
+            "VANRY": { "qtd": 5223.974440081,    "valor_usd": 30.10,   "pl_usd": -14.31,  "pl_pct": -32.22 },
+            "BNFCR": { "qtd": 21.02025369,       "valor_usd": 21.02 },
+            "SOL":   { "qtd": 0.0272376836,      "valor_usd": 2.12,    "pl_usd": -2.06,   "pl_pct": -49.31 }
+          }
+        },
+        "binance_futures": {
+          "moeda": "USD",
+          "total": 292.53,
+          "nota": "Saldo de margem BNFCR. Sem posicoes abertas. Bot Claw v8 activo.",
+          "ativos": {
+            "BNFCR": { "qtd": 292.52772757, "valor_usd": 292.53 }
+          }
+        },
+        "robinhood": {
+          "moeda": "USD",
+          "total": 298.02,
+          "variacao_vs_30jun_usd": 37.32,
+          "variacao_vs_30jun_pct": 14.3,
+          "ativos": {
+            "QQQM": { "qtd": 0.96694, "valor_usd": 298.02 },
+            "ADTX": { "qtd": 100, "valor_usd": 0.00, "nota": "delisted ou sem valor" }
+          }
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3851.04,
+        "invest_stocks_eur": 1729.67,
+        "binance_spot_usd": 743.34,
+        "binance_futures_usd": 292.53,
+        "robinhood_usd": 298.02,
+        "total_eur_aprox": 5700,
+        "variacao_vs_30jun_eur": 935,
+        "variacao_vs_30jun_pct": 19.6,
+        "nota_variacao": "Recuperacao forte do mercado crypto: BTC $58,652→$64,775 (+10.4%), ETH $1,574→$1,883 (+19.7%). Tangem +$751. ZEC aparece pela primeira vez (0.54 ZEC, $305). FTNT continua forte (+16.5%). MRVL em queda acentuada (-25.8%). BTC spot na Binance com perda pesada nao realizada (-30.8%, -$691). VANRY e SOL spot tambem em perda (-32% e -49%).",
+        "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado). Bot activo sem posicoes abertas neste momento."
+      }
     }
   ]
 }
