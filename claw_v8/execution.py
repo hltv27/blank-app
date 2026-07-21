@@ -513,24 +513,13 @@ def gerir_posicoes(mem: dict):
                     f"Stop → {lock_price:.6g} ({stop_txt_lk}) | PnL: +{pos['pnl']:.2f} USDC"
                 )
 
-        # Software enforcement: se lock activo + stop não na exchange → fecha via MARKET
-        if current_lock > 0 and not trade.get("stop_order_id"):
-            lock_floor = max(current_lock - PROFIT_LOCK_STEP, 0.0)
-            if pos["pnl"] <= lock_floor:
-                if _fechar_com_retry(symbol, pos["qty"], side):
-                    _registar_fecho(symbol, side, entry, sl, tp, qty,
-                                    pos["pnl"], "PROFIT_LOCK_SW", pos["pnl"] > 0, mem)
-                    tg(
-                        f"🔒🔻 <b>SOFTWARE STOP</b> — {symbol}\n"
-                        f"Lock era +{current_lock:.1f} | PnL caiu para {pos['pnl']:+.2f} USDC\n"
-                        f"Fechada via MARKET (stop exchange não existia)"
-                    )
-                else:
-                    tg(
-                        f"⚠️ <b>SOFTWARE STOP FALHOU</b> — {symbol}\n"
-                        f"PnL: {pos['pnl']:+.2f} < lock {lock_floor:+.1f} — FECHAR MANUALMENTE!"
-                    )
-                continue
+        # Software enforcement DESACTIVADO — deixar trades correr mesmo sem stop na exchange.
+        # Protecção mantida via EMERGENCY_ROI_CUT / EMERGENCY_PNL_CUT / SL software.
+        # if current_lock > 0 and not trade.get("stop_order_id"):
+        #     lock_floor = max(current_lock - PROFIT_LOCK_STEP, 0.0)
+        #     if pos["pnl"] <= lock_floor:
+        #         ...
+
 
         # ROI alto → fecha imediatamente, sem esperar tempo
         if roi >= ROI_TP_IMEDIATO:
