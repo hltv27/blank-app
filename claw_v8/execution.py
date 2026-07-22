@@ -64,7 +64,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
     price = closes[-1]
 
-    # ── Filtros globais ──────────────────────────────────────────────────
+    # ── Filtros globais ──────────────────────────────────────────────────────
     if macro_event_proximo():
         print(f"[AVISO] {symbol}: evento macro próximo — sem entrada")
         return
@@ -80,7 +80,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         print(f"[AVISO] {symbol}: condições de mercado desfavoráveis para {direction}")
         return
 
-    # ── HTF multi-timeframe (4H → 1H → 5min) ───────────────────────────
+    # ── HTF multi-timeframe (4H → 1H → 5min) ─────────────────────────
     if not htf_4h_ok(symbol, direction, price):
         return
 
@@ -88,7 +88,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         print(f"[AVISO] {symbol}: HTF 1H contra {direction} — veto")
         return
 
-    # ── Supertrend ───────────────────────────────────────────────────────
+    # ── Supertrend ───────────────────────────────────────────────────
     from indicators import supertrend
     st_bull = supertrend(highs, lows, closes)
     if direction == "LONG"  and st_bull is False:
@@ -98,23 +98,23 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         print(f"[AVISO] {symbol}: Supertrend bullish — SHORT vetado")
         return
 
-    # ── Fear & Greed ─────────────────────────────────────────────────────
+    # ── Fear & Greed ─────────────────────────────────────────────────
     if not fear_greed_ok(symbol, direction, price):
         return
 
-    # ── CVD ──────────────────────────────────────────────────────────────
+    # ── CVD ──────────────────────────────────────────────────────────
     if not cvd_ok(symbol, direction, closes, volumes, taker_buy_vols, price):
         return
 
-    # ── OBI ──────────────────────────────────────────────────────────────
+    # ── OBI ──────────────────────────────────────────────────────────
     if not obi_ok(symbol, direction, price):
         return
 
-    # ── VWAP ±2σ ─────────────────────────────────────────────────────────
+    # ── VWAP ±2σ ─────────────────────────────────────────────────────
     if klines and not vwap_ok(symbol, direction, closes, klines, price):
         return
 
-    # ── Liquidity Sweep (confirmação — não bloqueia) ─────────────────────
+    # ── Liquidity Sweep (confirmação — não bloqueia) ─────────────────
     if volumes and taker_buy_vols:
         if liquidity_sweep_detectado(closes, highs, lows, volumes, taker_buy_vols, direction):
             detalhe += " | LIQ_SWEEP✓"
@@ -386,7 +386,7 @@ def gerir_posicoes(mem: dict):
             tg(f"🟡 <b>MARGEM EM ATENÇÃO</b> — conta global: <b>{ratio_global:.1f}%</b>")
 
         if ratio_global >= LIQUIDATION_GUARD_PCT:
-            # Exceção: fecha TODAS as posições a positivo (bot + manuais)
+            # Excepção: fecha TODAS as posições a positivo (bot + manuais)
             # para libertar margem e evitar liquidação total da conta
             if posicoes_all is None:
                 posicoes_all = get_positions() or {}
@@ -513,24 +513,12 @@ def gerir_posicoes(mem: dict):
                     f"Stop → {lock_price:.6g} ({stop_txt_lk}) | PnL: +{pos['pnl']:.2f} USDC"
                 )
 
-        # Software enforcement: se lock activo + stop não na exchange → fecha via MARKET
-        if current_lock > 0 and not trade.get("stop_order_id"):
-            lock_floor = max(current_lock - PROFIT_LOCK_STEP, 0.0)
-            if pos["pnl"] <= lock_floor:
-                if _fechar_com_retry(symbol, pos["qty"], side):
-                    _registar_fecho(symbol, side, entry, sl, tp, qty,
-                                    pos["pnl"], "PROFIT_LOCK_SW", pos["pnl"] > 0, mem)
-                    tg(
-                        f"🔒🔻 <b>SOFTWARE STOP</b> — {symbol}\n"
-                        f"Lock era +{current_lock:.1f} | PnL caiu para {pos['pnl']:+.2f} USDC\n"
-                        f"Fechada via MARKET (stop exchange não existia)"
-                    )
-                else:
-                    tg(
-                        f"⚠️ <b>SOFTWARE STOP FALHOU</b> — {symbol}\n"
-                        f"PnL: {pos['pnl']:+.2f} < lock {lock_floor:+.1f} — FECHAR MANUALMENTE!"
-                    )
-                continue
+        # Software enforcement DESACTIVADO — deixar trades correr mesmo sem stop na exchange.
+        # Protecção mantida via EMERGENCY_ROI_CUT / EMERGENCY_PNL_CUT / SL software.
+        # if current_lock > 0 and not trade.get("stop_order_id"):
+        #     lock_floor = max(current_lock - PROFIT_LOCK_STEP, 0.0)
+        #     if pos["pnl"] <= lock_floor:
+        #         ...
 
         # ROI alto → fecha imediatamente, sem esperar tempo
         if roi >= ROI_TP_IMEDIATO:
@@ -787,7 +775,7 @@ def gerir_posicoes(mem: dict):
                 )
                 sl = be_price1
 
-        # ── TP1: fecha 33% a 2R, move stop para breakeven ────────────────
+        # ── TP1: fecha 33% a 2R, move stop para breakeven ──────────────
         entry_trade = trade.get("entry", 0)
         if sl > 0 and tp > 0 and not trade.get("partial_tp_done") and entry_trade > 0:
             if side == "LONG":
@@ -836,7 +824,7 @@ def gerir_posicoes(mem: dict):
                     )
                     save_memory(mem)
 
-        # ── TP2: fecha mais 33% a 3R, move stop para +1R ─────────────────
+        # ── TP2: fecha mais 33% a 3R, move stop para +1R ───────────────
         if sl > 0 and tp > 0 and trade.get("partial_tp_done") and \
                 not trade.get("partial_tp2_done") and entry_trade > 0:
             if side == "LONG":

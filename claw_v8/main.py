@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-╔══════════════════════════════════════════════════════════╗
+╔════════════════════════════════════════════════════════╗
 ║              CLAW AGENT v8.0 — Clean Core               ║
 ║  Estrutura modular | SQLite | Filter Attribution         ║
 ║  Mesma estratégia da v7.1 — zero alterações de lógica   ║
-╚══════════════════════════════════════════════════════════╝
+╚════════════════════════════════════════════════════════╝
 """
 import sys
 import os
@@ -241,7 +241,7 @@ def run():
                 print(f"[{hora}] Pares actualizados: {len(SYMBOLS)}")
                 ultima_actualizacao_symbols = time.time()
 
-            # ── Resumo horário de mercado ─────────────────────────────────
+            # ── Resumo horário de mercado ─────────────────────────────
             if now_utc.hour != ultimo_resumo_hora:
                 ultimo_resumo_hora = now_utc.hour
                 try:
@@ -302,7 +302,7 @@ def run():
             gerir_posicoes(mem)
             mem = load_memory()
 
-            # ── Scan alinhado com velas de 15 min ─────────────────────────
+            # ── Scan alinhado com velas de 15 min ─────────────────────
             minuto         = now_utc.minute
             sleep_interval = CHECK_POSICOES_FAST if tem_posicoes else CHECK_POSICOES
             if minuto % SCAN_ALIGN_MIN != 0 or minuto == ultimo_minuto_scan:
@@ -408,7 +408,7 @@ def run():
                         )
 
 
-            # ── Monitorização de posições externas ───────────────────────
+            # ── Monitorização de posições externas ─────────────────────
             externas = mem.get("posicoes_externas", {}) if config.MONITOR_EXTERNAS else {}
             fechadas_ext = []
             for symbol, ext in externas.items():
@@ -487,27 +487,10 @@ def run():
                                 f"Stop → {lock_price_ext:.6g} ({stop_info_ext}) | PnL: +{pnl_ext:.2f} USDC"
                             )
 
-                    # ── Software stop enforcement (externa) ─────────────────
-                    # Se lock activo + stop não colocado na exchange → fecha via MARKET
-                    # quando PnL cai abaixo do nível protegido
-                    current_lock_ext = ext.get("profit_lock_level", 0.0)
-                    if current_lock_ext > 0 and not ext.get("stop_order_id"):
-                        lock_floor = max(current_lock_ext - PROFIT_LOCK_STEP, 0.0)
-                        if pnl_ext <= lock_floor:
-                            close_side_ext = "SELL" if ext["direction"] == "LONG" else "BUY"
-                            close_result = close_position(symbol, qty_ext, ext["direction"])
-                            if close_result:
-                                fechadas_ext.append(symbol)
-                                tg(
-                                    f"🔒🔻 <b>SOFTWARE STOP</b> — {symbol} (externa)\n"
-                                    f"Lock era +{current_lock_ext:.1f} | PnL caiu para {pnl_ext:+.2f} USDC\n"
-                                    f"Fechada via MARKET (stop exchange não existia)"
-                                )
-                            else:
-                                tg(
-                                    f"⚠️ <b>SOFTWARE STOP FALHOU</b> — {symbol}\n"
-                                    f"PnL: {pnl_ext:+.2f} < lock {lock_floor:+.1f} — FECHAR MANUALMENTE!"
-                                )
+                    # Software stop enforcement (externa) DESACTIVADO
+                    # Deixar posições externas correr mesmo sem stop na exchange.
+                    # if current_lock_ext > 0 and not ext.get("stop_order_id"):
+                    #     ...
 
                 else:
                     # Fechada — calcula P&L final
@@ -542,14 +525,14 @@ def run():
                 print(f"[{hora}] Saldo insuficiente: {saldo_pre}")
                 continue
 
-            # ── Limpa pending_sync antigos (>10 min) ─────────────────────
+            # ── Limpa pending_sync antigos (>10 min) ───────────────────
             agora = time.time()
             for sym in list(mem.get("pending_sync", {}).keys()):
                 if agora - mem["pending_sync"][sym] > 600:
                     mem["pending_sync"].pop(sym)
                     save_memory(mem)
 
-            # ── Scan dos pares ────────────────────────────────────────────
+            # ── Scan dos pares ────────────────────────────────────────
             for symbol in SYMBOLS:
                 if symbol in posicoes_reais:
                     continue

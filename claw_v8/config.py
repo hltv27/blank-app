@@ -75,7 +75,7 @@ STOCH_VETO_LONG = 95.0
 STOCH_VETO_SHORT= 2.5
 SCORE_ALERTA    = 6
 SCORE_FORTE     = 6
-SCORE_LONG_MIN  = 7       # LONGs: score mínimo (era 8 — demasiado restritivo num possível fundo)
+SCORE_LONG_MIN  = 6       # LONGs: score mínimo (igual a SHORTs — mercado bullish)
 
 # Markov regime detection
 MARKOV_LOOKBACK = 100   # candles for transition matrix
@@ -125,16 +125,16 @@ ATR_REGIME_MULT     = 3.0
 ATR_REGIME_LOOKBACK = 50
 BTC_CRASH_PCT       = 3.0
 STOP_RETRY_MAX      = 3
-EMERGENCY_ROI_CUT   = -5.5
-EMERGENCY_PNL_CUT   = 2.0    # fecha se posição perde > 2 USDC absolutos
+EMERGENCY_ROI_CUT   = -7.0    # mais espaço para trades desenvolverem (era -5.5)
+EMERGENCY_PNL_CUT   = 3.0    # fecha se posição perde > 3 USDC absolutos (era 2.0)
 BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 
 # Guarda de capital — nunca perder mais de 25% em aberto
 MAX_DRAWDOWN_PCT    = 0.25   # 25% do saldo → fecha tudo
 MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
 MAX_MARGEM_TRADE    = 0.30   # máx 30% do capital por posição
-PROFIT_LOCK_USDC    = 0.8    # activa lock a partir deste PnL
-PROFIT_LOCK_STEP    = 0.8    # a cada +0.8 USDC move o stop
+PROFIT_LOCK_USDC    = 1.5    # activa lock a partir deste PnL (era 0.8 — deixar correr mais)
+PROFIT_LOCK_STEP    = 1.0    # a cada +1.0 USDC move o stop (era 0.8)
 TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~1R), muda stop fixo → trailing stop
 
 ROI_TP_IMEDIATO     = 12.0   # % ROI → fecha imediatamente (era 7% — dava pouco espaço)
