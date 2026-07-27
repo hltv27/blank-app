@@ -2047,7 +2047,7 @@
           "total": 729.82,
           "variacao_vs_15jul_eur": -999.85,
           "variacao_vs_15jul_pct": -57.8,
-          "nota": "Portfolio completamente reestruturado: vendidas todas as posicoes anteriores (VWCE, FTNT, CEG, LEU, MRVL). Novas posicoes em ETFs e accoes tech/crypto.",
+          "nota": "Portfolio completamente reestruturado: vendidas todas as posicoes anteriores (VWCE, FTNT, CEG, LEU, MRVL). ~€1,000 movidos para fundo cash, restante reinvestido em ETFs e accoes tech/crypto.",
           "ativos": {
             "IREN": {
               "qtd": 5.08882631,
@@ -2103,6 +2103,11 @@
             }
           }
         },
+        "cash_fund": {
+          "moeda": "EUR",
+          "total": 1000.00,
+          "nota": "Fundo cash — resultado da venda das posicoes anteriores do T212 (VWCE, FTNT, CEG, LEU, MRVL). ~€1,000 libertados e reservados em cash."
+        },
         "binance_spot": {
           "moeda": "USD",
           "nota": "Sem screenshot fornecido neste snapshot — dados de Jul-15 mantidos como referencia.",
@@ -2122,14 +2127,15 @@
       "resumo": {
         "tangem_usd": 3772.50,
         "invest_stocks_eur": 729.82,
+        "cash_fund_eur": 1000.00,
         "binance_spot_usd": null,
         "binance_futures_usd": null,
         "robinhood_usd": null,
-        "total_eur_aprox": 4800,
-        "variacao_vs_15jul_eur": -900,
-        "variacao_vs_15jul_pct": -15.8,
-        "nota_variacao": "Tangem estavel ($3,851→$3,772, -2%). ZEC qty reduzida (0.5426→0.4146), novos tokens: BNB, B2, DOT e HBAR reapareceram. Trading 212 completamente reestruturado: vendidas VWCE, FTNT, CEG, LEU, MRVL (total ~€1,730); novas 9 posicoes em accoes/ETFs tech e crypto (IREN, HODLX, ASML, NBIS, V3PA, NUAI, EMIM, DRAM, CIFR) totalizando ~€730. Maioria das novas posicoes em perda ligeira (-2% a -8%). Sem dados actualizados de Binance e Robinhood neste snapshot.",
-        "nota": "Binance spot/futures e Robinhood sem actualizacao — totais omitidos do calculo. Total estimado considera apenas Tangem + T212."
+        "total_eur_aprox": 5800,
+        "variacao_vs_15jul_eur": 100,
+        "variacao_vs_15jul_pct": 1.8,
+        "nota_variacao": "Tangem estavel ($3,851→$3,772, -2%). ZEC qty reduzida (0.5426→0.4146), novos tokens: BNB, B2, DOT e HBAR reapareceram. Trading 212 completamente reestruturado: vendidas VWCE, FTNT, CEG, LEU, MRVL (total ~€1,730); ~€1,000 movidos para fundo cash, restantes reinvestidos em 9 novas posicoes (IREN, HODLX, ASML, NBIS, V3PA, NUAI, EMIM, DRAM, CIFR) totalizando ~€730. Maioria das novas posicoes em perda ligeira (-2% a -8%). Sem dados actualizados de Binance e Robinhood neste snapshot.",
+        "nota": "Binance spot/futures e Robinhood sem actualizacao — totais omitidos do calculo. Total estimado considera Tangem + T212 + fundo cash."
       }
     }
   ]
