@@ -2,8 +2,7 @@
 """Consulta rápida aos resultados do bot — corre no VPS."""
 import sqlite3, os, json
 
-db_path = os.path.join(os.path.dirname(__file__), "..", "claw_v8.db")
-db_path = os.path.abspath(db_path)
+db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "claw_v8.db")
 
 if not os.path.exists(db_path):
     print(f"Base de dados não encontrada: {db_path}")

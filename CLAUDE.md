@@ -124,31 +124,33 @@ O profit lock cancela o stop antigo ANTES de colocar o novo. Ver `execution.py`.
 
 ```python
 CAPITAL_MAX_BOT     = 370.0    # capital máximo que o bot usa
-RISCO_USDC          = 5.0      # risco por trade em USDC
+RISCO_USDC          = 6.0      # risco por trade em USDC
 ALAVANCAGEM         = 6        # leverage
 MAX_TRADES_ABERTOS  = 5
-MAX_MARGEM_TRADE    = 0.20     # máx 20% do capital por posição (74 USDC em 370)
-PROFIT_LOCK_USDC    = 0.5      # activa lock a partir de +0.5 USDC (bot E posições externas)
+MAX_MARGEM_TRADE    = 0.30     # máx 30% do capital por posição
+PROFIT_LOCK_USDC    = 0.8      # activa lock a partir de +0.8 USDC (bot E posições externas)
 PROFIT_LOCK_STEP    = 0.5      # move stop a cada +0.5 USDC
 TRAILING_LOCK_USDC  = 4.0      # ao atingir 4 USDC muda para trailing stop
-EMERGENCY_ROI_CUT   = -5.5     # % ROI para corte de emergência
-EMERGENCY_PNL_CUT   = 3.0      # fecha se perda absoluta > 3 USDC
-SCORE_ALERTA        = 6        # score mínimo para abrir trade (SHORTs)
-SCORE_LONG_MIN      = 8        # LONGs exigem score mais alto que SHORTs
-SCORE_FORTE         = 6        # score considerado forte
+EMERGENCY_ROI_CUT   = -25.0    # % ROI para corte de emergência (nunca dispara antes do ATR SL)
+EMERGENCY_PNL_CUT   = 7.0      # fecha se perda absoluta > 7 USDC (nunca dispara antes do SL técnico)
+SCORE_ALERTA        = 6        # score mínimo para abrir trade
+SCORE_LONG_MIN      = 6        # LONGs: score mínimo
+SCORE_SHORT_MIN     = 8        # SHORTs exigem confirmação mais forte
+SCORE_FORTE         = 8        # score considerado forte (reversão de sinal, etc.)
 ADX_TREND_MIN_MAJOR = 22.5     # BTC/ETH/BNB
-ADX_TREND_MIN_ALT   = 25.0     # alts (era 30 — bloqueava demasiadas entradas)
-ATR_SL_MULT_MIN     = 1.8      # SL mínimo (era 1.2 — alargado para dar mais espaço)
-ATR_SL_MULT_MAX     = 2.5      # SL em mercado volátil (era 1.8)
-ROI_TP_IMEDIATO     = 12.0     # % ROI → fecha imediatamente (era 7 — dava pouco espaço)
-TIME_TP_MIN_MIN     = 10       # minutos mínimos para TIME_TP
-PEAK_PROFIT_MIN_USDC= 1.5      # protecção de recuo de pico: só actua acima disto
+ADX_TREND_MIN_ALT   = 25.0     # alts com ADX 25+
+ATR_SL_MULT_MIN     = 2.0      # SL mínimo (1H ATR)
+ATR_SL_MULT_MAX     = 2.5      # SL em mercado volátil
+RSI_OVERSOLD        = 40.0     # RSI oversold (era 45 — demasiado apertado)
+RSI_OVERBOUGHT      = 60.0     # RSI overbought (era 55 — demasiado apertado)
+ROI_TP_IMEDIATO     = 12.0     # % ROI → fecha imediatamente
+PEAK_PROFIT_MIN_USDC= 2.0      # protecção de recuo de pico
 PEAK_DRAWDOWN_PCT   = 0.40     # fecha se recuar ≥40% do pico atingido
 MARKOV_LOOKBACK     = 100      # candles para a matriz de transição
 MARKOV_SCORE        = 2        # pontos de score quando o regime confirma direcção
 LIQUIDATION_GUARD_PCT = 50.0   # margem global > 50% → fecha posições a positivo
 SESSOES_UTC         = [(5, 23)]
-TOP_N_FUTURES       = 50       # top 50 pares USDC-M por volume (era 150 — cortava memecoins ilíquidos)
+TOP_N_FUTURES       = 40       # top 40 pares USDC-M por volume
 ```
 
 ---
@@ -156,26 +158,28 @@ TOP_N_FUTURES       = 50       # top 50 pares USDC-M por volume (era 150 — cor
 ## Lógica de gestão de posições
 
 ### Abertura (`abrir_trade`)
-1. Filtros (HTF 4H+1H, Supertrend, Fear&Greed, BB squeeze, CVD, OBI, VWAP)
-2. Sizing: `RISCO_USDC=5` / (entry - SL) × entry, cap 20% capital por trade
-3. Vol scale: se ATR/price > 0.3%, reduz qty proporcionalmente
-4. Escreve `pending_sync[symbol]` → coloca ordem MARKET → coloca STOP_MARKET → coloca TP
+1. Filtros (HTF 4H+1H, Supertrend, Fear&Greed, BB squeeze, CVD, OBI, VWAP, **BTC trend gate para SHORTs**)
+2. Score mínimo: LONGs ≥ `SCORE_LONG_MIN` (6), SHORTs ≥ `SCORE_SHORT_MIN` (8)
+3. BTC trend gate: SHORTs em alts bloqueados quando BTC 4H EMA9 > EMA21 (tendência bullish)
+4. Sizing: `RISCO_USDC=6` / (entry - SL) × entry, cap 30% capital por trade
+5. Vol scale: se ATR/price > 0.6%, reduz qty proporcionalmente
+6. Escreve `pending_sync[symbol]` → coloca ordem MARKET → coloca STOP_MARKET → coloca TP
 
-### Saídas (`gerir_posicoes`, ciclo de 10s quando há posições)
+### Saídas (`gerir_posicoes`, ciclo de 15s quando há posições)
 | Regra | Condição | Acção |
 |---|---|---|
-| **Profit lock progressivo** | PnL ≥ `PROFIT_LOCK_USDC` (0.5 USDC) | Move SL a cada +0.5 USDC; breakeven_1R/TP1/TP2 nunca fazem downgrade do stop se o lock já o moveu mais acima. Aplica-se a **trades do bot e a posições externas** (ver bug #14 abaixo) |
-| **Software stop enforcement** | Stop da exchange falhou (marcado "SOFTWARE ⚠️") e PnL cai abaixo do nível protegido pelo lock | Fecha imediatamente via MARKET — antes só movia o stop para cima, nunca actuava na reversão (ver bug #13) |
+| **Profit lock progressivo** | PnL ≥ `PROFIT_LOCK_USDC` (0.8 USDC) | Move SL a cada +0.5 USDC; breakeven_1R/TP1/TP2 nunca fazem downgrade do stop se o lock já o moveu mais acima. Aplica-se a **trades do bot e a posições externas** (ver bug #14 abaixo) |
 | **Trailing lock** | PnL ≥ 4 USDC | Muda stop fixo → trailing stop |
+| **TIME_TP** | ≥2h + PnL positivo + ROI ≥ 4% + sinal enfraqueceu | Fecha com lucro — protege ganhos que não atingiram TP |
 | **TP1** | 2R atingido | Fecha 33%, trailing para breakeven |
 | **TP2** | 3R atingido | Fecha mais 33% |
-| **SIGNAL_INV** | Sinal oposto score≥6 após 5min | Fecha tudo |
-| **STAGNADO** | >60min + PnL entre -0.5 e +1.0 | Fecha (sem trailing lock) |
-| **EMERGENCY_PNL** | Perda > 3 USDC absolutos | Fecha imediatamente |
-| **EMERGENCY_ROI** | ROI ≤ -5.5% | Fecha imediatamente |
+| **SIGNAL_INV** | Sinal oposto score≥8 após 1h | Fecha tudo |
+| **STAGNADO** | 6-8h + PnL negativo + sinal não confirma | Fecha (8h+ incondicional) |
+| **EMERGENCY_PNL** | Perda > 7 USDC absolutos | Fecha imediatamente |
+| **EMERGENCY_ROI** | ROI ≤ -25% | Fecha imediatamente (nunca dispara antes do ATR SL) |
 | **Software SL** | price ≤ sl (LONG) / price ≥ sl (SHORT) | Fecha via MARKET (grace period de 3min após abertura antes de poder disparar) |
 
-`TIME_TP` foi removido (cortava winners antes do TP da exchange disparar — ver `decisions.md`); `ROI_TP_IMEDIATO` (12%) continua activo como saída directa por ROI.
+`TIME_TP` re-introduzido (era a saída mais lucrativa: +57.36 USDC em 18 trades, média +3.19 cada). `ROI_TP_IMEDIATO` (12%) continua activo como saída directa por ROI.
 
 ### Relatório diário
 `_relatorio_diario` corre normalmente às 23:00 UTC e escreve `status.json` + `status_history.jsonl`. O último dia reportado (`ultimo_relatorio_dia`) é persistido no SQLite; se o bot esteve em baixo à hora do relatório (IP bloqueado, restart), faz **catch-up imediato** no primeiro ciclo do dia seguinte em vez de saltar o dia.

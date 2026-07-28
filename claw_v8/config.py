@@ -17,7 +17,7 @@ BASE_URL = "https://fapi.binance.com"
 # ─────────────────────────────────────────────
 #  PARES
 # ─────────────────────────────────────────────
-TOP_N_FUTURES = 30   # top 30 por volume — só pares líquidos para TF alto
+TOP_N_FUTURES = 40   # top 40 por volume — mais diversidade sem memecoins ilíquidos
 
 # Pares sempre scaneados, independentemente de estarem no top N por volume
 FORCE_INCLUDE_SYMBOLS = ["ZECUSDC"]
@@ -69,13 +69,14 @@ ADX_TREND_MIN_MAJOR = 22.5   # BTC, ETH, BNB — tendências mais limpas
 ADX_TREND_MIN_ALT   = 25.0   # alts com ADX 25+ já têm tendência suficiente
 EMA_SLOPE_MIN   = 0.0005 # slope mínimo da EMA99
 
-RSI_OVERSOLD    = 45.0
-RSI_OVERBOUGHT  = 55.0
+RSI_OVERSOLD    = 40.0
+RSI_OVERBOUGHT  = 60.0
 STOCH_VETO_LONG = 95.0
 STOCH_VETO_SHORT= 2.5
 SCORE_ALERTA    = 6
-SCORE_FORTE     = 6
-SCORE_LONG_MIN  = 6       # LONGs: score mínimo (igual a SHORTs — mercado bullish)
+SCORE_FORTE     = 8       # sinais "fortes" exigem 8+ indicadores (reversão de sinal, etc.)
+SCORE_LONG_MIN  = 6       # LONGs: score mínimo
+SCORE_SHORT_MIN = 8       # SHORTs precisam de confirmação mais forte (sistematicamente a perder)
 
 # Markov regime detection
 MARKOV_LOOKBACK = 100   # candles for transition matrix
@@ -125,16 +126,16 @@ ATR_REGIME_MULT     = 3.0
 ATR_REGIME_LOOKBACK = 50
 BTC_CRASH_PCT       = 3.0
 STOP_RETRY_MAX      = 3
-EMERGENCY_ROI_CUT   = -7.0    # mais espaço para trades desenvolverem (era -5.5)
-EMERGENCY_PNL_CUT   = 3.0    # fecha se posição perde > 3 USDC absolutos (era 2.0)
+EMERGENCY_ROI_CUT   = -25.0   # nunca dispara antes do SL baseado em ATR (era -7 → cortava prematuramente)
+EMERGENCY_PNL_CUT   = 7.0    # nunca dispara antes do SL técnico (era 3.0 → cortava antes do ATR SL)
 BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 
 # Guarda de capital — nunca perder mais de 25% em aberto
 MAX_DRAWDOWN_PCT    = 0.25   # 25% do saldo → fecha tudo
 MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
 MAX_MARGEM_TRADE    = 0.30   # máx 30% do capital por posição
-PROFIT_LOCK_USDC    = 1.5    # activa lock a partir deste PnL (era 0.8 — deixar correr mais)
-PROFIT_LOCK_STEP    = 1.0    # a cada +1.0 USDC move o stop (era 0.8)
+PROFIT_LOCK_USDC    = 0.8    # activa lock mais cedo — protege lucro antes de reverter (era 1.5)
+PROFIT_LOCK_STEP    = 0.5    # locks mais granulares a cada +0.5 USDC (era 1.0)
 TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~1R), muda stop fixo → trailing stop
 
 ROI_TP_IMEDIATO     = 12.0   # % ROI → fecha imediatamente (era 7% — dava pouco espaço)

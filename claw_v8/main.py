@@ -22,7 +22,7 @@ from config import (
     MAX_LONGS_ALT, MAX_SHORTS_ALT, LOOKBACK,
     CHECK_POSICOES_FAST, CHECK_POSICOES, CAPITAL_MAX_BOT, RISCO_USDC,
     ALAVANCAGEM, TOP_N_FUTURES, FORCE_INCLUDE_SYMBOLS,
-    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, SCORE_LONG_MIN,
+    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, SCORE_LONG_MIN, SCORE_SHORT_MIN,
     SIGNAL_INTERVAL, SCAN_ALIGN_MIN
 )
 import math
@@ -564,6 +564,17 @@ def run():
                 if direction == "LONG" and score < SCORE_LONG_MIN:
                     print(f"[{hora}] {symbol} LONG score {score} < {SCORE_LONG_MIN} — skip")
                     continue
+
+                if direction == "SHORT" and score < SCORE_SHORT_MIN:
+                    print(f"[{hora}] {symbol} SHORT score {score} < {SCORE_SHORT_MIN} — skip")
+                    continue
+
+                # BTC trend gate: bloqueia SHORTs em alts quando BTC 4H bullish
+                if direction == "SHORT" and symbol not in BTC_SYMBOLS:
+                    from filters import btc_trend_bullish
+                    if btc_trend_bullish():
+                        print(f"[{hora}] {symbol} SHORT vetado — BTC 4H bullish")
+                        continue
 
                 # BTC crash lockout: não abre LONGs durante 1h após crash
                 if direction == "LONG" and time.time() < mem.get("btc_crash_lockout_until", 0):
