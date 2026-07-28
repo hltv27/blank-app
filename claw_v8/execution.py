@@ -532,6 +532,41 @@ def gerir_posicoes(mem: dict):
                 )
             continue
 
+        # ── TIME_TP: trades a lucro há ≥2h sem atingir TP — fecha se sinal enfraqueceu ──
+        if (elapsed >= 7200
+                and pos["pnl"] > 0
+                and roi >= 4.0
+                and not trade.get("trailing_lock_done")
+                and not trade.get("partial_tp_done")
+                and not trade.get("time_tp_checked")):
+            time_tp_ok = False
+            try:
+                kl_ttp = get_klines(symbol, interval="1h")
+                if kl_ttp and len(kl_ttp) >= 50:
+                    c_ttp = [float(k[4]) for k in kl_ttp]
+                    h_ttp = [float(k[2]) for k in kl_ttp]
+                    l_ttp = [float(k[3]) for k in kl_ttp]
+                    v_ttp = [float(k[5]) for k in kl_ttp]
+                    ttp_dir, ttp_score, _ = signal_trending(c_ttp, h_ttp, l_ttp, v_ttp, symbol)
+                    if ttp_dir == side and ttp_score >= SCORE_ALERTA:
+                        time_tp_ok = True
+            except Exception as _e:
+                print(f"[AVISO] time_tp {symbol}: {_e}")
+
+            if not time_tp_ok:
+                if _fechar_com_retry(symbol, pos["qty"], side):
+                    _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                    pos["pnl"], "TIME_TP", True, mem)
+                    tg(
+                        f"⏱ <b>TIME TP</b> — {symbol}\n"
+                        f"{int(elapsed/60)}min | ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} USDC\n"
+                        f"Sinal enfraqueceu — lucro protegido."
+                    )
+                continue
+            else:
+                mem["trades_abertos"][symbol]["time_tp_checked"] = True
+                save_memory(mem)
+
         # ── ROI ≥ 5%: fecha se mercado não confirmar, deixa correr se confirmar ──
         # Evita sair prematuramente de winners em tendência forte.
         if (roi >= 5.0
@@ -654,13 +689,13 @@ def gerir_posicoes(mem: dict):
             continue
 
         # ── Saída por estagnação ──────────────────────────────────────────
-        # 8h-12h + PnL negativo: fecha se sinal não confirmar.
-        # >12h + PnL negativo: fecha incondicionalmente (não deixa sangrar).
-        if (tempo_min >= 480
+        # 6h-8h + PnL negativo: fecha se sinal não confirmar.
+        # >8h + PnL negativo: fecha incondicionalmente (não deixa sangrar).
+        if (tempo_min >= 360
                 and pos["pnl"] < 0
                 and not trade.get("trailing_lock_done")):
             mercado_ok = False
-            if tempo_min < 720:
+            if tempo_min < 480:
                 try:
                     kl_stag = get_klines(symbol, interval="1h")
                     if kl_stag and len(kl_stag) >= 50:
@@ -688,7 +723,7 @@ def gerir_posicoes(mem: dict):
 
             if not _fechar_com_retry(symbol, pos["qty"], side):
                 continue
-            reason_stag = "STAGNADO_12H" if tempo_min >= 720 else "STAGNADO"
+            reason_stag = "STAGNADO_8H" if tempo_min >= 480 else "STAGNADO"
             _registar_fecho(symbol, side, entry, sl, tp, qty,
                             pos["pnl"], reason_stag, pos["pnl"] > 0, mem)
             tg(

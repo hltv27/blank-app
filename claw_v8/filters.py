@@ -18,6 +18,7 @@ from storage import log_filter_event
 _fg_cache:    dict = {"value": 50, "ts": 0.0}
 _macro_cache: dict = {"ts": 0.0, "bloqueado": False}
 _mkt_cache:   dict = {}
+_btc_trend_cache: dict = {"bullish": None, "ts": 0.0}
 
 
 def _log(symbol: str, direction: str, name: str, passed: bool,
@@ -99,6 +100,28 @@ def get_fear_greed() -> int:
         return val
     except Exception:
         return _fg_cache["value"]
+
+
+def btc_trend_bullish() -> bool:
+    """BTC 4H EMA9 > EMA21 — indica tendência bullish. Cache de 15min."""
+    global _btc_trend_cache
+    now = time.time()
+    if now - _btc_trend_cache["ts"] < 900 and _btc_trend_cache["bullish"] is not None:
+        return _btc_trend_cache["bullish"]
+    try:
+        klines_4h = get_klines("BTCUSDC", interval="4h", limit=30)
+        if not klines_4h or len(klines_4h) < 25:
+            return _btc_trend_cache.get("bullish", False)
+        c4h = [float(k[4]) for k in klines_4h]
+        ema9  = ema(c4h, 9)
+        ema21 = ema(c4h, 21)
+        bullish = ema9[-1] > ema21[-1]
+        _btc_trend_cache = {"bullish": bullish, "ts": now}
+        print(f"[BTC_TREND] 4H EMA9={'>' if bullish else '<'}EMA21 → {'BULLISH' if bullish else 'BEARISH'}")
+        return bullish
+    except Exception as e:
+        print(f"[BTC_TREND] Falhou: {e}")
+        return _btc_trend_cache.get("bullish", False)
 
 
 # ─────────────────────────────────────────────
