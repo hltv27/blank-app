@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-╔══════════════════════════════════════════════════════════╗
+╔════════════════════════════════════════════════════════╗
 ║              CLAW AGENT v8.0 — Clean Core               ║
 ║  Estrutura modular | SQLite | Filter Attribution         ║
 ║  Mesma estratégia da v7.1 — zero alterações de lógica   ║
-╚══════════════════════════════════════════════════════════╝
+╚════════════════════════════════════════════════════════╝
 """
 import sys
 import os
@@ -241,7 +241,7 @@ def run():
                 print(f"[{hora}] Pares actualizados: {len(SYMBOLS)}")
                 ultima_actualizacao_symbols = time.time()
 
-            # ── Resumo horário de mercado ─────────────────────────────────
+            # ── Resumo horário de mercado ─────────────────────────────
             if now_utc.hour != ultimo_resumo_hora:
                 ultimo_resumo_hora = now_utc.hour
                 try:
@@ -302,7 +302,7 @@ def run():
             gerir_posicoes(mem)
             mem = load_memory()
 
-            # ── Scan alinhado com velas de 15 min ─────────────────────────
+            # ── Scan alinhado com velas de 15 min ─────────────────────
             minuto         = now_utc.minute
             sleep_interval = CHECK_POSICOES_FAST if tem_posicoes else CHECK_POSICOES
             if minuto % SCAN_ALIGN_MIN != 0 or minuto == ultimo_minuto_scan:
@@ -408,7 +408,7 @@ def run():
                         )
 
 
-            # ── Monitorização de posições externas ───────────────────────
+            # ── Monitorização de posições externas ─────────────────────
             externas = mem.get("posicoes_externas", {}) if config.MONITOR_EXTERNAS else {}
             fechadas_ext = []
             for symbol, ext in externas.items():
@@ -525,14 +525,14 @@ def run():
                 print(f"[{hora}] Saldo insuficiente: {saldo_pre}")
                 continue
 
-            # ── Limpa pending_sync antigos (>10 min) ─────────────────────
+            # ── Limpa pending_sync antigos (>10 min) ───────────────────
             agora = time.time()
             for sym in list(mem.get("pending_sync", {}).keys()):
                 if agora - mem["pending_sync"][sym] > 600:
                     mem["pending_sync"].pop(sym)
                     save_memory(mem)
 
-            # ── Scan dos pares ────────────────────────────────────────────
+            # ── Scan dos pares ────────────────────────────────────────
             for symbol in SYMBOLS:
                 if symbol in posicoes_reais:
                     continue

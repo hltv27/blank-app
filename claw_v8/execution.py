@@ -64,7 +64,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
     price = closes[-1]
 
-    # ── Filtros globais ──────────────────────────────────────────────────
+    # ── Filtros globais ──────────────────────────────────────────────────────
     if macro_event_proximo():
         print(f"[AVISO] {symbol}: evento macro próximo — sem entrada")
         return
@@ -80,7 +80,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         print(f"[AVISO] {symbol}: condições de mercado desfavoráveis para {direction}")
         return
 
-    # ── HTF multi-timeframe (4H → 1H → 5min) ───────────────────────────
+    # ── HTF multi-timeframe (4H → 1H → 5min) ─────────────────────────
     if not htf_4h_ok(symbol, direction, price):
         return
 
@@ -88,7 +88,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         print(f"[AVISO] {symbol}: HTF 1H contra {direction} — veto")
         return
 
-    # ── Supertrend ───────────────────────────────────────────────────────
+    # ── Supertrend ───────────────────────────────────────────────────
     from indicators import supertrend
     st_bull = supertrend(highs, lows, closes)
     if direction == "LONG"  and st_bull is False:
@@ -98,23 +98,23 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         print(f"[AVISO] {symbol}: Supertrend bullish — SHORT vetado")
         return
 
-    # ── Fear & Greed ─────────────────────────────────────────────────────
+    # ── Fear & Greed ─────────────────────────────────────────────────
     if not fear_greed_ok(symbol, direction, price):
         return
 
-    # ── CVD ──────────────────────────────────────────────────────────────
+    # ── CVD ──────────────────────────────────────────────────────────
     if not cvd_ok(symbol, direction, closes, volumes, taker_buy_vols, price):
         return
 
-    # ── OBI ──────────────────────────────────────────────────────────────
+    # ── OBI ──────────────────────────────────────────────────────────
     if not obi_ok(symbol, direction, price):
         return
 
-    # ── VWAP ±2σ ─────────────────────────────────────────────────────────
+    # ── VWAP ±2σ ─────────────────────────────────────────────────────
     if klines and not vwap_ok(symbol, direction, closes, klines, price):
         return
 
-    # ── Liquidity Sweep (confirmação — não bloqueia) ─────────────────────
+    # ── Liquidity Sweep (confirmação — não bloqueia) ─────────────────
     if volumes and taker_buy_vols:
         if liquidity_sweep_detectado(closes, highs, lows, volumes, taker_buy_vols, direction):
             detalhe += " | LIQ_SWEEP✓"
@@ -386,7 +386,7 @@ def gerir_posicoes(mem: dict):
             tg(f"🟡 <b>MARGEM EM ATENÇÃO</b> — conta global: <b>{ratio_global:.1f}%</b>")
 
         if ratio_global >= LIQUIDATION_GUARD_PCT:
-            # Exceção: fecha TODAS as posições a positivo (bot + manuais)
+            # Excepção: fecha TODAS as posições a positivo (bot + manuais)
             # para libertar margem e evitar liquidação total da conta
             if posicoes_all is None:
                 posicoes_all = get_positions() or {}
@@ -811,7 +811,7 @@ def gerir_posicoes(mem: dict):
                 )
                 sl = be_price1
 
-        # ── TP1: fecha 33% a 2R, move stop para breakeven ────────────────
+        # ── TP1: fecha 33% a 2R, move stop para breakeven ──────────────
         entry_trade = trade.get("entry", 0)
         if sl > 0 and tp > 0 and not trade.get("partial_tp_done") and entry_trade > 0:
             if side == "LONG":
@@ -860,7 +860,7 @@ def gerir_posicoes(mem: dict):
                     )
                     save_memory(mem)
 
-        # ── TP2: fecha mais 33% a 3R, move stop para +1R ─────────────────
+        # ── TP2: fecha mais 33% a 3R, move stop para +1R ───────────────
         if sl > 0 and tp > 0 and trade.get("partial_tp_done") and \
                 not trade.get("partial_tp2_done") and entry_trade > 0:
             if side == "LONG":

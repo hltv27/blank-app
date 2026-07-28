@@ -1973,6 +1973,170 @@
         "nota_variacao": "Recuperacao forte do mercado crypto: BTC $58,652→$64,775 (+10.4%), ETH $1,574→$1,883 (+19.7%). Tangem +$751. ZEC aparece pela primeira vez (0.54 ZEC, $305). FTNT continua forte (+16.5%). MRVL em queda acentuada (-25.8%). BTC spot na Binance com perda pesada nao realizada (-30.8%, -$691). VANRY e SOL spot tambem em perda (-32% e -49%).",
         "nota": "Binance Futuros gerido pelo Claw Agent v8.0 (separado). Bot activo sem posicoes abertas neste momento."
       }
+    },
+    {
+      "data": "2026-07-27",
+      "hora": "18:00",
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3772.50,
+          "variacao_vs_15jul_usd": -78.54,
+          "variacao_vs_15jul_pct": -2.0,
+          "ativos": {
+            "BTC": {
+              "qtd": 0.03598865,
+              "valor_usd": 2331.35,
+              "preco_usd": 64780.18,
+              "var_dia_pct": -0.04
+            },
+            "ETH": {
+              "qtd": 0.45657129,
+              "valor_usd": 886.27,
+              "preco_usd": 1941.13,
+              "var_dia_pct": 0.88
+            },
+            "SOL": {
+              "qtd": 3.38960725,
+              "valor_usd": 255.99,
+              "preco_usd": 75.52,
+              "var_dia_pct": -0.21,
+              "nota": "staked, APY 5.64%"
+            },
+            "ZEC": {
+              "qtd": 0.41457735,
+              "valor_usd": 201.25,
+              "preco_usd": 485.42,
+              "var_dia_pct": -1.91,
+              "nota": "qty reduzida vs Jul-15 (0.5426→0.4146)"
+            },
+            "XRP": {
+              "qtd": 84.566087,
+              "valor_usd": 91.87,
+              "preco_usd": 1.09,
+              "var_dia_pct": -1.57
+            },
+            "BNB": {
+              "qtd": 0.00857655,
+              "valor_usd": 4.92,
+              "preco_usd": 573.20,
+              "nota": "novo, APY 0.65%"
+            },
+            "DOT": {
+              "qtd": 1.0,
+              "valor_usd": 0.79,
+              "preco_usd": 0.79,
+              "nota": "reapareceu (ausente em Jul-15)"
+            },
+            "HBAR": {
+              "qtd": 0.36102351,
+              "valor_usd": 0.02,
+              "preco_usd": 0.07,
+              "nota": "reapareceu (ausente em Jul-15)"
+            },
+            "B2": {
+              "qtd": 0.047222,
+              "valor_usd": 0.02,
+              "preco_usd": 0.44,
+              "nota": "novo — BSquared Network"
+            }
+          }
+        },
+        "trading_212_invest": {
+          "moeda": "EUR",
+          "total": 729.82,
+          "variacao_vs_15jul_eur": -999.85,
+          "variacao_vs_15jul_pct": -57.8,
+          "nota": "Portfolio completamente reestruturado: vendidas todas as posicoes anteriores (VWCE, FTNT, CEG, LEU, MRVL). ~€1,000 movidos para fundo cash, restante reinvestido em ETFs e accoes tech/crypto.",
+          "ativos": {
+            "IREN": {
+              "qtd": 5.08882631,
+              "valor_eur": 163.71,
+              "pl_pct": -7.64
+            },
+            "HODLX": {
+              "qtd": 6.60895075,
+              "valor_eur": 120.97,
+              "pl_pct": -1.72,
+              "nota": "21Shares Crypto Basket ETP"
+            },
+            "ASML": {
+              "qtd": 0.0742152,
+              "valor_eur": 107.76,
+              "pl_pct": -7.98
+            },
+            "NBIS": {
+              "qtd": 0.45747479,
+              "valor_eur": 75.91,
+              "pl_pct": 3.25,
+              "nota": "Nebius Group"
+            },
+            "V3PA": {
+              "qtd": 7.35610176,
+              "valor_eur": 67.38,
+              "pl_pct": -2.35,
+              "nota": "Vanguard ESG Developed World"
+            },
+            "NUAI": {
+              "qtd": 15.07908612,
+              "valor_eur": 63.22,
+              "pl_pct": -4.31,
+              "nota": "New Era Energy & Digital"
+            },
+            "EMIM": {
+              "qtd": 1.32663956,
+              "valor_eur": 60.14,
+              "pl_pct": -2.45,
+              "nota": "iShares Core MSCI EM IMI"
+            },
+            "DRAM": {
+              "qtd": 9.68992248,
+              "valor_eur": 46.74,
+              "pl_pct": -6.52,
+              "nota": "Defiance Memory Acc ETF"
+            },
+            "CIFR": {
+              "qtd": 1.25364924,
+              "valor_eur": 23.99,
+              "pl_pct": -3.89,
+              "nota": "Cipher Digital (crypto mining)"
+            }
+          }
+        },
+        "cash_fund": {
+          "moeda": "EUR",
+          "total": 1000.00,
+          "nota": "Fundo cash — resultado da venda das posicoes anteriores do T212 (VWCE, FTNT, CEG, LEU, MRVL). ~€1,000 libertados e reservados em cash."
+        },
+        "binance_spot": {
+          "moeda": "USD",
+          "nota": "Sem screenshot fornecido neste snapshot — dados de Jul-15 mantidos como referencia.",
+          "total": null
+        },
+        "binance_futures": {
+          "moeda": "USD",
+          "nota": "Sem screenshot fornecido neste snapshot — dados de Jul-15 mantidos como referencia.",
+          "total": null
+        },
+        "robinhood": {
+          "moeda": "USD",
+          "nota": "Sem screenshot fornecido neste snapshot — dados de Jul-15 mantidos como referencia.",
+          "total": null
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3772.50,
+        "invest_stocks_eur": 729.82,
+        "cash_fund_eur": 1000.00,
+        "binance_spot_usd": null,
+        "binance_futures_usd": null,
+        "robinhood_usd": null,
+        "total_eur_aprox": 5800,
+        "variacao_vs_15jul_eur": 100,
+        "variacao_vs_15jul_pct": 1.8,
+        "nota_variacao": "Tangem estavel ($3,851→$3,772, -2%). ZEC qty reduzida (0.5426→0.4146), novos tokens: BNB, B2, DOT e HBAR reapareceram. Trading 212 completamente reestruturado: vendidas VWCE, FTNT, CEG, LEU, MRVL (total ~€1,730); ~€1,000 movidos para fundo cash, restantes reinvestidos em 9 novas posicoes (IREN, HODLX, ASML, NBIS, V3PA, NUAI, EMIM, DRAM, CIFR) totalizando ~€730. Maioria das novas posicoes em perda ligeira (-2% a -8%). Sem dados actualizados de Binance e Robinhood neste snapshot.",
+        "nota": "Binance spot/futures e Robinhood sem actualizacao — totais omitidos do calculo. Total estimado considera Tangem + T212 + fundo cash."
+      }
     }
   ]
 }
