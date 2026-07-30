@@ -115,6 +115,40 @@ def verificar_veto_simbolo(symbol: str, mem: dict) -> tuple[bool, str]:
     return False, ""
 
 
+def side_circuit_breaker(direction: str, mem: dict) -> tuple[bool, str]:
+    """Bloqueia LONGs ou SHORTs separadamente após perdas consecutivas."""
+    key = f"perdas_{direction.lower()}"
+    ts_key = f"bloqueado_{direction.lower()}_ate"
+    now = time.time()
+    if now < mem.get(ts_key, 0):
+        mins = int((mem[ts_key] - now) / 60)
+        return True, f"{direction} bloqueado {mins}min"
+    count = mem.get(key, 0)
+    if count >= 2:
+        mem[ts_key] = now + 4 * 3600
+        mem[key] = 0
+        save_memory(mem)
+        log_risk_event(f"SIDE_CB_{direction}", details=f"{count} SL seguidos em {direction}")
+        tg(
+            f"🚫 <b>{direction}s BLOQUEADOS 4h</b>\n"
+            f"{count} stop losses seguidos.\n"
+            f"LONGs {'continuam' if direction == 'SHORT' else 'bloqueados'} | "
+            f"SHORTs {'continuam' if direction == 'LONG' else 'bloqueados'}"
+        )
+        return True, f"{direction} bloqueado 4h"
+    return False, ""
+
+
+def registar_perda_lado(direction: str, won: bool, mem: dict):
+    """Actualiza contador de perdas por lado (LONG/SHORT separadamente)."""
+    key = f"perdas_{direction.lower()}"
+    if won:
+        mem[key] = 0
+    else:
+        mem[key] = mem.get(key, 0) + 1
+    save_memory(mem)
+
+
 def atualizar_stats_simbolo(symbol: str, won: bool, pnl: float, mem: dict):
     stats = mem.setdefault("simbolos_stats", {}).setdefault(symbol, {
         "wins": 0, "losses": 0, "perdas_seguidas": 0,

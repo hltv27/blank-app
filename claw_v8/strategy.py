@@ -175,4 +175,6 @@ def calc_qty(price: float, sl: float, symbol: str) -> float:
     if sl_dist == 0:
         return 0.0
     decimals = SYMBOL_PRECISION.get(symbol, 4)
-    return round(RISCO_USDC / sl_dist, decimals)
+    qty = round(RISCO_USDC / sl_dist, decimals)
+    qty = round(qty * (1 - 0.0002 * 3), decimals)
+    return qty

@@ -34,7 +34,7 @@ from exchange import (
 from indicators import atr, get_daily_vwap
 from strategy import detect_market_mode, signal_trending
 from filters import calc_correlation
-from risk import em_sessao, circuit_breaker_activo, verificar_veto_simbolo
+from risk import em_sessao, circuit_breaker_activo, verificar_veto_simbolo, side_circuit_breaker
 from execution import abrir_trade, gerir_posicoes
 from storage import init_db, load_memory, save_memory, log_state_transition
 from analytics import print_full_report
@@ -120,16 +120,28 @@ def _relatorio_diario(mem: dict):
         push_ok = r.returncode == 0
 
         # Telegram
+        # Expectancy global (todos os trades fechados)
+        conn2 = get_conn()
+        _aw = conn2.execute("SELECT AVG(pnl) FROM positions WHERE status='CLOSED' AND pnl>0").fetchone()[0] or 0
+        _al = conn2.execute("SELECT AVG(pnl) FROM positions WHERE status='CLOSED' AND pnl<=0").fetchone()[0] or 0
+        _tot = conn2.execute("SELECT COUNT(*) FROM positions WHERE status='CLOSED'").fetchone()[0] or 0
+        _w   = conn2.execute("SELECT COUNT(*) FROM positions WHERE status='CLOSED' AND pnl>0").fetchone()[0] or 0
+        conn2.close()
+        _wr_frac = _w / _tot if _tot > 0 else 0
+        _expectancy = (_aw * _wr_frac) - (abs(_al) * (1 - _wr_frac)) if _tot > 0 else 0
+
         pos_txt    = ", ".join(f"{p['symbol'].replace('USDC','')} {p['roi_pct']:+.1f}%" for p in abertos) or "Nenhuma"
         melhor_txt = f"{melhor['symbol'].replace('USDC','')} +{melhor['pnl']:.2f}" if melhor else "n/a"
         pior_txt   = f"{pior['symbol'].replace('USDC','')} {pior['pnl']:.2f}" if pior else "n/a"
         cb_txt     = f" | ⛔ CB: {cb_motivo}" if cb_activo else ""
         push_txt   = "📁 GitHub ✅" if push_ok else "📁 push ⚠️"
+        exp_txt    = f"📐 Expectancy: {_expectancy:+.3f} USDC/trade ({_tot} trades)"
 
         tg(
             f"📊 <b>Relatório {data_hoje}</b>\n"
             f"💰 Saldo: <b>{saldo:.2f} USDC</b> | P&amp;L dia: <b>{pnl_dia:+.2f} USDC</b>\n"
             f"📈 Trades: {total_dia} ({wins_dia}W/{losses_dia}L) WR {wr_dia:.0f}%\n"
+            f"{exp_txt}\n"
             f"🔓 Abertos: {pos_txt}\n"
             f"⭐ {melhor_txt}  💀 {pior_txt}{cb_txt}\n"
             f"{push_txt}"
@@ -580,6 +592,12 @@ def run():
                 if direction == "LONG" and time.time() < mem.get("btc_crash_lockout_until", 0):
                     mins_lock = int((mem["btc_crash_lockout_until"] - time.time()) / 60)
                     print(f"[{hora}] {symbol} BTC_CRASH_LOCKOUT — LONG bloqueado {mins_lock}min")
+                    continue
+
+                # Circuit breaker por lado (LONGs ou SHORTs bloqueados separadamente)
+                blocked_side, side_msg = side_circuit_breaker(direction, mem)
+                if blocked_side:
+                    print(f"[{hora}] {symbol} {side_msg}")
                     continue
 
                 # Veto por símbolo
