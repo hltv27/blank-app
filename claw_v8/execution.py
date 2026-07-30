@@ -538,13 +538,14 @@ def gerir_posicoes(mem: dict):
             mem["trades_abertos"][symbol]["stop_verify_ts"] = time.time()
             try:
                 active_algos = get_open_algo_orders(symbol)
-                if str(trade["stop_order_id"]) not in [str(a) for a in active_algos]:
+                old_stop_id = trade["stop_order_id"]
+                if str(old_stop_id) not in [str(a) for a in active_algos]:
                     mem["trades_abertos"][symbol]["stop_order_id"] = None
                     save_memory(mem)
-                    print(f"[AVISO] {symbol}: stop #{trade['stop_order_id']} desapareceu — software SL activo")
+                    print(f"[AVISO] {symbol}: stop #{old_stop_id} desapareceu — software SL activo")
                     tg(
                         f"⚠️ <b>STOP DESAPARECEU</b> — {symbol}\n"
-                        f"Ordem #{trade['stop_order_id']} já não existe na exchange.\n"
+                        f"Ordem #{old_stop_id} já não existe na exchange.\n"
                         f"Software SL activo."
                     )
             except Exception:
