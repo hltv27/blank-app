@@ -14,7 +14,8 @@ from config import (
     ROI_TP_IMEDIATO, SCORE_FORTE, SCORE_ALERTA, EMERGENCY_PNL_CUT,
     LIQUIDATION_GUARD_PCT, LIQUIDATION_WARN1_PCT, LIQUIDATION_WARN2_PCT, LIQUIDATION_WARN3_PCT,
     TRAILING_LOCK_USDC, PEAK_PROFIT_MIN_USDC, PEAK_DRAWDOWN_PCT,
-    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, PRICE_PRECISION
+    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP, PRICE_PRECISION,
+    MINIMAL_ROI, TRAILING_LOCK_PCT
 )
 import math
 from exchange import (
@@ -48,7 +49,7 @@ from filters import (
     bb_squeeze_ok, cvd_ok, obi_ok, vwap_ok,
     liquidity_sweep_detectado, btc_crash_detectado, calc_correlation
 )
-from risk import equity_scale_factor, atualizar_stats_simbolo
+from risk import equity_scale_factor, atualizar_stats_simbolo, registar_perda_lado
 from storage import (
     save_memory, load_memory,
     open_position as db_open_position,
@@ -529,6 +530,27 @@ def gerir_posicoes(mem: dict):
                 continue
 
 
+        # ── Verificação de stop na exchange (cada 5min) ──────────────────
+        # Detecta stops que desapareceram (cancelados, expirados, filled).
+        if (trade.get("stop_order_id")
+                and elapsed > 120
+                and time.time() - trade.get("stop_verify_ts", 0) > 300):
+            mem["trades_abertos"][symbol]["stop_verify_ts"] = time.time()
+            try:
+                active_algos = get_open_algo_orders(symbol)
+                if str(trade["stop_order_id"]) not in [str(a) for a in active_algos]:
+                    mem["trades_abertos"][symbol]["stop_order_id"] = None
+                    save_memory(mem)
+                    print(f"[AVISO] {symbol}: stop #{trade['stop_order_id']} desapareceu — software SL activo")
+                    tg(
+                        f"⚠️ <b>STOP DESAPARECEU</b> — {symbol}\n"
+                        f"Ordem #{trade['stop_order_id']} já não existe na exchange.\n"
+                        f"Software SL activo."
+                    )
+            except Exception:
+                pass
+            save_memory(mem)
+
         # ROI alto → fecha imediatamente, sem esperar tempo
         if roi >= ROI_TP_IMEDIATO:
             if _fechar_com_retry(symbol, pos["qty"], side):
@@ -540,79 +562,47 @@ def gerir_posicoes(mem: dict):
                 )
             continue
 
-        # ── TIME_TP: trades a lucro há ≥2h sem atingir TP — fecha se sinal enfraqueceu ──
-        if (elapsed >= 7200
-                and pos["pnl"] > 0
-                and roi >= 4.0
+        # ── Minimal ROI: saída decrescente por tempo ──────────────────────
+        # Tabela configurável: [(minutos, ROI% mínimo)].
+        # Para ROI >= 4%, verifica sinal antes de fechar (evita sair de winners).
+        # Para ROI < 4%, fecha sem verificar (trade aberta demasiado tempo).
+        if (pos["pnl"] > 0
                 and not trade.get("trailing_lock_done")
-                and not trade.get("partial_tp_done")
-                and not trade.get("time_tp_checked")):
-            time_tp_ok = False
-            try:
-                kl_ttp = get_klines(symbol, interval="1h")
-                if kl_ttp and len(kl_ttp) >= 50:
-                    c_ttp = [float(k[4]) for k in kl_ttp]
-                    h_ttp = [float(k[2]) for k in kl_ttp]
-                    l_ttp = [float(k[3]) for k in kl_ttp]
-                    v_ttp = [float(k[5]) for k in kl_ttp]
-                    ttp_dir, ttp_score, _ = signal_trending(c_ttp, h_ttp, l_ttp, v_ttp, symbol)
-                    if ttp_dir == side and ttp_score >= SCORE_ALERTA:
-                        time_tp_ok = True
-            except Exception as _e:
-                print(f"[AVISO] time_tp {symbol}: {_e}")
-
-            if not time_tp_ok:
-                if _fechar_com_retry(symbol, pos["qty"], side):
-                    _registar_fecho(symbol, side, entry, sl, tp, qty,
-                                    pos["pnl"], "TIME_TP", True, mem)
-                    tg(
-                        f"⏱ <b>TIME TP</b> — {symbol}\n"
-                        f"{int(elapsed/60)}min | ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} USDC\n"
-                        f"Sinal enfraqueceu — lucro protegido."
-                    )
+                and time.time() - trade.get("minimal_roi_ts", 0) > 300):
+            minimal_roi_exit = False
+            for min_minutes, min_roi in sorted(MINIMAL_ROI, key=lambda x: x[0], reverse=True):
+                if min_minutes == 0:
+                    continue
+                if elapsed >= min_minutes * 60 and roi >= min_roi:
+                    should_close = True
+                    if min_roi >= 4.0:
+                        try:
+                            kl_mr = get_klines(symbol, interval="1h")
+                            if kl_mr and len(kl_mr) >= 50:
+                                c_mr = [float(k[4]) for k in kl_mr]
+                                h_mr = [float(k[2]) for k in kl_mr]
+                                l_mr = [float(k[3]) for k in kl_mr]
+                                v_mr = [float(k[5]) for k in kl_mr]
+                                mr_dir, mr_score, _ = signal_trending(c_mr, h_mr, l_mr, v_mr, symbol)
+                                if mr_dir == side and mr_score >= SCORE_ALERTA:
+                                    should_close = False
+                        except Exception:
+                            pass
+                    if should_close:
+                        if _fechar_com_retry(symbol, pos["qty"], side):
+                            _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                            pos["pnl"], f"MINIMAL_ROI_{min_minutes}m", True, mem)
+                            tg(
+                                f"⏱ <b>MINIMAL ROI {min_roi:.0f}% @ {min_minutes // 60}h</b> — {symbol}\n"
+                                f"{int(elapsed/60)}min | ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} USDC"
+                            )
+                        minimal_roi_exit = True
+                    else:
+                        mem["trades_abertos"][symbol]["minimal_roi_ts"] = time.time()
+                        save_memory(mem)
+                    break
+            if minimal_roi_exit:
                 continue
-            else:
-                mem["trades_abertos"][symbol]["time_tp_checked"] = True
-                save_memory(mem)
-
-        # ── ROI ≥ 5%: fecha se mercado não confirmar, deixa correr se confirmar ──
-        # Evita sair prematuramente de winners em tendência forte.
-        if (roi >= 5.0
-                and not trade.get("trailing_lock_done")):
-            sinal_ok = False
-            score5   = 0
-            try:
-                kl5 = get_klines(symbol, interval="1h")
-                if kl5 and len(kl5) >= 50:
-                    c5 = [float(k[4]) for k in kl5]
-                    h5 = [float(k[2]) for k in kl5]
-                    l5 = [float(k[3]) for k in kl5]
-                    v5 = [float(k[5]) for k in kl5]
-                    dir5, score5, _ = signal_trending(c5, h5, l5, v5, symbol)
-                    if dir5 == side and score5 >= SCORE_ALERTA:
-                        sinal_ok = True
-            except Exception as _e:
-                print(f"[AVISO] roi5_check {symbol}: {_e}")
-
-            if not sinal_ok:
-                if _fechar_com_retry(symbol, pos["qty"], side):
-                    _registar_fecho(symbol, side, entry, sl, tp, qty,
-                                    pos["pnl"], "ROI5_TP", True, mem)
-                    tg(
-                        f"🎯 <b>ROI 5% TP</b> — {symbol}\n"
-                        f"ROI: {roi:.1f}% | PnL: {pos['pnl']:+.2f} USDC\n"
-                        f"Sinal enfraqueceu — saída confirmada."
-                    )
-                continue
-            else:
-                # Mercado ainda favorável — notifica 1x por 15min e deixa correr
-                if time.time() - trade.get("roi5_skip_ts", 0) > 900:
-                    mem["trades_abertos"][symbol]["roi5_skip_ts"] = time.time()
-                    save_memory(mem)
-                    tg(
-                        f"🚀 <b>ROI 5% — DEIXA CORRER</b> — {symbol}\n"
-                        f"ROI: {roi:.1f}% | Score: {score5} | Mercado confirma {side}."
-                    )
 
         # ── Saída por reversão de sinal ──────────────────────────────────
         # Se o sinal original inverteu completamente (score forte na direcção oposta),
@@ -778,6 +768,25 @@ def gerir_posicoes(mem: dict):
                 f"Activação: {activation:.6g} | Callback: {cb}%\n"
                 f"PnL: +{pos['pnl']:.2f} USDC | {stop_txt}"
             )
+
+        # ── Trailing % enforcement: software safety net ──────────────────
+        # Se trailing stop activo e PnL recuou TRAILING_LOCK_PCT do pico, fecha via MARKET.
+        # Cobre o caso em que o trailing stop da Binance não dispara.
+        if (trade.get("trailing_lock_done")
+                and peak_pnl >= TRAILING_LOCK_USDC
+                and pos["pnl"] > 0):
+            trail_floor = peak_pnl * (1 - TRAILING_LOCK_PCT)
+            if pos["pnl"] <= trail_floor:
+                if _fechar_com_retry(symbol, pos["qty"], side):
+                    _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                    pos["pnl"], "TRAIL_PCT", True, mem)
+                    tg(
+                        f"📉 <b>TRAILING % STOP</b> — {symbol}\n"
+                        f"Pico: +{peak_pnl:.2f} | Floor: +{trail_floor:.2f} | "
+                        f"Actual: +{pos['pnl']:.2f} USDC\n"
+                        f"Recuou >{TRAILING_LOCK_PCT*100:.0f}% do pico."
+                    )
+                continue
 
         # ── Breakeven a 1R: protege lucro antes do TP1 (2R) ───────────────
         # Sem isto, uma trade que esteve em lucro mas nunca chegou a 2R
@@ -1025,5 +1034,6 @@ def _registar_fecho(symbol: str, side: str, entry: float, sl: float,
 
     mem["total_trades"] = mem.get("wins", 0) + mem.get("losses", 0)
     atualizar_stats_simbolo(symbol, won, pnl, mem)
+    registar_perda_lado(side, won, mem)
     close_position_db(symbol, reason, pnl, 0)
     save_memory(mem)

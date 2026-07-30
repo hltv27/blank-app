@@ -141,6 +141,13 @@ TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~1R), muda stop fixo → trail
 ROI_TP_IMEDIATO     = 12.0   # % ROI → fecha imediatamente (era 7% — dava pouco espaço)
 TIME_TP_MIN_MIN     = 10     # minutos mínimos para TIME_TP (era 30)
 
+# Tabela minimal_roi: (minutos, ROI% mínimo para fechar)
+# Substitui TIME_TP + STAGNADO por um único mecanismo decrescente
+MINIMAL_ROI = [(0, 12.0), (120, 4.0), (360, 1.0), (480, 0.0)]
+
+# Trailing por % do pico (substitui steps fixos de USDC após activação)
+TRAILING_LOCK_PCT   = 0.30   # fecha se recuar 30% do pico de PnL
+
 # Protecção de pico de lucro: fecha se recuar muito do máximo já atingido
 # E o sinal já não confirmar a direcção (evita fechar por simples ruído)
 PEAK_PROFIT_MIN_USDC = 2.0    # só actua se a trade já chegou a este PnL (era 1.5)

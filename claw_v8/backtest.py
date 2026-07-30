@@ -37,9 +37,14 @@ from strategy import detect_market_mode, signal_trending, calc_sl_tp, calc_qty
 
 # ─────────────────────────────────────────────
 CACHE_DIR   = _here.parent / "backtest_cache"
-COMMISSION  = 0.0004   # 0.04% por lado (taker futures Binance)
 MAX_BARS    = 96       # máx candles por trade (96 × 5min = 8h)
 LOOKBACK    = 220      # janela de indicadores
+
+# ── Improvement #12: Slippage & fee simulation ────────────
+SLIPPAGE_ENTRY = 0.0003  # 0.03% slippage on market entry
+SLIPPAGE_SL    = 0.0005  # 0.05% slippage on stop loss (wider — adverse conditions)
+SLIPPAGE_TP    = 0.0002  # 0.02% slippage on take profit
+FEE_RATE       = 0.0002  # 0.02% taker fee per side (entry + exit)
 # ─────────────────────────────────────────────
 
 CACHE_DIR.mkdir(exist_ok=True)
@@ -135,8 +140,17 @@ def simulate_trade(direction: str, entry: float, sl: float, tp: float,
                    future_candles: list, qty: float) -> dict | None:
     """
     Simula o trade nos candles seguintes ao sinal.
-    Usa high/low de cada candle para verificar SL/TP.
-    Aplica TP1 parcial (33% a 2R) e corte de emergência.
+
+    Improvement #10 — Intra-candle SL/TP checking:
+      Usa HIGH e LOW de cada candle (nao apenas o close) para determinar
+      se SL ou TP teriam sido atingidos dentro da candle.
+        LONG:  low  <= SL → stop hit;  high >= TP → TP hit
+        SHORT: high >= SL → stop hit;  low  <= TP → TP hit
+      Se ambos sao atingidos na mesma candle, assume SL primeiro (pior caso).
+
+    Improvement #12 — Slippage & fees:
+      Aplica slippage aos precos de execucao (SL/TP) e deduz fees (FEE_RATE).
+      Entry slippage ja vem aplicado no preco de entrada recebido.
     """
     if not future_candles or qty <= 0 or sl <= 0 or tp <= 0:
         return None
@@ -144,18 +158,25 @@ def simulate_trade(direction: str, entry: float, sl: float, tp: float,
     qty_rem      = qty
     partial_done = False
     realized_pnl = 0.0
-    commission   = entry * qty * COMMISSION * 2   # entrada + saída total
 
+    # Improvement #12: Precos de execucao com slippage (fill adverso)
     if direction == "LONG":
+        sl_exec   = sl * (1 - SLIPPAGE_SL)    # vendido abaixo do SL (pior)
+        tp_exec   = tp * (1 - SLIPPAGE_TP)    # vendido ligeiramente abaixo do TP
         tp1_level = entry + (tp - entry) * PARTIAL_TP_RATIO
+        tp1_exec  = tp1_level * (1 - SLIPPAGE_TP)
     else:
+        sl_exec   = sl * (1 + SLIPPAGE_SL)    # comprado acima do SL (pior)
+        tp_exec   = tp * (1 + SLIPPAGE_TP)    # comprado ligeiramente acima do TP
         tp1_level = entry - (entry - tp) * PARTIAL_TP_RATIO
+        tp1_exec  = tp1_level * (1 + SLIPPAGE_TP)
 
     for i, candle in enumerate(future_candles[:MAX_BARS]):
         high  = float(candle[2])
         low   = float(candle[3])
         close = float(candle[4])
 
+        # Improvement #10: Intra-candle check via high/low
         if direction == "LONG":
             hit_sl  = low  <= sl
             hit_tp  = high >= tp
@@ -165,18 +186,13 @@ def simulate_trade(direction: str, entry: float, sl: float, tp: float,
             hit_tp  = low  <= tp
             hit_tp1 = not partial_done and low <= tp1_level
 
-        # ── Partial TP1 (33% do tamanho original) ───────────────────
-        if hit_tp1:
-            qty_close    = round(qty * PARTIAL_TP_QTY, 8)
-            dist         = abs(tp1_level - entry)
-            realized_pnl += dist * qty_close - entry * qty_close * COMMISSION * 2
-            qty_rem      -= qty_close
-            partial_done  = True
-
-        # ── SL hit (tem prioridade se ambos na mesma vela) ───────────
+        # Improvement #10: SL tem prioridade absoluta — se SL e TP/TP1
+        # sao ambos atingidos na mesma candle, assume-se que o SL foi
+        # atingido primeiro (pior caso). TP1 parcial NAO executa.
         if hit_sl:
-            loss          = abs(entry - sl) * qty_rem
-            realized_pnl -= loss + entry * qty_rem * COMMISSION * 2
+            loss          = abs(entry - sl_exec) * qty_rem     # #12: slippage
+            fee           = entry * qty_rem * FEE_RATE * 2     # #12: fees
+            realized_pnl -= loss + fee
             return {
                 "won":         realized_pnl > 0,
                 "pnl":         round(realized_pnl, 4),
@@ -184,10 +200,20 @@ def simulate_trade(direction: str, entry: float, sl: float, tp: float,
                 "bars":        i + 1,
             }
 
+        # ── Partial TP1 (33% do tamanho original) ───────────────────
+        if hit_tp1:
+            qty_close    = round(qty * PARTIAL_TP_QTY, 8)
+            dist         = abs(tp1_exec - entry)               # #12: slippage
+            fee          = entry * qty_close * FEE_RATE * 2    # #12: fees
+            realized_pnl += dist * qty_close - fee
+            qty_rem      -= qty_close
+            partial_done  = True
+
         # ── TP completo ──────────────────────────────────────────────
         if hit_tp:
-            gain          = abs(tp - entry) * qty_rem
-            realized_pnl += gain - entry * qty_rem * COMMISSION * 2
+            gain          = abs(tp_exec - entry) * qty_rem     # #12: slippage
+            fee           = entry * qty_rem * FEE_RATE * 2     # #12: fees
+            realized_pnl += gain - fee
             return {
                 "won":         True,
                 "pnl":         round(realized_pnl, 4),
@@ -200,7 +226,8 @@ def simulate_trade(direction: str, entry: float, sl: float, tp: float,
         margin   = entry * qty / ALAVANCAGEM if ALAVANCAGEM > 0 else entry * qty
         roi      = open_pnl / margin * 100 if margin > 0 else 0
         if roi <= EMERGENCY_ROI_CUT:
-            realized_pnl += open_pnl - entry * qty_rem * COMMISSION * 2
+            fee           = entry * qty_rem * FEE_RATE * 2     # #12: fees
+            realized_pnl += open_pnl - fee
             return {
                 "won":         False,
                 "pnl":         round(realized_pnl, 4),
@@ -208,11 +235,12 @@ def simulate_trade(direction: str, entry: float, sl: float, tp: float,
                 "bars":        i + 1,
             }
 
-    # ── Timeout: fecha no último candle disponível ───────────────────
+    # ── Timeout: fecha no ultimo candle disponivel ───────────────────
     if future_candles:
         last_close    = float(future_candles[min(MAX_BARS - 1, len(future_candles) - 1)][4])
         open_pnl      = (last_close - entry) * qty_rem if direction == "LONG" else (entry - last_close) * qty_rem
-        realized_pnl += open_pnl - entry * qty_rem * COMMISSION * 2
+        fee           = entry * qty_rem * FEE_RATE * 2         # #12: fees
+        realized_pnl += open_pnl - fee
 
     return {
         "won":         realized_pnl > 0,
@@ -295,9 +323,17 @@ def run_symbol(symbol: str, klines_5m: list, klines_1h: list,
         if qty <= 0:
             continue
 
+        # ── Improvement #12: Entry slippage ────────────────────────
+        # SL/TP sao niveis de mercado (calculados acima a partir do preco
+        # do sinal); a entrada sofre slippage porque e uma ordem MARKET.
+        if direction == "LONG":
+            price_exec = price * (1 + SLIPPAGE_ENTRY)   # compra mais caro
+        else:
+            price_exec = price * (1 - SLIPPAGE_ENTRY)   # vende mais barato
+
         # ── Simulação do trade ─────────────────────────────────────
         future = klines_5m[i + 1: i + 1 + MAX_BARS]
-        result = simulate_trade(direction, price, sl, tp, future, qty)
+        result = simulate_trade(direction, price_exec, sl, tp, future, qty)
         if result is None:
             continue
 
@@ -305,7 +341,7 @@ def run_symbol(symbol: str, klines_5m: list, klines_1h: list,
         trades.append({
             "symbol":    symbol,
             "direction": direction,
-            "entry":     price,
+            "entry":     price_exec,
             "sl":        round(sl, 6),
             "tp":        round(tp, 6),
             "qty":       qty,
@@ -425,8 +461,48 @@ def print_report(all_trades: list, symbols_tested: list, days: int):
     print(f"  Max drawdown : -{max_dd:.2f} USDC")
     print(f"  Avg duração  : {avg_bars * 5:.0f}min ({avg_bars:.0f} candles)")
     total_notional = sum(abs(t["entry"]) * t["qty"] for t in all_trades)
-    print(f"  Comissão est.: -{total_notional * COMMISSION * 2:.2f} USDC")
-    print(f"{'═'*70}\n")
+    total_fees     = total_notional * FEE_RATE * 2
+    print(f"  Fees est.    : -{total_fees:.2f} USDC  ({FEE_RATE*100:.3f}% x2 lados)")
+    print(f"  Slippage     : entry {SLIPPAGE_ENTRY*100:.2f}%  SL {SLIPPAGE_SL*100:.2f}%  TP {SLIPPAGE_TP*100:.2f}%")
+    print(f"{'═'*70}")
+
+    # ── Improvement #11: Walk-Forward Validation ───────────────────
+    # Divide os trades cronologicamente em 70% treino / 30% teste para
+    # avaliar se os parametros da estrategia funcionam em dados nao vistos.
+    sorted_trades = sorted(all_trades, key=lambda x: x["ts"])
+    split_idx = int(len(sorted_trades) * 0.7)
+    if split_idx > 0 and split_idx < len(sorted_trades):
+        train_trades = sorted_trades[:split_idx]
+        test_trades  = sorted_trades[split_idx:]
+
+        def _wf_metrics(trades_wf):
+            if not trades_wf:
+                return 0, 0.0, 0.0, 0.0
+            w = [t for t in trades_wf if t["won"]]
+            gw = sum(t["pnl"] for t in w)
+            gl = abs(sum(t["pnl"] for t in trades_wf if not t["won"]))
+            return len(trades_wf), sum(t["pnl"] for t in trades_wf), \
+                   len(w) / len(trades_wf) * 100, _pf(gw, gl)
+
+        tr_n, tr_pnl, tr_wr, tr_pf = _wf_metrics(train_trades)
+        te_n, te_pnl, te_wr, te_pf = _wf_metrics(test_trades)
+
+        print(f"\n{'═'*70}")
+        print(f"  === Walk-Forward Validation ===")
+        print(f"  Training (70%): {tr_n} trades, {tr_pnl:+.2f} USDC, "
+              f"{tr_wr:.1f}% win rate, PF {tr_pf}")
+        print(f"  Testing  (30%): {te_n} trades, {te_pnl:+.2f} USDC, "
+              f"{te_wr:.1f}% win rate, PF {te_pf}")
+        tr_start = train_trades[0]["ts"][:10]
+        tr_end   = train_trades[-1]["ts"][:10]
+        te_start = test_trades[0]["ts"][:10]
+        te_end   = test_trades[-1]["ts"][:10]
+        print(f"  Periodo treino: {tr_start} a {tr_end}")
+        print(f"  Periodo teste : {te_start} a {te_end}")
+        print(f"{'═'*70}")
+    else:
+        print(f"\n  (Walk-forward: trades insuficientes para split 70/30)")
+    print()
 
 
 # ═══════════════════════════════════════════════════════
