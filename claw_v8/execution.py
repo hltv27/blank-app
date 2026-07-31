@@ -472,12 +472,19 @@ def gerir_posicoes(mem: dict):
             if new_lock >= PROFIT_LOCK_USDC and new_lock > current_lock + 1e-9:
                 lock_usdc = max(new_lock - PROFIT_LOCK_STEP, 0.0)
                 price_prec = PRICE_PRECISION.get(symbol, 2)
+                fee_buffer = qty * entry * 0.0004 * 2
+                lock_usdc_net = lock_usdc + fee_buffer
                 if side == "LONG":
-                    lock_price = (round(entry + lock_usdc / qty, price_prec)
+                    lock_price = (round(entry + lock_usdc_net / qty, price_prec)
                                   if lock_usdc > 0 else round(entry * (1 + BREAKEVEN_OFFSET), price_prec))
                 else:
-                    lock_price = (round(entry - lock_usdc / qty, price_prec)
+                    lock_price = (round(entry - lock_usdc_net / qty, price_prec)
                                   if lock_usdc > 0 else round(entry * (1 - BREAKEVEN_OFFSET), price_prec))
+
+                if side == "LONG" and lock_price <= entry:
+                    lock_price = round(entry * (1 + BREAKEVEN_OFFSET), price_prec)
+                elif side == "SHORT" and lock_price >= entry:
+                    lock_price = round(entry * (1 - BREAKEVEN_OFFSET), price_prec)
 
                 if current_lock == 0.0:
                     for old_algo_id in get_open_algo_orders(symbol):
@@ -494,9 +501,13 @@ def gerir_posicoes(mem: dict):
                     if new_lock_id:
                         break
                     if side == "LONG":
-                        lock_price = round(lock_price * (1 - 0.0015), price_prec)
+                        retry_price = round(lock_price * (1 - 0.0015), price_prec)
+                        be_price = round(entry * (1 + BREAKEVEN_OFFSET), price_prec)
+                        lock_price = max(retry_price, be_price)
                     else:
-                        lock_price = round(lock_price * (1 + 0.0015), price_prec)
+                        retry_price = round(lock_price * (1 + 0.0015), price_prec)
+                        be_price = round(entry * (1 - BREAKEVEN_OFFSET), price_prec)
+                        lock_price = min(retry_price, be_price)
                     time.sleep(0.5)
 
                 mem["trades_abertos"][symbol]["profit_lock_level"] = new_lock
@@ -515,10 +526,12 @@ def gerir_posicoes(mem: dict):
                 )
 
         # Software enforcement — se profit lock activou mas stop exchange falhou,
-        # fecha via MARKET quando PnL cai abaixo do nível protegido.
+        # fecha via MARKET assim que preço cruza o stop ou PnL cai perto do floor.
         if current_lock > 0 and not trade.get("stop_order_id"):
-            lock_floor = max(current_lock - PROFIT_LOCK_STEP, 0.0)
-            if pos["pnl"] <= lock_floor:
+            price_breach = ((side == "LONG" and price <= sl and sl > 0)
+                            or (side == "SHORT" and price >= sl and sl > 0))
+            lock_floor = max(current_lock - PROFIT_LOCK_STEP * 0.5, 0.0)
+            if price_breach or pos["pnl"] <= lock_floor:
                 if _fechar_com_retry(symbol, pos["qty"], side):
                     _registar_fecho(symbol, side, entry, sl, tp, qty,
                                     pos["pnl"], "SOFTWARE_LOCK", pos["pnl"] > 0, mem)
