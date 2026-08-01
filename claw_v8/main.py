@@ -458,18 +458,25 @@ def run():
                         new_lock_ext = math.floor(pnl_ext / PROFIT_LOCK_STEP) * PROFIT_LOCK_STEP
                         if new_lock_ext >= PROFIT_LOCK_USDC and new_lock_ext > current_lock_ext + 1e-9:
                             lock_usdc_ext = max(new_lock_ext - PROFIT_LOCK_STEP, 0.0)
+                            price_prec_ext = config.PRICE_PRECISION.get(symbol, 2)
+                            fee_buffer_ext = qty_ext * ext["entry"] * 0.0004 * 2
+                            lock_usdc_net_ext = lock_usdc_ext + fee_buffer_ext
                             if side_ext == "LONG":
-                                lock_price_ext = (round(ext["entry"] + lock_usdc_ext / qty_ext, 8)
-                                                   if lock_usdc_ext > 0 else round(ext["entry"] * 1.0005, 8))
+                                lock_price_ext = (round(ext["entry"] + lock_usdc_net_ext / qty_ext, price_prec_ext)
+                                                   if lock_usdc_ext > 0 else round(ext["entry"] * 1.0005, price_prec_ext))
                             else:
-                                lock_price_ext = (round(ext["entry"] - lock_usdc_ext / qty_ext, 8)
-                                                   if lock_usdc_ext > 0 else round(ext["entry"] * 0.9995, 8))
+                                lock_price_ext = (round(ext["entry"] - lock_usdc_net_ext / qty_ext, price_prec_ext)
+                                                   if lock_usdc_ext > 0 else round(ext["entry"] * 0.9995, price_prec_ext))
 
-                            # Primeira activação: pode já existir stop colocado manualmente
-                            # pelo utilizador — cancela TUDO antes (só pode haver 1 closePosition stop)
-                            if current_lock_ext == 0.0:
-                                for old_algo_id in get_open_algo_orders(symbol):
-                                    cancel_algo_order(symbol, old_algo_id)
+                            if side_ext == "LONG" and lock_price_ext <= ext["entry"]:
+                                lock_price_ext = round(ext["entry"] * 1.0005, price_prec_ext)
+                            elif side_ext == "SHORT" and lock_price_ext >= ext["entry"]:
+                                lock_price_ext = round(ext["entry"] * 0.9995, price_prec_ext)
+
+                            # Cancela SEMPRE ordens existentes antes de colocar nova
+                            # (TP/SL manual do utilizador ou stop anterior falhado)
+                            for old_algo_id in get_open_algo_orders(symbol):
+                                cancel_algo_order(symbol, old_algo_id)
                             old_stop_ext = ext.get("stop_order_id")
                             if old_stop_ext:
                                 cancel_algo_order(symbol, old_stop_ext)
@@ -482,9 +489,13 @@ def run():
                                 if new_lock_id_ext:
                                     break
                                 if side_ext == "LONG":
-                                    lock_price_ext = round(lock_price_ext * (1 - 0.0015), 8)
+                                    retry_price_ext = round(lock_price_ext * (1 - 0.0015), price_prec_ext)
+                                    be_price_ext = round(ext["entry"] * 1.0005, price_prec_ext)
+                                    lock_price_ext = max(retry_price_ext, be_price_ext)
                                 else:
-                                    lock_price_ext = round(lock_price_ext * (1 + 0.0015), 8)
+                                    retry_price_ext = round(lock_price_ext * (1 + 0.0015), price_prec_ext)
+                                    be_price_ext = round(ext["entry"] * 0.9995, price_prec_ext)
+                                    lock_price_ext = min(retry_price_ext, be_price_ext)
                                 time.sleep(0.5)
 
                             ext["profit_lock_level"] = new_lock_ext
