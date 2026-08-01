@@ -180,6 +180,7 @@ DB_FILE       = "claw_v8.db"
 LOG_FILE      = "claw_v8.log"
 PAPER_TRADING = False
 MONITOR_EXTERNAS = False  # True = monitoriza posições manuais e aplica profit lock
+KRONOS_ENABLED   = True   # True = usa modelo Kronos para bonus/penalidade de score
 
 # Tabela de saídas dinâmicas: (minutos_mínimos, múltiplo_de_R, fracção_a_fechar)
 # Referência para futura migração de TP1/TP2 — lógica actual já equivale a isto.
