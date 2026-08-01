@@ -127,7 +127,7 @@ ATR_REGIME_LOOKBACK = 50
 BTC_CRASH_PCT       = 3.0
 STOP_RETRY_MAX      = 3
 EMERGENCY_ROI_CUT   = -25.0   # nunca dispara antes do SL baseado em ATR (era -7 → cortava prematuramente)
-EMERGENCY_PNL_CUT   = 7.0    # nunca dispara antes do SL técnico (era 3.0 → cortava antes do ATR SL)
+EMERGENCY_PNL_CUT   = 6.5    # max RISCO_USDC + margem (era 7.0 → deixava perder mais que 1R)
 BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 
 # Guarda de capital — nunca perder mais de 25% em aberto
