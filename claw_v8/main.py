@@ -39,6 +39,7 @@ from execution import abrir_trade, gerir_posicoes
 from storage import init_db, load_memory, save_memory, log_state_transition
 from analytics import print_full_report
 from telegram_handler import process_commands
+from kronos_signal import init_kronos, kronos_score
 
 
 def _relatorio_diario(mem: dict):
@@ -185,6 +186,13 @@ def run():
     if price_precisoes:
         config.PRICE_PRECISION.update(price_precisoes)
     SYMBOLS = config.SYMBOLS
+
+    if config.KRONOS_ENABLED:
+        kronos_ok = init_kronos()
+        if kronos_ok:
+            tg("🧠 <b>Kronos</b> carregado — previsão de candlesticks activa")
+        else:
+            tg("⚠️ Kronos falhou a carregar — bot continua sem previsão")
 
     ultima_actualizacao_symbols = time.time()
 
@@ -579,10 +587,17 @@ def run():
                     continue
 
                 direction, score, detalhe = signal_trending(closes, highs, lows, volumes, symbol)
-                print(f"[{hora}] {symbol} {mode} {detalhe}")
 
                 if not direction:
+                    print(f"[{hora}] {symbol} {mode} {detalhe}")
                     continue
+
+                k_bonus, k_detail = kronos_score(symbol, klines, direction) if config.KRONOS_ENABLED else (0, "")
+                if k_bonus != 0:
+                    score += k_bonus
+                    detalhe = f"{detalhe} | {k_detail}"
+
+                print(f"[{hora}] {symbol} {mode} {detalhe}")
 
                 if direction == "LONG" and score < SCORE_LONG_MIN:
                     print(f"[{hora}] {symbol} LONG score {score} < {SCORE_LONG_MIN} — skip")
