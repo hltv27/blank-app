@@ -206,6 +206,9 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
         # STOP_MARKET inicial — closePosition=true (compatível com EU/BNFCR)
         # Se falhar, mantém a posição protegida por software SL (ciclo de 10s)
+        # Cancela qualquer closePosition existente (TP/SL manual do utilizador)
+        for old_algo_id in get_open_algo_orders(symbol):
+            cancel_algo_order(symbol, old_algo_id)
         stop_side = "SELL" if direction == "LONG" else "BUY"
         stop_id   = None
         for tentativa in range(1, STOP_RETRY_MAX + 1):
