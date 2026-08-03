@@ -2137,6 +2137,186 @@
         "nota_variacao": "Tangem estavel ($3,851→$3,772, -2%). ZEC qty reduzida (0.5426→0.4146), novos tokens: BNB, B2, DOT e HBAR reapareceram. Trading 212 completamente reestruturado: vendidas VWCE, FTNT, CEG, LEU, MRVL (total ~€1,730); ~€1,000 movidos para fundo cash, restantes reinvestidos em 9 novas posicoes (IREN, HODLX, ASML, NBIS, V3PA, NUAI, EMIM, DRAM, CIFR) totalizando ~€730. Maioria das novas posicoes em perda ligeira (-2% a -8%). Sem dados actualizados de Binance e Robinhood neste snapshot.",
         "nota": "Binance spot/futures e Robinhood sem actualizacao — totais omitidos do calculo. Total estimado considera Tangem + T212 + fundo cash."
       }
+    },
+    {
+      "data": "2026-07-31",
+      "hora": "09:38",
+      "eur_usd_rate": 1.15,
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3507.49,
+          "variacao_vs_27jul_usd": -265.01,
+          "variacao_vs_27jul_pct": -7.0,
+          "ativos": {
+            "BTC": {
+              "qtd": 0.03598865,
+              "valor_usd": 2298.14,
+              "preco_usd": 63857.41,
+              "var_dia_pct": -0.51
+            },
+            "ETH": {
+              "qtd": 0.45657129,
+              "valor_usd": 862.73,
+              "preco_usd": 1889.59,
+              "var_dia_pct": -1.15
+            },
+            "SOL": {
+              "qtd": 3.39148374,
+              "valor_usd": 249.67,
+              "preco_usd": 73.62,
+              "var_dia_pct": -0.02,
+              "staking_apy": 5.64
+            },
+            "XRP": {
+              "qtd": 84.566087,
+              "valor_usd": 91.03,
+              "preco_usd": 1.08,
+              "var_dia_pct": -0.06
+            },
+            "BNB": {
+              "qtd": 0.00857477,
+              "valor_usd": 5.08,
+              "preco_usd": 592.21,
+              "var_dia_pct": 2.67,
+              "staking_apy": 1.12
+            },
+            "DOT": {
+              "qtd": 1.0,
+              "valor_usd": 0.77,
+              "preco_usd": 0.77,
+              "var_dia_pct": -0.05
+            },
+            "HBAR": {
+              "qtd": 0.36102351,
+              "valor_usd": 0.02,
+              "preco_usd": 0.07,
+              "var_dia_pct": 1.26
+            },
+            "B2": {
+              "qtd": 0.047222,
+              "valor_usd": 0.02,
+              "preco_usd": 0.47,
+              "var_dia_pct": 0.61
+            },
+            "BASE_ETH": {
+              "qtd": 0.00000698,
+              "valor_usd": 0.01,
+              "preco_usd": 1889.59,
+              "var_dia_pct": -1.15
+            }
+          },
+          "nota": "ZEC vendido por completo (era 0.4146 ZEC, ~$201 em Jul-27). BTC e ETH em queda ligeira."
+        },
+        "trading_212_invest": {
+          "moeda": "EUR",
+          "total": 541.20,
+          "variacao_vs_27jul_eur": -188.62,
+          "variacao_vs_27jul_pct": -25.8,
+          "nota": "NBIS e CIFR vendidos. IREN, HODLX, DRAM reduzidos a metade. MSFT adicionado. ASML reduzido ligeiramente.",
+          "ativos": {
+            "MSFT": {
+              "qtd": 0.27938149,
+              "valor_eur": 108.85,
+              "var_dia_eur": 4.74,
+              "var_dia_pct": 4.55,
+              "novo": true
+            },
+            "ASML": {
+              "qtd": 0.06737011,
+              "valor_eur": 99.54,
+              "var_dia_eur": -1.98,
+              "var_dia_pct": -1.95
+            },
+            "IREN": {
+              "qtd": 2.53563483,
+              "valor_eur": 88.96,
+              "var_dia_eur": 0.64,
+              "var_dia_pct": 0.72,
+              "nota": "reduzido de 5.09 para 2.54"
+            },
+            "V3PA": {
+              "qtd": 7.35610176,
+              "valor_eur": 68.00,
+              "var_dia_eur": -1.00,
+              "var_dia_pct": -1.45
+            },
+            "EMIM": {
+              "qtd": 1.32663956,
+              "valor_eur": 61.25,
+              "var_dia_eur": -0.40,
+              "var_dia_pct": -0.65
+            },
+            "HODLX": {
+              "qtd": 3.27432062,
+              "valor_eur": 58.80,
+              "var_dia_eur": -2.18,
+              "var_dia_pct": -3.57,
+              "nota": "reduzido de 6.61 para 3.27"
+            },
+            "NUAI": {
+              "qtd": 7.67167872,
+              "valor_eur": 33.13,
+              "var_dia_eur": -0.48,
+              "var_dia_pct": -1.43
+            },
+            "DRAM": {
+              "qtd": 4.63497743,
+              "valor_eur": 22.67,
+              "var_dia_eur": -1.25,
+              "var_dia_pct": -5.23,
+              "nota": "reduzido de 9.69 para 4.63"
+            }
+          }
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 118.17,
+          "variacao_vs_27jul_nota": "QQQM vendido. FTNT comprado como posicao principal (98.76% do portfolio).",
+          "ativos": {
+            "FTNT": {
+              "qtd": 0.86825,
+              "preco_usd": 154.63,
+              "valor_eur": 116.70,
+              "custo_medio_eur": 148.08,
+              "pl_eur": -11.88,
+              "pl_pct": -9.24,
+              "var_dia_eur": 0.40,
+              "var_dia_pct": 0.34,
+              "portfolio_diversity_pct": 98.76
+            }
+          }
+        },
+        "cash_fund": {
+          "moeda": "EUR",
+          "total": 1000.00,
+          "nota": "Sem actualizacao — valor de Jul-27. Possivelmente parte foi deployada nas novas posicoes."
+        },
+        "binance_spot": {
+          "moeda": "USD",
+          "nota": "Sem screenshot fornecido — dados de Jul-15 mantidos como referencia.",
+          "total": null
+        },
+        "binance_futures": {
+          "moeda": "USD",
+          "nota": "Sem screenshot fornecido — dados de Jul-15 mantidos como referencia.",
+          "total": null
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3507.49,
+        "tangem_eur": 3050.0,
+        "invest_stocks_eur": 541.20,
+        "robinhood_eur": 118.17,
+        "cash_fund_eur": 1000.00,
+        "binance_spot_usd": null,
+        "binance_futures_usd": null,
+        "total_eur_aprox": 4709,
+        "variacao_vs_27jul_eur": -1091,
+        "variacao_vs_27jul_pct": -18.8,
+        "nota_variacao": "Tangem -$265 (ZEC vendido por completo, -$201; BTC -1.4%, ETH -2.6%, SOL -2.5%). T212 -€189: NBIS e CIFR vendidos, IREN/HODLX/DRAM reduzidos a metade, MSFT adicionado (+€109). Robinhood: QQQM vendido, FTNT comprado (€117, em perda -9.2%). Cash fund sem actualizacao. Sem dados Binance neste snapshot.",
+        "nota": "Binance spot/futures sem actualizacao — totais omitidos do calculo. Total estimado considera Tangem + T212 + Robinhood + fundo cash."
+      }
     }
   ]
 }
