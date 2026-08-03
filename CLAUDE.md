@@ -278,12 +278,18 @@ TOP_N_FUTURES       = 40       # top 40 pares USDC-M por volume
 - **Fix**: detecta `ultimo_relatorio_dia` (SQLite) diferente de "ontem" e gera catch-up imediato no primeiro ciclo do dia seguinte (`main.py`)
 - **GitHub**: SHA ae6030e
 
+### 16. TP na exchange cancelava o SL — stops desapareciam em TODOS os trades
+- **Causa**: `place_take_profit` usava `closePosition=true` via `/fapi/v1/algoOrder`, igual ao `place_stop_market`; como BNFCR só permite UM `closePosition` por símbolo, ao colocar o TP ~2s depois do SL, o TP substituía o SL — cada trade ficava sem stop loss
+- **Custo real**: saldo caiu de 310 → 195 USDC (3 SHORTs sem SL: ETHUSDC -6.58, XRPUSDC -6.59, SOLUSDC -7.64, mais trades subsequentes sem protecção)
+- **Fix**: removida a chamada `place_take_profit` de `abrir_trade` em `execution.py`; TP passa a ser gerido inteiramente por software (ROI_TP_IMEDIATO 12%, TP1 a 2R, TP2 a 3R, profit lock progressivo, TIME_TP)
+- O SL na exchange (`place_stop_market`) mantém-se como única ordem `closePosition` por símbolo
+
 ---
 
 ## Regras importantes que NÃO mudar
 
 1. `reduceOnly=true` não funciona nesta conta → usar sempre `closePosition=true`
-2. Só pode haver **um** STOP_MARKET closePosition por símbolo de cada vez
+2. Só pode haver **um** STOP_MARKET closePosition por símbolo de cada vez — **NUNCA colocar TP como closePosition** (bug #16: cancela o SL); TP é sempre por software
 3. `_fechar_com_retry` — 3 tentativas antes de registar fecho (evita posições órfãs)
 4. `place_stop_market` usa `/fapi/v1/algoOrder` (orderType+algoId) — Binance rejeitou o endpoint regular para contas BNFCR (SHA ef11229)
 5. `get_balance` usa `/fapi/v2/account` assets[].marginBalance com fallback totalMarginBalance

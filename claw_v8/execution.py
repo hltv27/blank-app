@@ -22,7 +22,7 @@ from exchange import (
     tg, get_balance, get_positions, get_margin_ratio, get_margin_ratio_global, get_price,
     get_klines,
     set_leverage, place_order, place_stop_market, place_trailing_stop,
-    place_take_profit, close_position, cancel_order, cancel_algo_order,
+    close_position, cancel_order, cancel_algo_order,
     get_open_algo_orders
 )
 from indicators import atr, adx
@@ -230,9 +230,9 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
             )
             return
 
-        # TP como ordem real
-        tp_side      = "SELL" if direction == "LONG" else "BUY"
-        tp_order_id  = place_take_profit(symbol, tp_side, tp)
+        # TP gerido por software (ROI_TP_IMEDIATO, TP1/TP2, profit lock, TIME_TP)
+        # NÃO colocar TP na exchange — closePosition=true cancela o SL (bug #16)
+        tp_order_id  = None
 
         # Regista no SQLite
         try:
@@ -259,7 +259,7 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
 
         dir_icon = "🟢 LONG" if direction == "LONG" else "🔴 SHORT"
         stop_txt = f"🛑 SL @ {sl:.4f} (#{stop_id})" if stop_id else f"🛑 SL @ {sl:.4f} (software)"
-        tp_txt   = f"TP#{tp_order_id}" if tp_order_id else "TP em memória"
+        tp_txt   = "TP por software"
         rr_icon  = f"RR {rr_actual}:1" + (" 🚀" if rr_actual >= 3 else "")
         mem.get("pending_sync", {}).pop(symbol, None)
         save_memory(mem)
