@@ -52,6 +52,8 @@ RISCO_USDC          = 6.0
 ALAVANCAGEM         = 6
 RATIO_ALVO          = 3.0
 MAX_LOSS_DIA        = 10.0
+REDUCING_LOSS_PCT   = 0.5     # entra em REDUCING a 50% do MAX_LOSS_DIA (5 USDC)
+REDUCING_STREAK     = 2       # entra em REDUCING após 2 perdas seguidas
 MAX_PERDAS_SEGUIDAS = 3
 COOLDOWN_MIN        = 120
 MAX_TRADES_ABERTOS  = 5
@@ -84,6 +86,7 @@ MARKOV_MIN_PROB = 0.55  # min P(bullish/bearish next) to generate a signal
 MARKOV_SCORE    = 2     # score points added when regime confirms direction
 
 ATR_MIN_PCT     = 0.0008
+ATR_FLOOR_PCT   = 0.0003  # ATR mínimo: 0.03% do preço (evita qty degenerada em volatilidade ultra-baixa)
 BB_PERIOD       = 20
 BB_STD          = 2.0
 
@@ -113,6 +116,7 @@ SL_MIN_PCT          = 0.008    # SL nunca a menos de 0.8% (1H precisa de mais es
 SL_MAX_PCT          = 0.04     # SL máximo 4% (era 3% — 1H pode precisar de mais)
 ATR_VOL_SCALE_PCT   = 0.006    # ATR/price acima disto → reduz qty (era 0.3%, agora 0.6% para 1H)
 TAKER_RATIO_MIN     = 0.52     # taker buy ratio mínimo para LONG
+TAKER_FEE           = 0.0005   # Binance Futures taker fee (0.05%) — usado no position sizing
 
 TRAILING_CB_BTC     = 0.5      # callback trailing BTC/ETH/BNB (%)
 TRAILING_CB_ALT     = 1.2      # callback trailing alts (%)

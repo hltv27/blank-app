@@ -8,7 +8,8 @@ from config import (
     SCORE_ALERTA, SCORE_FORTE, ATR_MIN_PCT, RATIO_ALVO,
     RISCO_USDC, SYMBOL_PRECISION, BB_PERIOD,
     ATR_SL_MULT_MIN, ATR_SL_MULT_MAX, SL_MIN_PCT, SL_MAX_PCT,
-    ADX_TREND_MIN, ADX_TREND_MIN_MAJOR, ADX_TREND_MIN_ALT, EMA_SLOPE_MIN
+    ADX_TREND_MIN, ADX_TREND_MIN_MAJOR, ADX_TREND_MIN_ALT, EMA_SLOPE_MIN,
+    TAKER_FEE
 )
 
 _MAJOR_SYMBOLS = {"BTCUSDC", "ETHUSDC", "BNBUSDC"}
@@ -175,6 +176,6 @@ def calc_qty(price: float, sl: float, symbol: str) -> float:
     if sl_dist == 0:
         return 0.0
     decimals = SYMBOL_PRECISION.get(symbol, 4)
-    qty = round(RISCO_USDC / sl_dist, decimals)
-    qty = round(qty * (1 - 0.0002 * 3), decimals)
+    commission_per_unit = price * TAKER_FEE * 2
+    qty = round(RISCO_USDC / (sl_dist + commission_per_unit), decimals)
     return qty

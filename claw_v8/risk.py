@@ -6,7 +6,8 @@ import time
 from datetime import datetime, timezone, timedelta
 from config import (
     MAX_LOSS_DIA, MAX_PERDAS_SEGUIDAS, COOLDOWN_MIN,
-    SESSOES_UTC, ALAVANCAGEM, CAPITAL_MAX_BOT, RISCO_USDC
+    SESSOES_UTC, ALAVANCAGEM, CAPITAL_MAX_BOT, RISCO_USDC,
+    REDUCING_LOSS_PCT, REDUCING_STREAK
 )
 from storage import save_memory, log_risk_event
 from exchange import tg
@@ -45,6 +46,7 @@ def circuit_breaker_activo(mem: dict) -> tuple[bool, str]:
         mem["loss_dia"]        = 0.0
         mem["perdas_seguidas"] = 0
         mem["bloqueado_ate"]   = 0
+        mem["trading_state"]   = "ACTIVE"
         mem["ultimo_reset"]    = hoje
         save_memory(mem)
 
@@ -53,24 +55,53 @@ def circuit_breaker_activo(mem: dict) -> tuple[bool, str]:
 
     if now < mem.get("emergency_cooldown_until", 0):
         mins = int((mem["emergency_cooldown_until"] - now) / 60)
-        return True, f"EMERGENCY_COOLDOWN {mins}min restantes"
+        return True, f"HALTED — EMERGENCY_COOLDOWN {mins}min"
 
     if now < mem.get("bloqueado_ate", 0):
         minutos = int((mem["bloqueado_ate"] - now) / 60)
-        return True, f"COOLDOWN {minutos}min"
+        return True, f"HALTED — COOLDOWN {minutos}min"
 
+    # ── HALTED: perdas graves → cooldown com timer ──
     if mem.get("loss_dia", 0) >= MAX_LOSS_DIA:
         mem["bloqueado_ate"] = now + COOLDOWN_MIN * 60
+        mem["trading_state"] = "HALTED"
         save_memory(mem)
         log_risk_event("CIRCUIT_BREAKER_DAILY", details=f"loss_dia={mem['loss_dia']:.2f}")
-        return True, f"LOSS_DIA {mem['loss_dia']:.2f} USDC"
+        tg(f"🔴 <b>HALTED</b> — perda diária {mem['loss_dia']:.2f} USDC ≥ {MAX_LOSS_DIA}\nCooldown {COOLDOWN_MIN}min. Posições existentes continuam geridas.")
+        return True, f"HALTED — LOSS_DIA {mem['loss_dia']:.2f} USDC"
 
     if mem.get("perdas_seguidas", 0) >= MAX_PERDAS_SEGUIDAS:
         mem["bloqueado_ate"]   = now + COOLDOWN_MIN * 60
         mem["perdas_seguidas"] = 0
+        mem["trading_state"]   = "HALTED"
         save_memory(mem)
         log_risk_event("CIRCUIT_BREAKER_STREAK", details=f"perdas={MAX_PERDAS_SEGUIDAS}")
-        return True, f"PERDAS_SEGUIDAS {MAX_PERDAS_SEGUIDAS}"
+        tg(f"🔴 <b>HALTED</b> — {MAX_PERDAS_SEGUIDAS} perdas seguidas\nCooldown {COOLDOWN_MIN}min. Posições existentes continuam geridas.")
+        return True, f"HALTED — PERDAS_SEGUIDAS {MAX_PERDAS_SEGUIDAS}"
+
+    # ── REDUCING: perdas intermédias → pára novas entradas, sem timer ──
+    reducing_threshold = MAX_LOSS_DIA * REDUCING_LOSS_PCT
+    loss_dia = mem.get("loss_dia", 0)
+    perdas = mem.get("perdas_seguidas", 0)
+
+    if loss_dia >= reducing_threshold or perdas >= REDUCING_STREAK:
+        was_active = mem.get("trading_state", "ACTIVE") == "ACTIVE"
+        mem["trading_state"] = "REDUCING"
+        save_memory(mem)
+        if was_active:
+            motivo = []
+            if loss_dia >= reducing_threshold:
+                motivo.append(f"perda {loss_dia:.2f}/{MAX_LOSS_DIA:.0f} USDC")
+            if perdas >= REDUCING_STREAK:
+                motivo.append(f"{perdas} perdas seguidas")
+            tg(f"🟡 <b>REDUCING</b> — {', '.join(motivo)}\nSem novas entradas. Posições existentes continuam geridas.")
+            log_risk_event("REDUCING_MODE", details=", ".join(motivo))
+        return True, f"REDUCING — loss {loss_dia:.2f} | streak {perdas}"
+
+    if mem.get("trading_state") != "ACTIVE":
+        mem["trading_state"] = "ACTIVE"
+        save_memory(mem)
+        tg("🟢 <b>ACTIVE</b> — condições normalizaram. Novas entradas permitidas.")
 
     return False, ""
 
