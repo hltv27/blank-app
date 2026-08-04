@@ -7,7 +7,8 @@ from config import (
     RSI_PERIOD, ATR_PERIOD, STOCH_PERIOD, BB_PERIOD, BB_STD,
     EMA_FAST, EMA_SLOW, EMA_TREND,
     SUPERTREND_PERIOD, SUPERTREND_MULT,
-    CMF_PERIOD, MFI_PERIOD, ROC_PERIOD, CVD_PERIOD
+    CMF_PERIOD, MFI_PERIOD, ROC_PERIOD, CVD_PERIOD,
+    ATR_FLOOR_PCT
 )
 
 
@@ -43,7 +44,9 @@ def atr(highs: list, lows: list, closes: list, period: int = ATR_PERIOD) -> floa
         trs.append(tr)
     if len(trs) < period:
         return 0.0
-    return sum(trs[-period:]) / period
+    raw = sum(trs[-period:]) / period
+    floor = closes[-1] * ATR_FLOOR_PCT if closes[-1] > 0 else 0.0
+    return max(raw, floor)
 
 
 def stoch_rsi(closes: list, period: int = STOCH_PERIOD) -> float:
