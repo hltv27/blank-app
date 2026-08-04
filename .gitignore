@@ -3,6 +3,7 @@
 # Claw Agent — ficheiros de estado e segredos
 claw_memory_v7.json
 claw_pnl_v7.json
+claw_v8/claw_v8.db
 .env
 secrets.toml
 
