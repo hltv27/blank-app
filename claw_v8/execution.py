@@ -7,7 +7,6 @@ import requests
 from config import (
     BASE_URL, CAPITAL_MAX_BOT, RISCO_USDC, ALAVANCAGEM,
     SYMBOL_PRECISION, STOP_RETRY_MAX, EMERGENCY_ROI_CUT,
-    PARTIAL_TP_RATIO, PARTIAL_TP_QTY, PARTIAL_TP2_RATIO, PARTIAL_TP2_QTY,
     BREAKEVEN_OFFSET, MARGIN_RATIO_MAX, MAX_DRAWDOWN_PCT,
     MAX_MARGEM_TRADE, BTC_CRASH_PCT, CORR_MAX,
     BTC_SYMBOLS, ATR_VOL_SCALE_PCT, TRAILING_CB_BTC, TRAILING_CB_ALT,
@@ -53,7 +52,7 @@ from risk import equity_scale_factor, atualizar_stats_simbolo, registar_perda_la
 from storage import (
     save_memory, load_memory,
     open_position as db_open_position,
-    close_position_db, update_position_partial_tp,
+    close_position_db,
     log_state_transition, log_risk_event, log_equity_snapshot
 )
 
@@ -659,10 +658,10 @@ def gerir_posicoes(mem: dict):
         # Se a trade já chegou a um lucro relevante (>= PEAK_PROFIT_MIN_USDC)
         # e recuou >= PEAK_DRAWDOWN_PCT desse pico, fecha — mas só se o sinal
         # já não confirmar a direcção (evita fechar por simples ruído).
-        # DESACTIVADO quando profit lock activo — o stop da exchange protege a saída.
+        # Fix Fase 1: removida condição _lock_level==0 que tornava isto impossível
+        # (profit lock activava antes do pico mínimo ser atingido).
         if (peak_pnl >= PEAK_PROFIT_MIN_USDC
                 and not trade.get("trailing_lock_done")
-                and _lock_level == 0
                 and time.time() - _peak_drawdown_ts.get(symbol, 0) > 60):
             drawdown_pnl = peak_pnl - pos["pnl"]
             if drawdown_pnl >= peak_pnl * PEAK_DRAWDOWN_PCT:
@@ -703,14 +702,46 @@ def gerir_posicoes(mem: dict):
                 )
             continue
 
+        # ── Saída graduada: 4-8h + perda > 2 USDC + sinal fraco → corte ─
+        # Fase 1: evita que perdas médias sangrem lentamente durante horas.
+        # Verifica sinal a cada 10min; se já não confirma → fecha.
+        if (240 <= tempo_min < 480
+                and pos["pnl"] < -2.0
+                and not trade.get("trailing_lock_done")
+                and time.time() - trade.get("graduated_exit_ts", 0) > 600):
+            try:
+                kl_grad = get_klines(symbol, interval="1h")
+                if kl_grad and len(kl_grad) >= 50:
+                    c_g = [float(k[4]) for k in kl_grad]
+                    h_g = [float(k[2]) for k in kl_grad]
+                    l_g = [float(k[3]) for k in kl_grad]
+                    v_g = [float(k[5]) for k in kl_grad]
+                    grad_dir, grad_score, _ = signal_trending(c_g, h_g, l_g, v_g, symbol)
+                    if grad_dir != side or grad_score < SCORE_ALERTA:
+                        if _fechar_com_retry(symbol, pos["qty"], side):
+                            _registar_fecho(symbol, side, entry, sl, tp, qty,
+                                            pos["pnl"], "GRAD_EXIT", False, mem)
+                            tg(
+                                f"📉 <b>SAÍDA GRADUADA</b> — {symbol}\n"
+                                f"{tempo_min/60:.1f}h | PnL: {pos['pnl']:+.2f} USDC\n"
+                                f"Sinal já não confirma {side} (score {grad_score}) — corte antecipado."
+                            )
+                        continue
+                    else:
+                        mem["trades_abertos"][symbol]["graduated_exit_ts"] = time.time()
+                        save_memory(mem)
+            except Exception as _e:
+                print(f"[AVISO] graduated_exit {symbol}: {_e}")
+
         # ── Saída por estagnação ──────────────────────────────────────────
-        # 6h-8h + PnL negativo: fecha se sinal não confirmar.
-        # >8h + PnL negativo: fecha incondicionalmente (não deixa sangrar).
-        if (tempo_min >= 360
+        # 8h-10h + PnL negativo: fecha se sinal não confirmar.
+        # >10h + PnL negativo: fecha incondicionalmente (não deixa sangrar).
+        # Fase 1: estendido de 6h→8h (dar mais tempo à tendência 1H).
+        if (tempo_min >= 480
                 and pos["pnl"] < 0
                 and not trade.get("trailing_lock_done")):
             mercado_ok = False
-            if tempo_min < 480:
+            if tempo_min < 600:
                 try:
                     kl_stag = get_klines(symbol, interval="1h")
                     if kl_stag and len(kl_stag) >= 50:
@@ -738,7 +769,7 @@ def gerir_posicoes(mem: dict):
 
             if not _fechar_com_retry(symbol, pos["qty"], side):
                 continue
-            reason_stag = "STAGNADO_8H" if tempo_min >= 480 else "STAGNADO"
+            reason_stag = "STAGNADO_10H" if tempo_min >= 600 else "STAGNADO"
             _registar_fecho(symbol, side, entry, sl, tp, qty,
                             pos["pnl"], reason_stag, pos["pnl"] > 0, mem)
             tg(
@@ -747,8 +778,7 @@ def gerir_posicoes(mem: dict):
             )
             continue
         # Alerta quando marginal e no-man's-land (não fecha automaticamente)
-        if (120 <= tempo_min < 360 and 0.5 <= pos["pnl"] <= 2.0
-                and not trade.get("partial_tp_done")
+        if (120 <= tempo_min < 480 and 0.5 <= pos["pnl"] <= 2.0
                 and time.time() - trade.get("stag_alerta_ts", 0) > 3600):
             mem["trades_abertos"][symbol]["stag_alerta_ts"] = time.time()
             save_memory(mem)
@@ -805,147 +835,9 @@ def gerir_posicoes(mem: dict):
                     )
                 continue
 
-        # ── Breakeven a 1R: protege lucro antes do TP1 (2R) ───────────────
-        # Sem isto, uma trade que esteve em lucro mas nunca chegou a 2R
-        # pode reverter e fechar no SL original (perda), apesar de ter
-        # passado tempo claramente positiva.
-        entry_trade0 = trade.get("entry", 0)
-        sl_orig      = trade.get("sl", entry_trade0)
-        sl_dist      = abs(entry_trade0 - sl_orig)
-        if (sl_dist > 0 and entry_trade0 > 0
-                and not trade.get("partial_tp_done")
-                and not trade.get("breakeven_1r_done")
-                and not trade.get("profit_lock_level", 0)):
-            if side == "LONG":
-                r1_level = entry_trade0 + sl_dist
-                hit_r1   = price >= r1_level
-                be_price1 = round(entry_trade0 * (1 + BREAKEVEN_OFFSET), 8)
-            else:
-                r1_level = entry_trade0 - sl_dist
-                hit_r1   = price <= r1_level
-                be_price1 = round(entry_trade0 * (1 - BREAKEVEN_OFFSET), 8)
-            if hit_r1:
-                old_stop1 = trade.get("stop_order_id")
-                if old_stop1:
-                    try:
-                        cancel_algo_order(symbol, old_stop1)
-                    except Exception:
-                        pass
-                be_side1     = "SELL" if side == "LONG" else "BUY"
-                new_stop_id1 = place_stop_market(symbol, be_side1, be_price1, abs(pos["qty"]))
-                mem["trades_abertos"][symbol]["breakeven_1r_done"] = True
-                mem["trades_abertos"][symbol]["sl"]                = be_price1
-                mem["trades_abertos"][symbol]["stop_order_id"]     = new_stop_id1
-                save_memory(mem)
-                stop_txt1 = f"#{new_stop_id1}" if new_stop_id1 else "SOFTWARE ⚠️"
-                tg(
-                    f"🔒 <b>BREAKEVEN 1R</b> — {symbol}\n"
-                    f"Preço: {price:.4f} | Stop movido para: {be_price1:.4f}\n"
-                    f"{stop_txt1}"
-                )
-                sl = be_price1
-
-        # ── TP1: fecha 33% a 2R, move stop para breakeven ──────────────
-        entry_trade = trade.get("entry", 0)
-        if sl > 0 and tp > 0 and not trade.get("partial_tp_done") and entry_trade > 0:
-            if side == "LONG":
-                tp1_level   = entry_trade + (tp - entry_trade) * PARTIAL_TP_RATIO
-                hit_tp1     = price >= tp1_level
-            else:
-                tp1_level   = entry_trade - (entry_trade - tp) * PARTIAL_TP_RATIO
-                hit_tp1     = price <= tp1_level
-            if hit_tp1:
-                decimals_p  = SYMBOL_PRECISION.get(symbol, 4)
-                qty_total   = abs(pos["qty"])
-                qty_tp1     = round(qty_total * PARTIAL_TP_QTY, decimals_p)
-                if qty_tp1 > 0:
-                    close_position(symbol, qty_tp1, side)
-                    qty_restante = round(qty_total - qty_tp1, decimals_p)
-                    # Breakeven stop: entrada + 0.2% (cobre fees)
-                    # Nunca downgrade o stop se profit lock já o moveu mais acima
-                    if side == "LONG":
-                        be_price = round(entry_trade * (1 + BREAKEVEN_OFFSET), 8)
-                        be_price = max(be_price, sl)
-                    else:
-                        be_price = round(entry_trade * (1 - BREAKEVEN_OFFSET), 8)
-                        be_price = min(be_price, sl) if sl > 0 else be_price
-                    # Cancela trailing stop antigo e coloca stop de breakeven
-                    old_stop = trade.get("stop_order_id")
-                    if old_stop:
-                        try:
-                            cancel_algo_order(symbol, old_stop)
-                        except Exception:
-                            pass
-                    be_side     = "SELL" if side == "LONG" else "BUY"
-                    cb_tp1      = TRAILING_CB_BTC if symbol in BTC_SYMBOLS else TRAILING_CB_ALT
-                    new_stop_id = place_trailing_stop(symbol, be_side, cb_tp1, be_price)
-                    mem["trades_abertos"][symbol]["partial_tp_done"] = True
-                    mem["trades_abertos"][symbol]["qty"]             = qty_restante
-                    mem["trades_abertos"][symbol]["sl"]              = be_price
-                    mem["trades_abertos"][symbol]["stop_order_id"]   = new_stop_id
-                    update_position_partial_tp(symbol, qty_restante)
-                    pnl_tp1 = round(abs(tp1_level - entry_trade) * qty_tp1, 2)
-                    log_state_transition(symbol, "OPEN", "TP1", "PRICE_HIT",
-                                        f"qty={qty_tp1} pnl={pnl_tp1:.2f} be={be_price:.4f}")
-                    tg(
-                        f"📊 <b>TP1 — 33% fechado</b> — {symbol}\n"
-                        f"Preço: {price:.4f} | +{pnl_tp1:.2f} USDC\n"
-                        f"🔒 Stop movido para breakeven: {be_price:.4f}"
-                    )
-                    save_memory(mem)
-
-        # ── TP2: fecha mais 33% a 3R, move stop para +1R ───────────────
-        if sl > 0 and tp > 0 and trade.get("partial_tp_done") and \
-                not trade.get("partial_tp2_done") and entry_trade > 0:
-            if side == "LONG":
-                tp2_level = entry_trade + (tp - entry_trade) * PARTIAL_TP2_RATIO
-                hit_tp2   = price >= tp2_level
-            else:
-                tp2_level = entry_trade - (entry_trade - tp) * PARTIAL_TP2_RATIO
-                hit_tp2   = price <= tp2_level
-            if hit_tp2:
-                decimals_p   = SYMBOL_PRECISION.get(symbol, 4)
-                qty_total    = abs(pos["qty"])
-                qty_inicial  = trade.get("qty_inicial", qty_total)
-                qty_tp2      = round(qty_inicial * PARTIAL_TP2_QTY, decimals_p)
-                qty_tp2      = min(qty_tp2, qty_total)
-                if qty_tp2 > 0:
-                    close_position(symbol, qty_tp2, side)
-                    qty_restante = round(qty_total - qty_tp2, decimals_p)
-                    # Stop para +1R (lock de lucro no runner)
-                    # Nunca downgrade o stop se profit lock já o moveu mais acima
-                    sl_dist_tp2 = abs(entry_trade - trade.get("sl", entry_trade))
-                    if sl_dist_tp2 == 0:
-                        sl_dist_tp2 = abs(entry_trade - tp) / 3.0
-                    if side == "LONG":
-                        lock_price = round(entry_trade + sl_dist_tp2, 8)
-                        lock_price = max(lock_price, sl)
-                    else:
-                        lock_price = round(entry_trade - sl_dist_tp2, 8)
-                        lock_price = min(lock_price, sl) if sl > 0 else lock_price
-                    old_stop2 = trade.get("stop_order_id")
-                    if old_stop2:
-                        try:
-                            cancel_algo_order(symbol, old_stop2)
-                        except Exception:
-                            pass
-                    be_side2     = "SELL" if side == "LONG" else "BUY"
-                    cb_tp2       = TRAILING_CB_BTC if symbol in BTC_SYMBOLS else TRAILING_CB_ALT
-                    new_stop2_id = place_trailing_stop(symbol, be_side2, cb_tp2, lock_price)
-                    mem["trades_abertos"][symbol]["partial_tp2_done"] = True
-                    mem["trades_abertos"][symbol]["qty"]              = qty_restante
-                    mem["trades_abertos"][symbol]["sl"]               = lock_price
-                    mem["trades_abertos"][symbol]["stop_order_id"]    = new_stop2_id
-                    update_position_partial_tp(symbol, qty_restante)
-                    pnl_tp2 = round(abs(tp2_level - entry_trade) * qty_tp2, 2)
-                    log_state_transition(symbol, "OPEN", "TP2", "PRICE_HIT",
-                                        f"qty={qty_tp2} pnl={pnl_tp2:.2f} lock={lock_price:.4f}")
-                    tg(
-                        f"🎯 <b>TP2 — 33% fechado</b> — {symbol}\n"
-                        f"Preço: {price:.4f} | +{pnl_tp2:.2f} USDC\n"
-                        f"🔒 Stop em +1R: {lock_price:.4f} | Runner livre"
-                    )
-                    save_memory(mem)
+        # [Fase 1] BREAKEVEN_1R, TP1, TP2 removidos — código morto:
+        # Exigiam preço a 1R/2R/3R do entry (~6/12/18 USDC), nunca atingido.
+        # Profit lock progressivo (+0.25 USDC) cobre a mesma função com granularidade real.
 
         # Corte por perda absoluta em USDC (3 USDC independente do ROI %)
         if pos["pnl"] <= -EMERGENCY_PNL_CUT:

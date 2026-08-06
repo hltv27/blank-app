@@ -100,10 +100,11 @@ LOOKBACK        = 220
 
 SUPERTREND_PERIOD = 10
 SUPERTREND_MULT   = 3.0
-PARTIAL_TP_RATIO  = 0.67   # dispara a 2R (era 0.5 = 1R)
-PARTIAL_TP_QTY    = 0.33   # fecha 33% (era 50%)
-PARTIAL_TP2_RATIO = 1.0    # TP2 a 3R (full TP)
-PARTIAL_TP2_QTY   = 0.33   # fecha mais 33%
+# TP1/TP2 parciais removidos (Fase 1 auditoria — código morto, nunca disparavam)
+# PARTIAL_TP_RATIO  = 0.67
+# PARTIAL_TP_QTY    = 0.33
+# PARTIAL_TP2_RATIO = 1.0
+# PARTIAL_TP2_QTY   = 0.33
 
 CMF_PERIOD = 20
 MFI_PERIOD = 10
@@ -138,23 +139,25 @@ BREAKEVEN_OFFSET    = 0.002  # +0.2% acima da entrada (cobre fees)
 MAX_DRAWDOWN_PCT    = 0.25   # 25% do saldo → fecha tudo
 MARGIN_RATIO_MAX    = 35.0   # margem crítica (era 50%) → mais cedo
 MAX_MARGEM_TRADE    = 0.30   # máx 30% do capital por posição
-PROFIT_LOCK_USDC    = 0.8    # activa lock mais cedo — protege lucro antes de reverter (era 1.5)
-PROFIT_LOCK_STEP    = 0.5    # locks mais granulares a cada +0.5 USDC (era 1.0)
-TRAILING_LOCK_USDC  = 4.0    # ao atingir 4 USDC (~1R), muda stop fixo → trailing stop
+PROFIT_LOCK_USDC    = 0.5    # activa lock a 0.5 USDC (Fase 1: era 0.8, nunca activava nos avg wins de 0.81)
+PROFIT_LOCK_STEP    = 0.25   # locks granulares a cada +0.25 USDC (era 0.5 — perdia maioria dos wins)
+TRAILING_LOCK_USDC  = 2.0    # ao atingir 2 USDC, muda stop fixo → trailing stop (era 4.0 — nunca disparava)
 
 ROI_TP_IMEDIATO     = 12.0   # % ROI → fecha imediatamente (era 7% — dava pouco espaço)
 TIME_TP_MIN_MIN     = 10     # minutos mínimos para TIME_TP (era 30)
 
 # Tabela minimal_roi: (minutos, ROI% mínimo para fechar)
 # Substitui TIME_TP + STAGNADO por um único mecanismo decrescente
-MINIMAL_ROI = [(0, 12.0), (120, 4.0), (360, 1.0), (480, 0.0)]
+# Curva suave (Fase 1): captura small winners, sem fechar a 0% ROI
+# Removido (480, 0.0) — convertia wins em losses na dead zone 6-8h
+MINIMAL_ROI = [(0, 12.0), (90, 5.0), (180, 2.5), (300, 0.8)]
 
 # Trailing por % do pico (substitui steps fixos de USDC após activação)
 TRAILING_LOCK_PCT   = 0.30   # fecha se recuar 30% do pico de PnL
 
 # Protecção de pico de lucro: fecha se recuar muito do máximo já atingido
 # E o sinal já não confirmar a direcção (evita fechar por simples ruído)
-PEAK_PROFIT_MIN_USDC = 2.0    # só actua se a trade já chegou a este PnL (era 1.5)
+PEAK_PROFIT_MIN_USDC = 1.0    # só actua se a trade já chegou a +1 USDC (era 2.0 — nunca atingido com avg win 0.81)
 PEAK_DRAWDOWN_PCT     = 0.40  # fecha se recuar >=40% do pico desde então
 
 OBI_VETO        = 0.3
