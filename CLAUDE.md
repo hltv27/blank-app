@@ -128,9 +128,9 @@ RISCO_USDC          = 6.0      # risco por trade em USDC
 ALAVANCAGEM         = 6        # leverage
 MAX_TRADES_ABERTOS  = 5
 MAX_MARGEM_TRADE    = 0.30     # máx 30% do capital por posição
-PROFIT_LOCK_USDC    = 0.8      # activa lock a partir de +0.8 USDC (bot E posições externas)
-PROFIT_LOCK_STEP    = 0.5      # move stop a cada +0.5 USDC
-TRAILING_LOCK_USDC  = 4.0      # ao atingir 4 USDC muda para trailing stop
+PROFIT_LOCK_USDC    = 0.5      # activa lock a partir de +0.5 USDC (Fase 1: era 0.8)
+PROFIT_LOCK_STEP    = 0.25     # move stop a cada +0.25 USDC (Fase 1: era 0.5)
+TRAILING_LOCK_USDC  = 2.0      # ao atingir 2 USDC muda para trailing stop (Fase 1: era 4.0)
 EMERGENCY_ROI_CUT   = -25.0    # % ROI para corte de emergência (nunca dispara antes do ATR SL)
 EMERGENCY_PNL_CUT   = 7.0      # fecha se perda absoluta > 7 USDC (nunca dispara antes do SL técnico)
 SCORE_ALERTA        = 6        # score mínimo para abrir trade
@@ -144,7 +144,7 @@ ATR_SL_MULT_MAX     = 2.5      # SL em mercado volátil
 RSI_OVERSOLD        = 40.0     # RSI oversold (era 45 — demasiado apertado)
 RSI_OVERBOUGHT      = 60.0     # RSI overbought (era 55 — demasiado apertado)
 ROI_TP_IMEDIATO     = 12.0     # % ROI → fecha imediatamente
-PEAK_PROFIT_MIN_USDC= 2.0      # protecção de recuo de pico
+PEAK_PROFIT_MIN_USDC= 1.0      # protecção de recuo de pico (Fase 1: era 2.0)
 PEAK_DRAWDOWN_PCT   = 0.40     # fecha se recuar ≥40% do pico atingido
 MARKOV_LOOKBACK     = 100      # candles para a matriz de transição
 MARKOV_SCORE        = 2        # pontos de score quando o regime confirma direcção
@@ -168,18 +168,18 @@ TOP_N_FUTURES       = 40       # top 40 pares USDC-M por volume
 ### Saídas (`gerir_posicoes`, ciclo de 15s quando há posições)
 | Regra | Condição | Acção |
 |---|---|---|
-| **Profit lock progressivo** | PnL ≥ `PROFIT_LOCK_USDC` (0.8 USDC) | Move SL a cada +0.5 USDC; breakeven_1R/TP1/TP2 nunca fazem downgrade do stop se o lock já o moveu mais acima. Aplica-se a **trades do bot e a posições externas** (ver bug #14 abaixo) |
-| **Trailing lock** | PnL ≥ 4 USDC | Muda stop fixo → trailing stop |
-| **TIME_TP** | ≥2h + PnL positivo + ROI ≥ 4% + sinal enfraqueceu | Fecha com lucro — protege ganhos que não atingiram TP |
-| **TP1** | 2R atingido | Fecha 33%, trailing para breakeven |
-| **TP2** | 3R atingido | Fecha mais 33% |
-| **SIGNAL_INV** | Sinal oposto score≥8 após 1h | Fecha tudo |
-| **STAGNADO** | 6-8h + PnL negativo + sinal não confirma | Fecha (8h+ incondicional) |
-| **EMERGENCY_PNL** | Perda > 7 USDC absolutos | Fecha imediatamente |
+| **Profit lock progressivo** | PnL ≥ 0.5 USDC | Move SL a cada +0.25 USDC. Aplica-se a **trades do bot e a posições externas** |
+| **Trailing lock** | PnL ≥ 2 USDC | Muda stop fixo → trailing stop |
+| **MINIMAL_ROI** | Curva decrescente: 12%@0min, 5%@90min, 2.5%@3h, 0.8%@5h | Fecha winner se ROI acima do threshold para o tempo decorrido |
+| **PEAK_DRAWDOWN** | PnL atingiu ≥1 USDC + recuou ≥40% do pico + sinal fraco | Fecha — protege lucro de recuos |
+| **GRAD_EXIT** | 4-8h + perda > 2 USDC + sinal fraco | Corte antecipado de perdas lentas |
+| **SIGNAL_INV** | Sinal oposto score≥8 após 1h (sem profit lock) | Fecha tudo |
+| **STAGNADO** | 8-10h + PnL negativo + sinal não confirma | Fecha (10h+ incondicional) |
+| **EMERGENCY_PNL** | Perda > 6.5 USDC absolutos | Fecha imediatamente |
 | **EMERGENCY_ROI** | ROI ≤ -25% | Fecha imediatamente (nunca dispara antes do ATR SL) |
-| **Software SL** | price ≤ sl (LONG) / price ≥ sl (SHORT) | Fecha via MARKET (grace period de 3min após abertura antes de poder disparar) |
+| **Software SL** | price ≤ sl (LONG) / price ≥ sl (SHORT) | Fecha via MARKET (grace period de 3min) |
 
-`TIME_TP` re-introduzido (era a saída mais lucrativa: +57.36 USDC em 18 trades, média +3.19 cada). `ROI_TP_IMEDIATO` (12%) continua activo como saída directa por ROI.
+**Fase 1 (2026-08-06):** BREAKEVEN_1R, TP1 (2R), TP2 (3R) removidos — código morto, nunca disparavam. Profit lock progressivo a cada +0.25 USDC cobre a mesma função com granularidade real. STAGNADO estendido de 6h→8h. Saída graduada adicionada. PEAK_DRAWDOWN corrigido (bug que o tornava impossível). `ROI_TP_IMEDIATO` (12%) continua activo.
 
 ### Relatório diário
 `_relatorio_diario` corre normalmente às 23:00 UTC e escreve `status.json` + `status_history.jsonl`. O último dia reportado (`ultimo_relatorio_dia`) é persistido no SQLite; se o bot esteve em baixo à hora do relatório (IP bloqueado, restart), faz **catch-up imediato** no primeiro ciclo do dia seguinte em vez de saltar o dia.
@@ -195,7 +195,7 @@ TOP_N_FUTURES       = 40       # top 40 pares USDC-M por volume
 - Sem `pending_sync` → vai para `posicoes_externas`
 - Bot envia alertas de ROI (-5%, -3%, +3%, +5%, +10%, +15%, +20%)
 - Bot NÃO fecha, P&L NÃO conta para circuit breaker
-- **Profit lock activo**: a partir de `PROFIT_LOCK_USDC` (+0.5 USDC) o bot coloca/move um `STOP_MARKET closePosition` a cada `PROFIT_LOCK_STEP` (+0.5 USDC), igual ao que faz nas trades do próprio bot
+- **Profit lock activo**: a partir de `PROFIT_LOCK_USDC` (+0.5 USDC) o bot coloca/move um `STOP_MARKET closePosition` a cada `PROFIT_LOCK_STEP` (+0.25 USDC), igual ao que faz nas trades do próprio bot
 - **Software stop enforcement**: se o stop da exchange falhar, o bot fecha via MARKET assim que o PnL cai abaixo do nível já protegido pelo lock (ver bug #13) — antes disso só actualizava o stop, nunca reagia à reversão
 - Na primeira activação cancela qualquer stop pré-existente no símbolo (`get_open_algo_orders` + `cancel_algo_order`) antes de colocar o seu — evita conflito com stop manual já colocado pelo utilizador (só pode existir 1 `closePosition` stop por símbolo)
 - Implementado em `main.py`, bloco "Monitorização de posições externas"
