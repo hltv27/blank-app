@@ -128,9 +128,9 @@ RISCO_USDC          = 6.0      # risco por trade em USDC
 ALAVANCAGEM         = 6        # leverage
 MAX_TRADES_ABERTOS  = 5
 MAX_MARGEM_TRADE    = 0.30     # máx 30% do capital por posição
-PROFIT_LOCK_USDC    = 0.5      # activa lock a partir de +0.5 USDC (Fase 1: era 0.8)
-PROFIT_LOCK_STEP    = 0.25     # move stop a cada +0.25 USDC (Fase 1: era 0.5)
-TRAILING_LOCK_USDC  = 2.0      # ao atingir 2 USDC muda para trailing stop (Fase 1: era 4.0)
+PROFIT_LOCK_USDC    = 2.0      # só toca no stop a +2 USDC de lucro REAL (era 0.5 — matava wins)
+PROFIT_LOCK_STEP    = 1.0      # move stop a cada +1 USDC (era 0.25 — stop demasiado perto)
+TRAILING_LOCK_USDC  = 2.0      # trailing stop activa junto com profit lock a +2 USDC
 EMERGENCY_ROI_CUT   = -25.0    # % ROI para corte de emergência (nunca dispara antes do ATR SL)
 EMERGENCY_PNL_CUT   = 7.0      # fecha se perda absoluta > 7 USDC (nunca dispara antes do SL técnico)
 SCORE_ALERTA        = 5        # score mínimo (Fase 2: max 8 com categorias)
@@ -159,7 +159,7 @@ TOP_N_FUTURES       = 40       # top 40 pares USDC-M por volume
 
 ### Abertura (`abrir_trade`)
 1. Filtros (HTF 4H+1H, Supertrend, Fear&Greed, BB squeeze, CVD, OBI, VWAP, **BTC trend gate para SHORTs**)
-2. Score mínimo: LONGs ≥ `SCORE_LONG_MIN` (6), SHORTs ≥ `SCORE_SHORT_MIN` (8)
+2. Score mínimo: LONGs ≥ `SCORE_LONG_MIN` (5), SHORTs ≥ `SCORE_SHORT_MIN` (6)
 3. BTC trend gate: SHORTs em alts bloqueados quando BTC 4H EMA9 > EMA21 (tendência bullish)
 4. Sizing: `RISCO_USDC=6` / (entry - SL) × entry, cap 30% capital por trade
 5. Vol scale: se ATR/price > 0.6%, reduz qty proporcionalmente
@@ -168,9 +168,9 @@ TOP_N_FUTURES       = 40       # top 40 pares USDC-M por volume
 ### Saídas (`gerir_posicoes`, ciclo de 15s quando há posições)
 | Regra | Condição | Acção |
 |---|---|---|
-| **Profit lock progressivo** | PnL ≥ 0.5 USDC | Move SL a cada +0.25 USDC. Aplica-se a **trades do bot e a posições externas** |
-| **Trailing lock** | PnL ≥ 2 USDC | Muda stop fixo → trailing stop |
-| **MINIMAL_ROI** | Curva decrescente: 12%@0min, 5%@90min, 2.5%@3h, 0.8%@5h | Fecha winner se ROI acima do threshold para o tempo decorrido |
+| **Profit lock progressivo** | PnL ≥ 2.0 USDC | Move SL a cada +1.0 USDC. Aplica-se a **trades do bot e a posições externas** |
+| **Trailing lock** | PnL ≥ 2.0 USDC | Activa simultaneamente com profit lock — trailing stop |
+| **MINIMAL_ROI** | Desactivado (`[]`) — cortava winners prematuramente |
 | **PEAK_DRAWDOWN** | PnL atingiu ≥1 USDC + recuou ≥40% do pico + sinal fraco | Fecha — protege lucro de recuos |
 | **GRAD_EXIT** | 4-8h + perda > 2 USDC + sinal fraco | Corte antecipado de perdas lentas |
 | **SIGNAL_INV** | Sinal oposto score≥8 após 1h (sem profit lock) | Fecha tudo |
@@ -179,7 +179,9 @@ TOP_N_FUTURES       = 40       # top 40 pares USDC-M por volume
 | **EMERGENCY_ROI** | ROI ≤ -25% | Fecha imediatamente (nunca dispara antes do ATR SL) |
 | **Software SL** | price ≤ sl (LONG) / price ≥ sl (SHORT) | Fecha via MARKET (grace period de 3min) |
 
-**Fase 1 (2026-08-06):** BREAKEVEN_1R, TP1 (2R), TP2 (3R) removidos — código morto, nunca disparavam. Profit lock progressivo a cada +0.25 USDC cobre a mesma função com granularidade real. STAGNADO estendido de 6h→8h. Saída graduada adicionada. PEAK_DRAWDOWN corrigido (bug que o tornava impossível). `ROI_TP_IMEDIATO` (12%) continua activo.
+**Fase 1 (2026-08-06):** BREAKEVEN_1R, TP1 (2R), TP2 (3R) removidos — código morto, nunca disparavam. STAGNADO estendido de 6h→8h. Saída graduada adicionada. PEAK_DRAWDOWN corrigido (bug que o tornava impossível). `ROI_TP_IMEDIATO` (12%) continua activo.
+
+**Profit lock alargado (2026-08-10):** PROFIT_LOCK_USDC 0.5→2.0, PROFIT_LOCK_STEP 0.25→1.0. Razão: com step 0.25 o stop ficava a ~0.04% do preço — ruído normal de 1H (0.1-0.5%) batia imediatamente, fechando winners a +0.7/+0.8 USDC. Agora o SL original baseado em ATR fica intacto até +2 USDC de lucro real, permitindo que as trades respirem e corram a +3, +4, +6 USDC. MINIMAL_ROI desactivado (`[]`) pelo mesmo motivo — cortava lucros a +0.8 USDC enquanto perdas corriam a -3/-6 USDC.
 
 ### Relatório diário
 `_relatorio_diario` corre normalmente às 23:00 UTC e escreve `status.json` + `status_history.jsonl`. O último dia reportado (`ultimo_relatorio_dia`) é persistido no SQLite; se o bot esteve em baixo à hora do relatório (IP bloqueado, restart), faz **catch-up imediato** no primeiro ciclo do dia seguinte em vez de saltar o dia.
@@ -195,7 +197,7 @@ TOP_N_FUTURES       = 40       # top 40 pares USDC-M por volume
 - Sem `pending_sync` → vai para `posicoes_externas`
 - Bot envia alertas de ROI (-5%, -3%, +3%, +5%, +10%, +15%, +20%)
 - Bot NÃO fecha, P&L NÃO conta para circuit breaker
-- **Profit lock activo**: a partir de `PROFIT_LOCK_USDC` (+0.5 USDC) o bot coloca/move um `STOP_MARKET closePosition` a cada `PROFIT_LOCK_STEP` (+0.25 USDC), igual ao que faz nas trades do próprio bot
+- **Profit lock activo**: a partir de `PROFIT_LOCK_USDC` (+2.0 USDC) o bot coloca/move um `STOP_MARKET closePosition` a cada `PROFIT_LOCK_STEP` (+1.0 USDC), igual ao que faz nas trades do próprio bot
 - **Software stop enforcement**: se o stop da exchange falhar, o bot fecha via MARKET assim que o PnL cai abaixo do nível já protegido pelo lock (ver bug #13) — antes disso só actualizava o stop, nunca reagia à reversão
 - Na primeira activação cancela qualquer stop pré-existente no símbolo (`get_open_algo_orders` + `cancel_algo_order`) antes de colocar o seu — evita conflito com stop manual já colocado pelo utilizador (só pode existir 1 `closePosition` stop por símbolo)
 - Implementado em `main.py`, bloco "Monitorização de posições externas"
