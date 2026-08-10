@@ -1,10 +1,10 @@
 """
 Claw Agent v8.0 — Geração de sinal e cálculo de SL/TP
-Lógica idêntica à v7.1. Zero alterações estratégicas.
+Fase 2: score por categorias independentes, RSI trend-following.
 """
 from config import (
     EMA_FAST, EMA_SLOW, EMA_TREND, RSI_PERIOD, ATR_PERIOD,
-    RSI_OVERSOLD, RSI_OVERBOUGHT, STOCH_VETO_LONG, STOCH_VETO_SHORT,
+    STOCH_VETO_LONG, STOCH_VETO_SHORT,
     SCORE_ALERTA, SCORE_FORTE, ATR_MIN_PCT, RATIO_ALVO,
     RISCO_USDC, SYMBOL_PRECISION, BB_PERIOD,
     ATR_SL_MULT_MIN, ATR_SL_MULT_MAX, SL_MIN_PCT, SL_MAX_PCT,
@@ -17,11 +17,10 @@ from indicators import (
     ema, rsi, atr, stoch_rsi, adx, supertrend,
     bollinger_bands, volume_ok, cmf_val, mfi_val, roc_val
 )
-from markov import markov_regime_signal
 
 
 def detect_market_mode(closes: list, atr_val: float) -> str:
-    """TRENDING ou MORTO. RANGING removido (risco de liquidação em alts)."""
+    """TRENDING ou MORTO. Fase 2: thresholds subidos para filtrar mercados laterais."""
     price = closes[-1]
     if atr_val == 0 or price == 0:
         return "MORTO"
@@ -37,9 +36,10 @@ def detect_market_mode(closes: list, atr_val: float) -> str:
 def signal_trending(closes: list, highs: list, lows: list, volumes: list,
                     symbol: str = ""):
     """
-    EMA 9/21/99 + RSI + ADX + Supertrend + CMF + MFI + ROC.
+    Fase 2: Score por 3 categorias independentes (TREND/MOMENTUM/FLOW).
+    Cada categoria tem cap máximo — evita double-counting de indicadores correlacionados.
+    RSI corrigido para trend-following (momentum > 50 = LONG, não mean-reversion).
     Retorna (direction, score, detalhe).
-    ADX mínimo diferenciado: 22.5 para BTC/ETH/BNB, 30.0 para alts.
     """
     if len(closes) < EMA_TREND + 5:
         return None, 0, "DADOS_INSUF"
@@ -63,84 +63,98 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list,
     if not volume_ok(volumes):
         return None, 0, "VETO_VOL"
 
-    score_long = score_short = 0
+    # ═══ CATEGORIA: TREND (max 3) — direcção da tendência ═══
+    trend_l = trend_s = 0
 
-    if rsi_val < RSI_OVERSOLD:
-        score_long  += 3
-    if rsi_val > RSI_OVERBOUGHT:
-        score_short += 3
-
+    # EMA 9/21 crossover (sinal forte de mudança)
     if ema9[-1] > ema21[-1] and ema9[-2] <= ema21[-2]:
-        score_long  += 3
+        trend_l += 2
     if ema9[-1] < ema21[-1] and ema9[-2] >= ema21[-2]:
-        score_short += 3
+        trend_s += 2
 
+    # EMA 9 > 21 alignment (tendência alinhada)
     if ema9[-1] > ema21[-1]:
-        score_long  += 1
+        trend_l += 1
     else:
-        score_short += 1
+        trend_s += 1
 
-    # Confirmação dupla: vela anterior E vela actual acima/abaixo da EMA99
-    # Evita scores em wicks transitórios que cruzam a EMA99 na vela corrente
-    if closes[-2] > ema99[-2] and price > ema99[-1]:
-        score_long  += 2
-    elif closes[-2] < ema99[-2] and price < ema99[-1]:
-        score_short += 2
-
-    if atr_val / price > ATR_MIN_PCT * 1.5:
-        score_long  += 1
-        score_short += 1
-
+    # Supertrend (confirmação de direcção)
     st_bull = supertrend(highs, lows, closes)
     if st_bull is True:
-        score_long  += 2
+        trend_l += 1
     elif st_bull is False:
-        score_short += 2
+        trend_s += 1
 
-    if sr_val < 30:
-        score_long  += 1
-    elif sr_val > 70:
-        score_short += 1
+    trend_l = min(trend_l, 3)
+    trend_s = min(trend_s, 3)
+
+    # ═══ CATEGORIA: MOMENTUM (max 3) — força do movimento ═══
+    mom_l = mom_s = 0
+
+    # RSI trend-following: > 50 = momentum positivo = LONG
+    # (Fase 2: invertido da lógica anterior que comprava fraqueza)
+    if rsi_val > 50:
+        mom_l += 1
+    if rsi_val > 60:
+        mom_l += 1
+    if rsi_val < 50:
+        mom_s += 1
+    if rsi_val < 40:
+        mom_s += 1
+
+    # ROC (rate of change)
+    roc_v = roc_val(closes)
+    if roc_v > 0.3:
+        mom_l += 1
+    elif roc_v < -0.3:
+        mom_s += 1
+
+    mom_l = min(mom_l, 3)
+    mom_s = min(mom_s, 3)
+
+    # ═══ CATEGORIA: FLOW (max 2) — fluxo de capital ═══
+    flow_l = flow_s = 0
 
     cmf_v = cmf_val(closes, highs, lows, volumes)
     if cmf_v > 0.05:
-        score_long  += 1
+        flow_l += 1
     elif cmf_v < -0.05:
-        score_short += 1
+        flow_s += 1
 
     mfi_v = mfi_val(closes, highs, lows, volumes)
     if mfi_v < 45:
-        score_long  += 1
+        flow_l += 1
     elif mfi_v > 55:
-        score_short += 1
+        flow_s += 1
 
-    roc_v = roc_val(closes)
-    if roc_v > 0.3:
-        score_long  += 1
-    elif roc_v < -0.3:
-        score_short += 1
+    flow_l = min(flow_l, 2)
+    flow_s = min(flow_s, 2)
 
-    # Markov regime: +2 when the transition matrix predicts regime persistence
-    mkv_dir, mkv_pts, mkv_detail = markov_regime_signal(closes, highs, lows)
-    if mkv_dir == "LONG":
-        score_long  += mkv_pts
-    elif mkv_dir == "SHORT":
-        score_short += mkv_pts
+    # ═══ TOTAL (max 8) — exige pelo menos 2 categorias ═══
+    score_long  = trend_l + mom_l + flow_l
+    score_short = trend_s + mom_s + flow_s
 
-    if score_long >= SCORE_ALERTA and price > ema99[-1]:
+    cats_long  = sum(1 for c in [trend_l, mom_l, flow_l] if c > 0)
+    cats_short = sum(1 for c in [trend_s, mom_s, flow_s] if c > 0)
+
+    detail_l = f"T{trend_l}+M{mom_l}+F{flow_l}={score_long} ({cats_long}cat)"
+    detail_s = f"T{trend_s}+M{mom_s}+F{flow_s}={score_short} ({cats_short}cat)"
+
+    # Gate: preço acima/abaixo da EMA99 (confirmação de tendência)
+    if score_long >= SCORE_ALERTA and cats_long >= 2 and price > ema99[-1]:
         strength = "FORTE" if score_long >= SCORE_FORTE else "ALERTA"
         return "LONG", score_long, (
-            f"RSI {rsi_val:.1f} SR {sr_val:.1f} Score {score_long} [{strength}] | {mkv_detail}"
+            f"RSI {rsi_val:.1f} ADX {adx_val:.1f} [{strength}] {detail_l}"
         )
 
-    if score_short >= SCORE_ALERTA and price < ema99[-1]:
+    if score_short >= SCORE_ALERTA and cats_short >= 2 and price < ema99[-1]:
         strength = "FORTE" if score_short >= SCORE_FORTE else "ALERTA"
         return "SHORT", score_short, (
-            f"RSI {rsi_val:.1f} SR {sr_val:.1f} Score {score_short} [{strength}] | {mkv_detail}"
+            f"RSI {rsi_val:.1f} ADX {adx_val:.1f} [{strength}] {detail_s}"
         )
 
     return None, max(score_long, score_short), (
-        f"SEM_SINAL RSI {rsi_val:.1f} SR {sr_val:.1f} | {mkv_detail}"
+        f"SEM_SINAL RSI {rsi_val:.1f} ADX {adx_val:.1f} L:{detail_l} S:{detail_s}"
     )
 
 

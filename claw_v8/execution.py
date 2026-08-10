@@ -88,15 +88,8 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
         print(f"[AVISO] {symbol}: HTF 1H contra {direction} — veto")
         return
 
-    # ── Supertrend ───────────────────────────────────────────────────
-    from indicators import supertrend
-    st_bull = supertrend(highs, lows, closes)
-    if direction == "LONG"  and st_bull is False:
-        print(f"[AVISO] {symbol}: Supertrend bearish — LONG vetado")
-        return
-    if direction == "SHORT" and st_bull is True:
-        print(f"[AVISO] {symbol}: Supertrend bullish — SHORT vetado")
-        return
+    # [Fase 2] Supertrend hard veto removido — já conta no score (+1 em strategy.py).
+    # Contá-lo 2× (score + veto) bloqueava trades válidos com boa confirmação noutras categorias.
 
     # ── Fear & Greed ─────────────────────────────────────────────────
     if not fear_greed_ok(symbol, direction, price):

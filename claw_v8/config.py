@@ -64,28 +64,25 @@ MAX_SHORTS_ALT      = 3
 #  ESTRATÉGIA
 # ─────────────────────────────────────────────
 SIGNAL_INTERVAL     = "1h"   # timeframe do sinal (era "5m")
-SCAN_ALIGN_MIN      = 15     # scan alinhado com velas de 15 min (era 5)
+SCAN_ALIGN_MIN      = 60     # Fase 2: scan 1×/hora com vela fechada (era 15 — lia wicks)
 
 ADX_TREND_MIN       = 22.5   # ADX mínimo (fallback / detect_market_mode)
 ADX_TREND_MIN_MAJOR = 22.5   # BTC, ETH, BNB — tendências mais limpas
 ADX_TREND_MIN_ALT   = 25.0   # alts com ADX 25+ já têm tendência suficiente
-EMA_SLOPE_MIN   = 0.0005 # slope mínimo da EMA99
-
-RSI_OVERSOLD    = 40.0
-RSI_OVERBOUGHT  = 60.0
+EMA_SLOPE_MIN   = 0.003  # slope mínimo da EMA99 (Fase 2: era 0.0005 — passava tudo)
 STOCH_VETO_LONG = 95.0
 STOCH_VETO_SHORT= 2.5
-SCORE_ALERTA    = 6
-SCORE_FORTE     = 8       # sinais "fortes" exigem 8+ indicadores (reversão de sinal, etc.)
-SCORE_LONG_MIN  = 6       # LONGs: score mínimo
-SCORE_SHORT_MIN = 8       # SHORTs precisam de confirmação mais forte (sistematicamente a perder)
+SCORE_ALERTA    = 5       # Fase 2: score por categorias (max 8), era 6 com max ~18
+SCORE_FORTE     = 7       # sinais "fortes" (Fase 2: era 8)
+SCORE_LONG_MIN  = 5       # LONGs: score mínimo (Fase 2: era 6)
+SCORE_SHORT_MIN = 6       # SHORTs: score mínimo (Fase 2: era 8 — demasiado restritivo)
 
 # Markov regime detection
 MARKOV_LOOKBACK = 100   # candles for transition matrix
 MARKOV_MIN_PROB = 0.55  # min P(bullish/bearish next) to generate a signal
-MARKOV_SCORE    = 2     # score points added when regime confirms direction
+MARKOV_SCORE    = 0     # Fase 2: desactivado temporariamente (adicionava ruído ao score)
 
-ATR_MIN_PCT     = 0.0008
+ATR_MIN_PCT     = 0.003   # Fase 2: era 0.0008 — passava tudo como TRENDING
 ATR_FLOOR_PCT   = 0.0003  # ATR mínimo: 0.03% do preço (evita qty degenerada em volatilidade ultra-baixa)
 BB_PERIOD       = 20
 BB_STD          = 2.0
