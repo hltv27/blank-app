@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
 """
-Claw v8 — Backtesting Engine
+Claw v8 — Backtesting Engine (actualizado Fase 2)
 Testa a estratégia em dados históricos da Binance (sem autenticação).
+Timeframe: 1H (alinhado com SIGNAL_INTERVAL actual).
+
+Simula:
+  - Entradas via signal_trending() + HTF alignment + filtros
+  - SL baseado em ATR (2-2.5×)
+  - Profit lock progressivo (+2 USDC trigger, +1 USDC step)
+  - PEAK_DRAWDOWN (recuo ≥40% do pico após +1 USDC)
+  - ROI_TP_IMEDIATO (12%)
+  - STAGNADO (8-10h)
+  - EMERGENCY_ROI_CUT (-25%)
+  - Slippage e fees
 
 Uso:
     python backtest.py                        # todos os símbolos, 90 dias
@@ -21,13 +32,16 @@ import requests
 from config import (
     BASE_URL, SYMBOLS, SYMBOL_PRECISION,
     EMA_FAST, EMA_SLOW, EMA_TREND,
-    ADX_TREND_MIN, EMA_SLOPE_MIN, ATR_MIN_PCT,
-    RSI_OVERSOLD, RSI_OVERBOUGHT, STOCH_VETO_LONG, STOCH_VETO_SHORT,
-    SCORE_ALERTA, SCORE_FORTE,
+    STOCH_VETO_LONG, STOCH_VETO_SHORT,
+    SCORE_ALERTA, SCORE_FORTE, SCORE_LONG_MIN, SCORE_SHORT_MIN,
     ATR_SL_MULT_MIN, ATR_SL_MULT_MAX, RATIO_ALVO,
     RISCO_USDC, ALAVANCAGEM,
-    PARTIAL_TP_RATIO, PARTIAL_TP_QTY,
     EMERGENCY_ROI_CUT, SUPERTREND_PERIOD, SUPERTREND_MULT,
+    ATR_MIN_PCT, EMA_SLOPE_MIN,
+    PROFIT_LOCK_USDC, PROFIT_LOCK_STEP,
+    PEAK_PROFIT_MIN_USDC, PEAK_DRAWDOWN_PCT,
+    ROI_TP_IMEDIATO, SL_MIN_PCT, SL_MAX_PCT,
+    TAKER_FEE,
 )
 from indicators import (
     ema, rsi, atr, stoch_rsi, adx, supertrend,
@@ -37,14 +51,14 @@ from strategy import detect_market_mode, signal_trending, calc_sl_tp, calc_qty
 
 # ─────────────────────────────────────────────
 CACHE_DIR   = _here.parent / "backtest_cache"
-MAX_BARS    = 96       # máx candles por trade (96 × 5min = 8h)
+MAX_BARS    = 48       # máx candles 1H por trade (48 × 1h = 48h = 2 dias)
 LOOKBACK    = 220      # janela de indicadores
 
-# ── Improvement #12: Slippage & fee simulation ────────────
+# ── Slippage & fee simulation ────────────────
 SLIPPAGE_ENTRY = 0.0003  # 0.03% slippage on market entry
 SLIPPAGE_SL    = 0.0005  # 0.05% slippage on stop loss (wider — adverse conditions)
 SLIPPAGE_TP    = 0.0002  # 0.02% slippage on take profit
-FEE_RATE       = 0.0002  # 0.02% taker fee per side (entry + exit)
+FEE_RATE       = 0.0005  # 0.05% taker fee per side (entry + exit) — Binance Futures
 # ─────────────────────────────────────────────
 
 CACHE_DIR.mkdir(exist_ok=True)
@@ -101,7 +115,7 @@ def load_klines(symbol: str, interval: str, days: int) -> list:
 
 
 # ═══════════════════════════════════════════════════════
-#  HTF ALIGNMENT
+#  HTF ALIGNMENT (4H sobre 1H)
 # ═══════════════════════════════════════════════════════
 
 def _build_htf_index(klines_htf: list) -> list:
@@ -116,7 +130,7 @@ def _build_htf_index(klines_htf: list) -> list:
 
 def htf_bias(htf_index: list, ts_ms: int) -> str:
     """
-    Dado um timestamp 5m, devolve 'LONG', 'SHORT' ou 'NEUTRAL'
+    Dado um timestamp 1H, devolve 'LONG', 'SHORT' ou 'NEUTRAL'
     consoante EMA9 vs EMA21 na última vela HTF fechada antes de ts_ms.
     """
     if not htf_index:
@@ -133,152 +147,194 @@ def htf_bias(htf_index: list, ts_ms: int) -> str:
 
 
 # ═══════════════════════════════════════════════════════
-#  SIMULAÇÃO DE TRADE
+#  SIMULAÇÃO DE TRADE (com profit lock + PEAK_DRAWDOWN)
 # ═══════════════════════════════════════════════════════
 
 def simulate_trade(direction: str, entry: float, sl: float, tp: float,
-                   future_candles: list, qty: float) -> dict | None:
+                   future_candles: list, qty: float, score: int = 0) -> dict | None:
     """
-    Simula o trade nos candles seguintes ao sinal.
+    Simula o trade nos candles 1H seguintes ao sinal.
 
-    Improvement #10 — Intra-candle SL/TP checking:
-      Usa HIGH e LOW de cada candle (nao apenas o close) para determinar
-      se SL ou TP teriam sido atingidos dentro da candle.
-        LONG:  low  <= SL → stop hit;  high >= TP → TP hit
-        SHORT: high >= SL → stop hit;  low  <= TP → TP hit
-      Se ambos sao atingidos na mesma candle, assume SL primeiro (pior caso).
-
-    Improvement #12 — Slippage & fees:
-      Aplica slippage aos precos de execucao (SL/TP) e deduz fees (FEE_RATE).
-      Entry slippage ja vem aplicado no preco de entrada recebido.
+    Mecanismos de saída simulados:
+    1. SL baseado em ATR (exchange stop)
+    2. Profit lock progressivo (+2 USDC trigger, +1 USDC step)
+    3. PEAK_DRAWDOWN (recuo ≥40% após pico ≥1 USDC)
+    4. ROI_TP_IMEDIATO (12% ROI)
+    5. STAGNADO (8h com PnL < 0.5, 10h incondicional)
+    6. EMERGENCY_ROI (-25%)
+    7. TIMEOUT (48h)
     """
-    if not future_candles or qty <= 0 or sl <= 0 or tp <= 0:
+    if not future_candles or qty <= 0 or sl <= 0:
         return None
 
-    qty_rem      = qty
-    partial_done = False
-    realized_pnl = 0.0
-
-    # Improvement #12: Precos de execucao com slippage (fill adverso)
+    # Preços de execução com slippage
     if direction == "LONG":
-        sl_exec   = sl * (1 - SLIPPAGE_SL)    # vendido abaixo do SL (pior)
-        tp_exec   = tp * (1 - SLIPPAGE_TP)    # vendido ligeiramente abaixo do TP
-        tp1_level = entry + (tp - entry) * PARTIAL_TP_RATIO
-        tp1_exec  = tp1_level * (1 - SLIPPAGE_TP)
+        sl_exec = sl * (1 - SLIPPAGE_SL)
     else:
-        sl_exec   = sl * (1 + SLIPPAGE_SL)    # comprado acima do SL (pior)
-        tp_exec   = tp * (1 + SLIPPAGE_TP)    # comprado ligeiramente acima do TP
-        tp1_level = entry - (entry - tp) * PARTIAL_TP_RATIO
-        tp1_exec  = tp1_level * (1 + SLIPPAGE_TP)
+        sl_exec = sl * (1 + SLIPPAGE_SL)
+
+    margin = entry * qty / ALAVANCAGEM if ALAVANCAGEM > 0 else entry * qty
+
+    # Estado do profit lock
+    peak_pnl = 0.0
+    lock_level = 0       # nível actual do profit lock (em steps de PROFIT_LOCK_STEP)
+    current_sl = sl      # SL actual (pode ser movido pelo profit lock)
 
     for i, candle in enumerate(future_candles[:MAX_BARS]):
         high  = float(candle[2])
         low   = float(candle[3])
         close = float(candle[4])
+        hours = i + 1  # horas desde entrada (candles 1H)
 
-        # Improvement #10: Intra-candle check via high/low
+        # ── PnL actual (no close) ──────────────────────────────────
         if direction == "LONG":
-            hit_sl  = low  <= sl
-            hit_tp  = high >= tp
-            hit_tp1 = not partial_done and high >= tp1_level
+            open_pnl = (close - entry) * qty
         else:
-            hit_sl  = high >= sl
-            hit_tp  = low  <= tp
-            hit_tp1 = not partial_done and low <= tp1_level
+            open_pnl = (entry - close) * qty
 
-        # Improvement #10: SL tem prioridade absoluta — se SL e TP/TP1
-        # sao ambos atingidos na mesma candle, assume-se que o SL foi
-        # atingido primeiro (pior caso). TP1 parcial NAO executa.
+        fee = entry * qty * FEE_RATE * 2
+        net_pnl = open_pnl - fee
+
+        # Actualizar pico
+        if net_pnl > peak_pnl:
+            peak_pnl = net_pnl
+
+        roi = open_pnl / margin * 100 if margin > 0 else 0
+
+        # ── 1. SL check (intra-candle via high/low) ────────────────
+        if direction == "LONG":
+            hit_sl = low <= current_sl
+        else:
+            hit_sl = high >= current_sl
+
         if hit_sl:
-            loss          = abs(entry - sl_exec) * qty_rem     # #12: slippage
-            fee           = entry * qty_rem * FEE_RATE * 2     # #12: fees
-            realized_pnl -= loss + fee
+            if direction == "LONG":
+                exit_price = current_sl * (1 - SLIPPAGE_SL)
+                loss = (entry - exit_price) * qty
+            else:
+                exit_price = current_sl * (1 + SLIPPAGE_SL)
+                loss = (exit_price - entry) * qty
+            realized = -loss - fee
+            # Se profit lock moveu o SL acima do entry, pode ser positivo
+            exit_reason = "PROFIT_LOCK_SL" if lock_level > 0 else "SL"
             return {
-                "won":         realized_pnl > 0,
-                "pnl":         round(realized_pnl, 4),
-                "exit_reason": "SL",
-                "bars":        i + 1,
+                "won": realized > 0,
+                "pnl": round(realized, 4),
+                "exit_reason": exit_reason,
+                "bars": hours,
             }
 
-        # ── Partial TP1 (33% do tamanho original) ───────────────────
-        if hit_tp1:
-            qty_close    = round(qty * PARTIAL_TP_QTY, 8)
-            dist         = abs(tp1_exec - entry)               # #12: slippage
-            fee          = entry * qty_close * FEE_RATE * 2    # #12: fees
-            realized_pnl += dist * qty_close - fee
-            qty_rem      -= qty_close
-            partial_done  = True
-
-        # ── TP completo ──────────────────────────────────────────────
-        if hit_tp:
-            gain          = abs(tp_exec - entry) * qty_rem     # #12: slippage
-            fee           = entry * qty_rem * FEE_RATE * 2     # #12: fees
-            realized_pnl += gain - fee
+        # ── 2. ROI_TP_IMEDIATO (12%) ───────────────────────────────
+        if roi >= ROI_TP_IMEDIATO:
+            realized = open_pnl - fee
             return {
-                "won":         True,
-                "pnl":         round(realized_pnl, 4),
-                "exit_reason": "TP",
-                "bars":        i + 1,
+                "won": True,
+                "pnl": round(realized, 4),
+                "exit_reason": "ROI_TP",
+                "bars": hours,
             }
 
-        # ── Emergency cut ────────────────────────────────────────────
-        open_pnl = (close - entry) * qty_rem if direction == "LONG" else (entry - close) * qty_rem
-        margin   = entry * qty / ALAVANCAGEM if ALAVANCAGEM > 0 else entry * qty
-        roi      = open_pnl / margin * 100 if margin > 0 else 0
+        # ── 3. Profit lock progressivo ─────────────────────────────
+        if net_pnl >= PROFIT_LOCK_USDC:
+            new_level = int(net_pnl / PROFIT_LOCK_STEP)
+            if new_level > lock_level:
+                lock_level = new_level
+                # Move SL para entry + (lock_level - 1) * step em termos de preço
+                # Na prática: protege (lock_level - 1) * PROFIT_LOCK_STEP de lucro
+                protected_pnl = (lock_level - 1) * PROFIT_LOCK_STEP
+                if protected_pnl > 0:
+                    sl_move = protected_pnl / qty
+                    if direction == "LONG":
+                        current_sl = max(current_sl, entry + sl_move)
+                    else:
+                        current_sl = min(current_sl, entry - sl_move)
+
+        # ── 4. PEAK_DRAWDOWN ───────────────────────────────────────
+        if peak_pnl >= PEAK_PROFIT_MIN_USDC and net_pnl > 0:
+            drawdown_from_peak = (peak_pnl - net_pnl) / peak_pnl if peak_pnl > 0 else 0
+            if drawdown_from_peak >= PEAK_DRAWDOWN_PCT:
+                realized = net_pnl
+                return {
+                    "won": realized > 0,
+                    "pnl": round(realized, 4),
+                    "exit_reason": "PEAK_DD",
+                    "bars": hours,
+                }
+
+        # ── 5. EMERGENCY_ROI ───────────────────────────────────────
         if roi <= EMERGENCY_ROI_CUT:
-            fee           = entry * qty_rem * FEE_RATE * 2     # #12: fees
-            realized_pnl += open_pnl - fee
+            realized = open_pnl - fee
             return {
-                "won":         False,
-                "pnl":         round(realized_pnl, 4),
+                "won": False,
+                "pnl": round(realized, 4),
                 "exit_reason": "EMERGENCY",
-                "bars":        i + 1,
+                "bars": hours,
             }
 
-    # ── Timeout: fecha no ultimo candle disponivel ───────────────────
+        # ── 6. STAGNADO ────────────────────────────────────────────
+        if hours >= 10:
+            # 10h+ incondicional
+            realized = open_pnl - fee
+            return {
+                "won": realized > 0,
+                "pnl": round(realized, 4),
+                "exit_reason": "STAGNADO",
+                "bars": hours,
+            }
+        if hours >= 8 and net_pnl < 0.5:
+            # 8h+ com PnL baixo
+            realized = open_pnl - fee
+            return {
+                "won": realized > 0,
+                "pnl": round(realized, 4),
+                "exit_reason": "STAGNADO",
+                "bars": hours,
+            }
+
+    # ── TIMEOUT: fecha no último candle ────────────────────────────
     if future_candles:
-        last_close    = float(future_candles[min(MAX_BARS - 1, len(future_candles) - 1)][4])
-        open_pnl      = (last_close - entry) * qty_rem if direction == "LONG" else (entry - last_close) * qty_rem
-        fee           = entry * qty_rem * FEE_RATE * 2         # #12: fees
-        realized_pnl += open_pnl - fee
+        last_close = float(future_candles[min(MAX_BARS - 1, len(future_candles) - 1)][4])
+        if direction == "LONG":
+            open_pnl = (last_close - entry) * qty
+        else:
+            open_pnl = (entry - last_close) * qty
+        fee = entry * qty * FEE_RATE * 2
+        realized = open_pnl - fee
 
     return {
-        "won":         realized_pnl > 0,
-        "pnl":         round(realized_pnl, 4),
+        "won": realized > 0,
+        "pnl": round(realized, 4),
         "exit_reason": "TIMEOUT",
-        "bars":        MAX_BARS,
+        "bars": MAX_BARS,
     }
 
 
 # ═══════════════════════════════════════════════════════
-#  BACKTEST POR SÍMBOLO
+#  BACKTEST POR SÍMBOLO (1H)
 # ═══════════════════════════════════════════════════════
 
-def run_symbol(symbol: str, klines_5m: list, klines_1h: list,
-               klines_4h: list) -> list:
+def run_symbol(symbol: str, klines_1h: list, klines_4h: list) -> list:
     """
-    Corre o backtest para um símbolo.
+    Corre o backtest para um símbolo usando candles 1H.
     Retorna lista de trades simulados.
     """
-    if len(klines_5m) < LOOKBACK + MAX_BARS + 10:
-        print(f"  {symbol}: dados insuficientes ({len(klines_5m)} candles)")
+    if len(klines_1h) < LOOKBACK + MAX_BARS + 10:
+        print(f"  {symbol}: dados insuficientes ({len(klines_1h)} candles 1H)")
         return []
 
-    htf1h = _build_htf_index(klines_1h)
     htf4h = _build_htf_index(klines_4h)
     trades = []
     in_trade = False
 
-    for i in range(LOOKBACK, len(klines_5m) - MAX_BARS - 1):
+    for i in range(LOOKBACK, len(klines_1h) - MAX_BARS - 1):
         if in_trade:
-            # aguarda fecho do trade anterior
             last = trades[-1]
             if i >= last["entry_idx"] + last["bars"]:
                 in_trade = False
             else:
                 continue
 
-        window = klines_5m[max(0, i - LOOKBACK + 1): i + 1]
+        window = klines_1h[max(0, i - LOOKBACK + 1): i + 1]
         closes  = [float(k[4]) for k in window]
         highs   = [float(k[2]) for k in window]
         lows    = [float(k[3]) for k in window]
@@ -294,14 +350,17 @@ def run_symbol(symbol: str, klines_5m: list, klines_1h: list,
         if not direction:
             continue
 
-        # ── HTF alignment ──────────────────────────────────────────
-        ts_ms   = int(klines_5m[i][0])
-        bias_1h = htf_bias(htf1h, ts_ms)
+        # ── Score mínimo por direcção ──────────────────────────────
+        if direction == "LONG" and score < SCORE_LONG_MIN:
+            continue
+        if direction == "SHORT" and score < SCORE_SHORT_MIN:
+            continue
+
+        # ── HTF alignment (4H) ─────────────────────────────────────
+        ts_ms   = int(klines_1h[i][0])
         bias_4h = htf_bias(htf4h, ts_ms)
 
         if bias_4h != "NEUTRAL" and bias_4h != direction:
-            continue
-        if bias_1h != "NEUTRAL" and bias_1h != direction:
             continue
 
         # ── CVD ────────────────────────────────────────────────────
@@ -323,17 +382,15 @@ def run_symbol(symbol: str, klines_5m: list, klines_1h: list,
         if qty <= 0:
             continue
 
-        # ── Improvement #12: Entry slippage ────────────────────────
-        # SL/TP sao niveis de mercado (calculados acima a partir do preco
-        # do sinal); a entrada sofre slippage porque e uma ordem MARKET.
+        # ── Entry slippage ─────────────────────────────────────────
         if direction == "LONG":
-            price_exec = price * (1 + SLIPPAGE_ENTRY)   # compra mais caro
+            price_exec = price * (1 + SLIPPAGE_ENTRY)
         else:
-            price_exec = price * (1 - SLIPPAGE_ENTRY)   # vende mais barato
+            price_exec = price * (1 - SLIPPAGE_ENTRY)
 
         # ── Simulação do trade ─────────────────────────────────────
-        future = klines_5m[i + 1: i + 1 + MAX_BARS]
-        result = simulate_trade(direction, price_exec, sl, tp, future, qty)
+        future = klines_1h[i + 1: i + 1 + MAX_BARS]
+        result = simulate_trade(direction, price_exec, sl, tp, future, qty, score)
         if result is None:
             continue
 
@@ -376,13 +433,12 @@ def print_report(all_trades: list, symbols_tested: list, days: int):
 
     # ── Por símbolo ────────────────────────────────────────────────
     print(f"\n{'═'*70}")
-    print(f"  CLAW v8 — BACKTEST ({days} dias) — {len(symbols_tested)} símbolos")
+    print(f"  CLAW v8 — BACKTEST 1H ({days} dias) — {len(symbols_tested)} símbolos")
     print(f"{'═'*70}")
 
     print(f"\n{'SYM':<14} {'N':>4} {'WR%':>6} {'PnL':>8} {'PF':>5} {'AvgW':>7} {'AvgL':>7}")
     print(sep)
 
-    sym_stats = {}
     for sym in symbols_tested:
         ts = [t for t in all_trades if t["symbol"] == sym]
         if not ts:
@@ -395,7 +451,6 @@ def print_report(all_trades: list, symbols_tested: list, days: int):
         wr     = len(wins) / len(ts) * 100
         avg_w  = gw / len(wins) if wins else 0
         avg_l  = gl / len(losses) if losses else 0
-        sym_stats[sym] = {"n": len(ts), "wr": wr, "pnl": pnl, "pf": _pf(gw, gl)}
         print(f"{sym:<14} {len(ts):>4} {wr:>5.1f}% {pnl:>+8.2f} {_pf(gw, gl):>5} "
               f"{avg_w:>+7.2f} {-avg_l:>+7.2f}")
 
@@ -407,17 +462,23 @@ def print_report(all_trades: list, symbols_tested: list, days: int):
     gl_all     = abs(sum(t["pnl"] for t in losses_all))
     pnl_all    = sum(t["pnl"] for t in all_trades)
     wr_all     = len(wins_all) / len(all_trades) * 100
+    avg_w_all  = gw_all / len(wins_all) if wins_all else 0
+    avg_l_all  = gl_all / len(losses_all) if losses_all else 0
+    expectancy = pnl_all / len(all_trades)
 
     print(f"{'TOTAL':<14} {len(all_trades):>4} {wr_all:>5.1f}% {pnl_all:>+8.2f} "
-          f"{_pf(gw_all, gl_all):>5}")
+          f"{_pf(gw_all, gl_all):>5} {avg_w_all:>+7.2f} {-avg_l_all:>+7.2f}")
 
     # ── Exit reasons ───────────────────────────────────────────────
     reasons = {}
     for t in all_trades:
         r = t["exit_reason"]
         reasons[r] = reasons.get(r, 0) + 1
-    print(f"\nMotivos de saída: " +
-          "  ".join(f"{k}:{v}" for k, v in sorted(reasons.items())))
+    print(f"\nMotivos de saída:")
+    for k, v in sorted(reasons.items(), key=lambda x: -x[1]):
+        pct = v / len(all_trades) * 100
+        pnl_r = sum(t["pnl"] for t in all_trades if t["exit_reason"] == k)
+        print(f"  {k:<16} {v:>4} ({pct:>5.1f}%)  PnL {pnl_r:>+8.2f}")
 
     # ── Drawdown ───────────────────────────────────────────────────
     cum = 0.0
@@ -445,30 +506,38 @@ def print_report(all_trades: list, symbols_tested: list, days: int):
     for t in all_trades:
         m = t["month"]
         months.setdefault(m, []).append(t["pnl"])
-    print(f"\n{'Mês':<10} {'Trades':>6} {'PnL':>8}")
-    print("─" * 28)
+    print(f"\n{'Mês':<10} {'Trades':>6} {'PnL':>8} {'PnL/dia':>8}")
+    print("─" * 38)
     for m in sorted(months):
         ts_m = months[m]
-        print(f"{m:<10} {len(ts_m):>6} {sum(ts_m):>+8.2f}")
+        pnl_m = sum(ts_m)
+        # Estimar dias no mês
+        days_in_month = 30
+        pnl_per_day = pnl_m / days_in_month
+        print(f"{m:<10} {len(ts_m):>6} {pnl_m:>+8.2f} {pnl_per_day:>+8.2f}")
 
     # ── Resumo final ───────────────────────────────────────────────
     avg_bars = sum(t["bars"] for t in all_trades) / len(all_trades)
     print(f"\n{'═'*70}")
-    print(f"  Total trades : {len(all_trades)}")
-    print(f"  Win rate     : {wr_all:.1f}%")
-    print(f"  PnL total    : {pnl_all:+.2f} USDC  (risco {RISCO_USDC} USDC/trade)")
-    print(f"  Profit factor: {_pf(gw_all, gl_all)}")
-    print(f"  Max drawdown : -{max_dd:.2f} USDC")
-    print(f"  Avg duração  : {avg_bars * 5:.0f}min ({avg_bars:.0f} candles)")
+    print(f"  Total trades   : {len(all_trades)}")
+    print(f"  Win rate       : {wr_all:.1f}%")
+    print(f"  Avg win        : {avg_w_all:+.2f} USDC")
+    print(f"  Avg loss       : {-avg_l_all:+.2f} USDC")
+    print(f"  Win/Loss ratio : {avg_w_all/avg_l_all:.2f}:1" if avg_l_all > 0 else "  Win/Loss ratio : N/A")
+    print(f"  Expectancy     : {expectancy:+.2f} USDC/trade")
+    print(f"  PnL total      : {pnl_all:+.2f} USDC  (risco {RISCO_USDC} USDC/trade)")
+    print(f"  Profit factor  : {_pf(gw_all, gl_all)}")
+    print(f"  Max drawdown   : -{max_dd:.2f} USDC")
+    print(f"  Avg duração    : {avg_bars:.1f}h ({avg_bars:.0f} candles 1H)")
     total_notional = sum(abs(t["entry"]) * t["qty"] for t in all_trades)
     total_fees     = total_notional * FEE_RATE * 2
-    print(f"  Fees est.    : -{total_fees:.2f} USDC  ({FEE_RATE*100:.3f}% x2 lados)")
-    print(f"  Slippage     : entry {SLIPPAGE_ENTRY*100:.2f}%  SL {SLIPPAGE_SL*100:.2f}%  TP {SLIPPAGE_TP*100:.2f}%")
+    print(f"  Fees est.      : -{total_fees:.2f} USDC  ({FEE_RATE*100:.3f}% x2 lados)")
+    print(f"  Slippage       : entry {SLIPPAGE_ENTRY*100:.2f}%  SL {SLIPPAGE_SL*100:.2f}%  TP {SLIPPAGE_TP*100:.2f}%")
+    pnl_per_day = pnl_all / days if days > 0 else 0
+    print(f"  PnL/dia médio  : {pnl_per_day:+.2f} USDC")
     print(f"{'═'*70}")
 
-    # ── Improvement #11: Walk-Forward Validation ───────────────────
-    # Divide os trades cronologicamente em 70% treino / 30% teste para
-    # avaliar se os parametros da estrategia funcionam em dados nao vistos.
+    # ── Walk-Forward Validation ────────────────────────────────────
     sorted_trades = sorted(all_trades, key=lambda x: x["ts"])
     split_idx = int(len(sorted_trades) * 0.7)
     if split_idx > 0 and split_idx < len(sorted_trades):
@@ -510,7 +579,7 @@ def print_report(all_trades: list, symbols_tested: list, days: int):
 # ═══════════════════════════════════════════════════════
 
 def main():
-    parser = argparse.ArgumentParser(description="Claw v8 Backtesting Engine")
+    parser = argparse.ArgumentParser(description="Claw v8 Backtesting Engine (1H)")
     parser.add_argument("--symbol", type=str, default=None,
                         help="Símbolo específico (ex: BTCUSDC). Default: todos.")
     parser.add_argument("--days", type=int, default=90,
@@ -520,7 +589,11 @@ def main():
     symbols = [args.symbol] if args.symbol else SYMBOLS
     days    = args.days
 
-    print(f"\n Claw v8 Backtest — {days} dias — {len(symbols)} símbolo(s)")
+    print(f"\n Claw v8 Backtest 1H — {days} dias — {len(symbols)} símbolo(s)")
+    print(f" Config: PROFIT_LOCK={PROFIT_LOCK_USDC} STEP={PROFIT_LOCK_STEP} "
+          f"PEAK_DD={PEAK_DRAWDOWN_PCT*100:.0f}% ROI_TP={ROI_TP_IMEDIATO}%")
+    print(f" Score: ALERTA={SCORE_ALERTA} LONG_MIN={SCORE_LONG_MIN} "
+          f"SHORT_MIN={SCORE_SHORT_MIN} FORTE={SCORE_FORTE}")
     print(f" Cache: {CACHE_DIR}\n")
 
     all_trades = []
@@ -528,15 +601,14 @@ def main():
 
     for sym in symbols:
         print(f"[{sym}]")
-        k5m = load_klines(sym, "5m",  days)
-        k1h = load_klines(sym, "1h",  days + 5)
-        k4h = load_klines(sym, "4h",  days + 5)
+        k1h = load_klines(sym, "1h",  days + 10)
+        k4h = load_klines(sym, "4h",  days + 10)
 
-        if not k5m or len(k5m) < LOOKBACK + MAX_BARS + 10:
+        if not k1h or len(k1h) < LOOKBACK + MAX_BARS + 10:
             print(f"  {sym}: dados insuficientes — ignorado\n")
             continue
 
-        trades = run_symbol(sym, k5m, k1h, k4h)
+        trades = run_symbol(sym, k1h, k4h)
         print(f"  {len(trades)} trades simulados")
         all_trades.extend(trades)
         tested.append(sym)
