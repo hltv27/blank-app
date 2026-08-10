@@ -729,9 +729,10 @@ def gerir_posicoes(mem: dict):
         # ── Saída por estagnação ──────────────────────────────────────────
         # 8h-10h + PnL negativo: fecha se sinal não confirmar.
         # >10h + PnL negativo: fecha incondicionalmente (não deixa sangrar).
+        # >10h + PnL < 0.5 USDC: fecha — não justifica ocupar slot sem lucro real.
         # Fase 1: estendido de 6h→8h (dar mais tempo à tendência 1H).
         if (tempo_min >= 480
-                and pos["pnl"] < 0
+                and pos["pnl"] < 0.5
                 and not trade.get("trailing_lock_done")):
             mercado_ok = False
             if tempo_min < 600:
