@@ -145,9 +145,11 @@ TIME_TP_MIN_MIN     = 10     # minutos mínimos para TIME_TP (era 30)
 
 # Tabela minimal_roi: (minutos, ROI% mínimo para fechar)
 # Substitui TIME_TP + STAGNADO por um único mecanismo decrescente
-# Curva suave (Fase 1): captura small winners, sem fechar a 0% ROI
-# Removido (480, 0.0) — convertia wins em losses na dead zone 6-8h
-MINIMAL_ROI = [(0, 12.0), (90, 5.0), (180, 2.5), (300, 0.8)]
+# MINIMAL_ROI desactivado — era o assassino de winners.
+# Cortava lucros a +0.8 USDC enquanto o SL permitia perdas de -3 a -6 USDC.
+# Saídas agora geridas por: profit lock (+0.25 step), trailing lock (2 USDC),
+# PEAK_DRAWDOWN (recuo 40% do pico), ROI_TP_IMEDIATO (12%).
+MINIMAL_ROI = []
 
 # Trailing por % do pico (substitui steps fixos de USDC após activação)
 TRAILING_LOCK_PCT   = 0.30   # fecha se recuar 30% do pico de PnL
