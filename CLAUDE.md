@@ -133,9 +133,9 @@ PROFIT_LOCK_STEP    = 1.0      # move stop a cada +1 USDC (era 0.25 — stop dem
 TRAILING_LOCK_USDC  = 2.0      # trailing stop activa junto com profit lock a +2 USDC
 EMERGENCY_ROI_CUT   = -25.0    # % ROI para corte de emergência (nunca dispara antes do ATR SL)
 EMERGENCY_PNL_CUT   = 7.0      # fecha se perda absoluta > 7 USDC (nunca dispara antes do SL técnico)
-SCORE_ALERTA        = 5        # score mínimo (Fase 2: max 8 com categorias)
-SCORE_LONG_MIN      = 5        # LONGs: score mínimo (Fase 2: era 6)
-SCORE_SHORT_MIN     = 6        # SHORTs: score mínimo (Fase 2: era 8)
+SCORE_ALERTA        = 6        # Fase 2b: subido de 5→6 (43% STAGNADO com score 5)
+SCORE_LONG_MIN      = 6        # LONGs: score mínimo (Fase 2b: era 5)
+SCORE_SHORT_MIN     = 7        # SHORTs: score mínimo (Fase 2b: era 6 — SHORTs WR pior)
 SCORE_FORTE         = 7        # score forte (Fase 2: era 8)
 ADX_TREND_MIN_MAJOR = 22.5     # BTC/ETH/BNB
 ADX_TREND_MIN_ALT   = 25.0     # alts com ADX 25+
@@ -159,7 +159,7 @@ TOP_N_FUTURES       = 40       # top 40 pares USDC-M por volume
 
 ### Abertura (`abrir_trade`)
 1. Filtros (HTF 4H+1H, Supertrend, Fear&Greed, BB squeeze, CVD, OBI, VWAP, **BTC trend gate para SHORTs**)
-2. Score mínimo: LONGs ≥ `SCORE_LONG_MIN` (5), SHORTs ≥ `SCORE_SHORT_MIN` (6)
+2. Score mínimo: LONGs ≥ `SCORE_LONG_MIN` (6), SHORTs ≥ `SCORE_SHORT_MIN` (7)
 3. BTC trend gate: SHORTs em alts bloqueados quando BTC 4H EMA9 > EMA21 (tendência bullish)
 4. Sizing: `RISCO_USDC=6` / (entry - SL) × entry, cap 30% capital por trade
 5. Vol scale: se ATR/price > 0.6%, reduz qty proporcionalmente
@@ -172,9 +172,9 @@ TOP_N_FUTURES       = 40       # top 40 pares USDC-M por volume
 | **Trailing lock** | PnL ≥ 2.0 USDC | Activa simultaneamente com profit lock — trailing stop |
 | **MINIMAL_ROI** | Desactivado (`[]`) — cortava winners prematuramente |
 | **PEAK_DRAWDOWN** | PnL atingiu ≥1 USDC + recuou ≥40% do pico + sinal fraco | Fecha — protege lucro de recuos |
-| **GRAD_EXIT** | 4-8h + perda > 2 USDC + sinal fraco | Corte antecipado de perdas lentas |
+| **GRAD_EXIT** | 3-5h + perda > 1.5 USDC + sinal fraco | Corte antecipado de perdas lentas (Fase 2b: era 4-8h) |
 | **SIGNAL_INV** | Sinal oposto score≥8 após 1h (sem profit lock) | Fecha tudo |
-| **STAGNADO** | 8-10h + PnL negativo + sinal não confirma | Fecha (10h+ incondicional) |
+| **STAGNADO** | 5-7h + PnL < 0.5 + sinal não confirma | Fecha (7h+ incondicional) (Fase 2b: era 8-10h) |
 | **EMERGENCY_PNL** | Perda > 6.5 USDC absolutos | Fecha imediatamente |
 | **EMERGENCY_ROI** | ROI ≤ -25% | Fecha imediatamente (nunca dispara antes do ATR SL) |
 | **Software SL** | price ≤ sl (LONG) / price ≥ sl (SHORT) | Fecha via MARKET (grace period de 3min) |

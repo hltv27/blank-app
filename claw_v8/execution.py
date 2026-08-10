@@ -695,11 +695,11 @@ def gerir_posicoes(mem: dict):
                 )
             continue
 
-        # ── Saída graduada: 4-8h + perda > 2 USDC + sinal fraco → corte ─
-        # Fase 1: evita que perdas médias sangrem lentamente durante horas.
+        # ── Saída graduada: 3-5h + perda > 1.5 USDC + sinal fraco → corte ─
+        # Fase 2b: reduzido de 4-8h→3-5h (backtest: 43% STAGNADO = trades parados).
         # Verifica sinal a cada 10min; se já não confirma → fecha.
-        if (240 <= tempo_min < 480
-                and pos["pnl"] < -2.0
+        if (180 <= tempo_min < 300
+                and pos["pnl"] < -1.5
                 and not trade.get("trailing_lock_done")
                 and time.time() - trade.get("graduated_exit_ts", 0) > 600):
             try:
@@ -727,15 +727,14 @@ def gerir_posicoes(mem: dict):
                 print(f"[AVISO] graduated_exit {symbol}: {_e}")
 
         # ── Saída por estagnação ──────────────────────────────────────────
-        # 8h-10h + PnL negativo: fecha se sinal não confirmar.
-        # >10h + PnL negativo: fecha incondicionalmente (não deixa sangrar).
-        # >10h + PnL < 0.5 USDC: fecha — não justifica ocupar slot sem lucro real.
-        # Fase 1: estendido de 6h→8h (dar mais tempo à tendência 1H).
-        if (tempo_min >= 480
+        # 5h-7h + PnL < 0.5: fecha se sinal não confirmar.
+        # >7h + PnL < 0.5: fecha incondicionalmente (não deixa sangrar).
+        # Fase 2b: reduzido de 8-10h→5-7h (backtest: 43% exits = STAGNADO).
+        if (tempo_min >= 300
                 and pos["pnl"] < 0.5
                 and not trade.get("trailing_lock_done")):
             mercado_ok = False
-            if tempo_min < 600:
+            if tempo_min < 420:
                 try:
                     kl_stag = get_klines(symbol, interval="1h")
                     if kl_stag and len(kl_stag) >= 50:
@@ -763,7 +762,7 @@ def gerir_posicoes(mem: dict):
 
             if not _fechar_com_retry(symbol, pos["qty"], side):
                 continue
-            reason_stag = "STAGNADO_10H" if tempo_min >= 600 else "STAGNADO"
+            reason_stag = "STAGNADO_7H" if tempo_min >= 420 else "STAGNADO"
             _registar_fecho(symbol, side, entry, sl, tp, qty,
                             pos["pnl"], reason_stag, pos["pnl"] > 0, mem)
             tg(

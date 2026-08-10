@@ -272,8 +272,8 @@ def simulate_trade(direction: str, entry: float, sl: float, tp: float,
             }
 
         # ── 6. STAGNADO ────────────────────────────────────────────
-        if hours >= 10:
-            # 10h+ incondicional
+        if hours >= 7:
+            # 7h+ incondicional
             realized = open_pnl - fee
             return {
                 "won": realized > 0,
@@ -281,7 +281,7 @@ def simulate_trade(direction: str, entry: float, sl: float, tp: float,
                 "exit_reason": "STAGNADO",
                 "bars": hours,
             }
-        if hours >= 8 and net_pnl < 0.5:
+        if hours >= 5 and net_pnl < 0.5:
             # 8h+ com PnL baixo
             realized = open_pnl - fee
             return {

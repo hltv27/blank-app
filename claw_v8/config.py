@@ -72,10 +72,10 @@ ADX_TREND_MIN_ALT   = 25.0   # alts com ADX 25+ já têm tendência suficiente
 EMA_SLOPE_MIN   = 0.003  # slope mínimo da EMA99 (Fase 2: era 0.0005 — passava tudo)
 STOCH_VETO_LONG = 95.0
 STOCH_VETO_SHORT= 2.5
-SCORE_ALERTA    = 5       # Fase 2: score por categorias (max 8), era 6 com max ~18
+SCORE_ALERTA    = 6       # Fase 2b: subido de 5→6 (43% STAGNADO com score 5 = sinais fracos)
 SCORE_FORTE     = 7       # sinais "fortes" (Fase 2: era 8)
-SCORE_LONG_MIN  = 5       # LONGs: score mínimo (Fase 2: era 6)
-SCORE_SHORT_MIN = 6       # SHORTs: score mínimo (Fase 2: era 8 — demasiado restritivo)
+SCORE_LONG_MIN  = 6       # LONGs: score mínimo (Fase 2b: era 5 — entrava em trades que não mexiam)
+SCORE_SHORT_MIN = 7       # SHORTs: score mínimo (Fase 2b: era 6 — SHORTs WR 42% vs LONGs 48%)
 
 # Markov regime detection
 MARKOV_LOOKBACK = 100   # candles for transition matrix
