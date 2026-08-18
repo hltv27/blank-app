@@ -47,7 +47,7 @@ BTC_SYMBOLS = {"BTCUSDC"}
 # ─────────────────────────────────────────────
 #  RISCO
 # ─────────────────────────────────────────────
-CAPITAL_MAX_BOT     = 370.0
+CAPITAL_MAX_BOT     = 300.0    # alinhado com saldo real (~316 USDC) — era 370, sobredimensionava posicoes
 RISCO_USDC          = 6.0
 ALAVANCAGEM         = 6
 RATIO_ALVO          = 3.0

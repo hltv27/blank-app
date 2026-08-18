@@ -17,26 +17,26 @@ O `ultimo_relatorio_dia` é persistido no SQLite — restarts não perdem dias n
 
 ## O que é este projecto
 Bot de trading automático para Binance Futures USDC-M (perpétuos).
-- Capital: ~370 USDC | Alavancagem: 6x | Margem: Cross
+- Capital: ~300 USDC | Alavancagem: 6x | Margem: Cross
 - Conta europeia **BNFCR** (Binance France Crypto Receipt) — tem restrições de API
-- Corre actualmente no **Termux (Android)** do utilizador — ver secção abaixo
-- Histórico: Termux → VPS `178.105.52.219` → voltou para Termux (ver `PROJECTO_CLAW_COMPLETO.md` secção 9)
-- Ficheiros em `~/blank-app/claw_v8/` | Log: `~/claw.log`
-- **Sem auto-deploy no Termux** — após cada `git push` para `main`, o utilizador tem de fazer `git pull` + restart manualmente (ver abaixo)
+- Corre actualmente na **VPS `178.105.52.219`** (hostname `Claw-bot`) — ver secção abaixo
+- Histórico: Termux → VPS → Termux → **VPS** (actual)
+- Ficheiros em `/root/blank-app/claw_v8/` | Log: `/root/claw.log`
+- **Sem auto-deploy** — após cada `git push` para `main`, é preciso `git fetch` + `reset --hard` + restart na VPS (ver abaixo)
 
-## Como arrancar o bot (Termux, ambiente actual)
+## Como arrancar o bot (VPS, ambiente actual)
+Uma linha só — o utilizador pede sempre assim:
 ```bash
-pkill -f "python.*main.py"; pkill -f "run_loop.sh"; sleep 2
-cd ~/blank-app && git pull origin main
-cd claw_v8 && chmod +x run_loop.sh && nohup ./run_loop.sh &
-sleep 3 && tail -20 ~/claw.log
+pkill -f "python.*main.py"; pkill -f "run_loop.sh"; sleep 2; cd /root/blank-app && git fetch origin main && git reset --hard origin/main && cd claw_v8 && chmod +x run_loop.sh && nohup ./run_loop.sh > /tmp/run_loop.log 2>&1 & sleep 5 && tail -20 /root/claw.log
 ```
+**`git pull` não chega** — já falhou com "Already up to date" mesmo com commits novos em `main`. Usar sempre `git fetch` + `git reset --hard origin/main`.
+Antes de relançar, matar SEMPRE todas as instâncias (`pkill` das duas linhas) — já aconteceu ficarem 5 processos em paralelo a duplicar logs e ordens.
 `run_loop.sh` reinicia automaticamente o `main.py` sempre que ele terminar (crash ou watchdog) — não correr `python -u main.py` directamente em produção, senão perde-se o auto-restart.
 
-Esta sessão remota **não tem acesso SSH/Termux** ao dispositivo do utilizador — qualquer diagnóstico depende de output/screenshots colados pelo utilizador.
+Esta sessão remota **não tem acesso SSH** à VPS — qualquer diagnóstico depende de output/screenshots colados pelo utilizador.
 
 ## ⚠️ IP instável (Termux/dados móveis) — requer whitelist manual frequente
-O Termux corre em dados móveis (ou Wi-Fi doméstico), **sem IP fixo**. Sempre que o IP mudar (reinício do telemóvel, troca de torre/rede), a Binance bloqueia as chamadas da API e o bot envia `🔒 IP bloqueado` no Telegram repetidamente (1x/10min, ver `exchange.py:171`) até o IP ser adicionado.
+(Histórico — aplicava-se ao Termux, que corria sem IP fixo. A VPS tem IP fixo, pelo que isto deixou de acontecer.) O Termux corria em dados móveis, **sem IP fixo**. Sempre que o IP mudar (reinício do telemóvel, troca de torre/rede), a Binance bloqueia as chamadas da API e o bot envia `🔒 IP bloqueado` no Telegram repetidamente (1x/10min, ver `exchange.py:171`) até o IP ser adicionado.
 - **Acção quando aparecer "IP bloqueado"**: Binance → API Management → Edit restrictions → adicionar o IP indicado na mensagem em "Restrict access to trusted IPs only"
 - Isto NÃO é um bug do bot — é uma limitação inerente a correr sem IP fixo. Vai repetir-se.
 - (Infra antiga, já não em uso) Comandos VPS com IP fixo `178.105.52.219` — mantidos apenas como referência histórica caso o bot volte para lá:
@@ -51,9 +51,8 @@ O Termux corre em dados móveis (ou Wi-Fi doméstico), **sem IP fixo**. Sempre q
   ```
 
 ## Kill switch de emergência
-No Termux, criar o ficheiro directamente:
 ```bash
-touch ~/blank-app/claw_v8/KILL_SWITCH
+touch /root/blank-app/claw_v8/KILL_SWITCH
 ```
 
 ## Branches
@@ -123,7 +122,7 @@ O profit lock cancela o stop antigo ANTES de colocar o novo. Ver `execution.py`.
 **Nota:** este bloco reflecte `claw_v8/config.py` no branch `main`; confirmar sempre no ficheiro antes de assumir valores desactualizados aqui.
 
 ```python
-CAPITAL_MAX_BOT     = 370.0    # capital máximo que o bot usa
+CAPITAL_MAX_BOT     = 300.0    # capital máximo que o bot usa (alinhado com saldo real)
 RISCO_USDC          = 6.0      # risco por trade em USDC
 ALAVANCAGEM         = 6        # leverage
 MAX_TRADES_ABERTOS  = 5
