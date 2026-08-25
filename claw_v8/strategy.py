@@ -20,16 +20,22 @@ from indicators import (
 
 
 def detect_market_mode(closes: list, atr_val: float) -> str:
-    """TRENDING ou MORTO. Fase 2: thresholds subidos para filtrar mercados laterais."""
+    """TRENDING ou MORTO_*. Devolve o motivo e o valor medido quando rejeita.
+
+    Só a igualdade com "TRENDING" e' testada pelos chamadores (main.py, backtest.py),
+    por isso o sufixo de diagnostico e' seguro. Serve para atribuir qual dos dois
+    portoes esta' a bloquear — antes era um "MORTO" opaco para os dois casos.
+    """
     price = closes[-1]
     if atr_val == 0 or price == 0:
-        return "MORTO"
-    if atr_val / price < ATR_MIN_PCT:
-        return "MORTO"
+        return "MORTO_DADOS"
+    atr_pct = atr_val / price
+    if atr_pct < ATR_MIN_PCT:
+        return f"MORTO_ATR {atr_pct * 100:.3f}%"
     ema_vals = ema(closes, EMA_TREND)
     slope    = (ema_vals[-1] - ema_vals[-6]) / ema_vals[-6] if ema_vals[-6] != 0 else 0
     if abs(slope) < EMA_SLOPE_MIN:
-        return "MORTO"
+        return f"MORTO_SLOPE {abs(slope) * 100:.3f}%"
     return "TRENDING"
 
 
