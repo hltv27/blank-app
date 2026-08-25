@@ -68,8 +68,8 @@ SCAN_ALIGN_MIN      = 60     # Fase 2: scan 1×/hora com vela fechada (era 15 �
 
 ADX_TREND_MIN       = 22.5   # ADX mínimo (fallback / detect_market_mode)
 ADX_TREND_MIN_MAJOR = 22.5   # BTC, ETH, BNB — tendências mais limpas
-ADX_TREND_MIN_ALT   = 25.0   # alts com ADX 25+ já têm tendência suficiente
-EMA_SLOPE_MIN   = 0.003  # slope mínimo da EMA99 (Fase 2: era 0.0005 — passava tudo)
+ADX_TREND_MIN_ALT   = 22.5   # Fase 3: 25.0 deixava 19.8k rejeicoes; alinhado com MAJOR
+EMA_SLOPE_MIN   = 0.001  # Fase 3: 0.003 = 87% dos pares MORTO (EMA99 mal se move; era 0.0005)
 STOCH_VETO_LONG = 95.0
 STOCH_VETO_SHORT= 2.5
 SCORE_ALERTA    = 5       # Fase 2c: voltou a 5 (6 + filtros produção = 0 trades em 3 dias)
@@ -82,7 +82,7 @@ MARKOV_LOOKBACK = 100   # candles for transition matrix
 MARKOV_MIN_PROB = 0.55  # min P(bullish/bearish next) to generate a signal
 MARKOV_SCORE    = 0     # Fase 2: desactivado temporariamente (adicionava ruído ao score)
 
-ATR_MIN_PCT     = 0.003   # Fase 2: era 0.0008 — passava tudo como TRENDING
+ATR_MIN_PCT     = 0.0015  # Fase 3: 0.003 matava o scan (Fase 2 subiu 3.75x; era 0.0008)
 ATR_FLOOR_PCT   = 0.0003  # ATR mínimo: 0.03% do preço (evita qty degenerada em volatilidade ultra-baixa)
 BB_PERIOD       = 20
 BB_STD          = 2.0

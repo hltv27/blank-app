@@ -137,9 +137,9 @@ SCORE_LONG_MIN      = 6        # LONGs: score mínimo (Fase 2b: era 5)
 SCORE_SHORT_MIN     = 7        # SHORTs: score mínimo (Fase 2b: era 6 — SHORTs WR pior)
 SCORE_FORTE         = 7        # score forte (Fase 2: era 8)
 ADX_TREND_MIN_MAJOR = 22.5     # BTC/ETH/BNB
-ADX_TREND_MIN_ALT   = 25.0     # alts com ADX 25+
-ATR_MIN_PCT         = 0.003    # ATR mínimo para TRENDING (Fase 2: era 0.0008)
-EMA_SLOPE_MIN       = 0.003    # slope mínimo EMA99 (Fase 2: era 0.0005)
+ADX_TREND_MIN_ALT   = 22.5     # Fase 3: alinhado com MAJOR (25.0 = 19.8k rejeições)
+ATR_MIN_PCT         = 0.0015   # Fase 3: 0.003 matava o scan (era 0.0008 na Fase 1)
+EMA_SLOPE_MIN       = 0.001    # Fase 3: 0.003 → 87% dos pares MORTO (era 0.0005)
 SCAN_ALIGN_MIN      = 60       # scan 1×/hora com vela fechada (Fase 2: era 15)
 ATR_SL_MULT_MIN     = 2.0      # SL mínimo (1H ATR)
 ATR_SL_MULT_MAX     = 2.5      # SL em mercado volátil
