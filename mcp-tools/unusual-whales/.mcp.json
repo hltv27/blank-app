@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "unusual-whales": {
+      "type": "http",
+      "url": "https://unusual-whales.com/public-api/mcp"
+    }
+  }
+}
