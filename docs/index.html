@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hugo.deals</title>
+<meta name="description" content="As melhores ofertas do AliExpress, todos os dias. Gadgets, casa, fitness e moda.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap">
+<style>
+/* ── Tokens ──────────────────────────────────────────────── */
+:root {
+  --bg:        #0D0D0B;
+  --surface:   #171614;
+  --surface-2: #1F1D1A;
+  --border:    #2C2926;
+  --accent:    #FF6B35;
+  --accent-lo: rgba(255,107,53,.13);
+  --price:     #FFD60A;
+  --discount:  #22C55E;
+  --text:      #F2EDE8;
+  --text-2:    #8C857D;
+  --text-3:    #5A5450;
+
+  --niche-tech:    #3B82F6;
+  --niche-home:    #10B981;
+  --niche-fitness: #EF4444;
+  --niche-fashion: #A855F7;
+
+  --r: 10px;
+  --shadow: 0 2px 16px rgba(0,0,0,.45);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:        #F8F5F0;
+    --surface:   #FFFFFF;
+    --surface-2: #F0EDE8;
+    --border:    #E2DDD6;
+    --text:      #1A1714;
+    --text-2:    #6E6660;
+    --text-3:    #A09890;
+    --shadow: 0 2px 12px rgba(0,0,0,.09);
+  }
+}
+:root[data-theme="light"] {
+  --bg:        #F8F5F0;
+  --surface:   #FFFFFF;
+  --surface-2: #F0EDE8;
+  --border:    #E2DDD6;
+  --text:      #1A1714;
+  --text-2:    #6E6660;
+  --text-3:    #A09890;
+  --shadow: 0 2px 12px rgba(0,0,0,.09);
+}
+
+/* ── Reset ───────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{
+  font-family:'DM Sans',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  line-height:1.5;
+}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;border:none;background:none;cursor:pointer}
+
+/* ── Header ──────────────────────────────────────────────── */
+.site-header{
+  position:sticky;top:0;z-index:100;
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+.header-inner{
+  max-width:1100px;margin:0 auto;
+  padding:0 20px;
+  display:flex;align-items:center;gap:16px;
+  height:58px;
+}
+.brand{
+  font-family:'Syne',sans-serif;
+  font-weight:800;font-size:1.25rem;
+  color:var(--text);
+  flex-shrink:0;
+}
+.brand span{color:var(--accent)}
+.tg-pill{
+  margin-left:auto;flex-shrink:0;
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--accent);color:#fff;
+  font-size:.8rem;font-weight:600;
+  padding:5px 12px;border-radius:999px;
+  transition:opacity .15s;
+}
+.tg-pill:hover{opacity:.85}
+.tg-pill svg{width:15px;height:15px;fill:currentColor}
+.theme-btn{
+  color:var(--text-2);font-size:1.1rem;
+  padding:4px 6px;border-radius:6px;
+  transition:color .15s;
+}
+.theme-btn:hover{color:var(--text)}
+
+/* ── Filter bar ──────────────────────────────────────────── */
+.filter-bar{
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-inner{
+  max-width:1100px;margin:0 auto;
+  padding:10px 20px;
+  display:flex;gap:8px;
+  white-space:nowrap;
+}
+.filter-pill{
+  padding:6px 14px;border-radius:999px;
+  font-size:.82rem;font-weight:500;
+  color:var(--text-2);
+  border:1px solid var(--border);
+  background:var(--surface);
+  transition:all .15s;flex-shrink:0;
+}
+.filter-pill:hover{border-color:var(--accent);color:var(--text)}
+.filter-pill.active{
+  background:var(--accent);color:#fff;
+  border-color:var(--accent);
+}
+
+/* ── Main ────────────────────────────────────────────────── */
+main{
+  max-width:1100px;margin:0 auto;
+  padding:24px 20px 60px;
+}
+.meta-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;gap:12px;flex-wrap:wrap;
+}
+.meta-count{font-size:.85rem;color:var(--text-2)}
+.sort-select{
+  font-family:inherit;font-size:.82rem;
+  color:var(--text-2);
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;padding:5px 10px;
+  cursor:pointer;
+}
+.sort-select:focus{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ── Grid ────────────────────────────────────────────────── */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
+  gap:16px;
+}
+
+/* ── Card ────────────────────────────────────────────────── */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  overflow:hidden;
+  display:flex;flex-direction:column;
+  position:relative;
+  box-shadow:var(--shadow);
+  transition:transform .18s,box-shadow .18s,border-color .18s;
+  border-left-width:3px;
+}
+.card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 6px 24px rgba(0,0,0,.55);
+  border-color:var(--border);
+}
+.card[data-niche="tech_gadgets"]   {border-left-color:var(--niche-tech)}
+.card[data-niche="home_smart"]     {border-left-color:var(--niche-home)}
+.card[data-niche="fitness_health"] {border-left-color:var(--niche-fitness)}
+.card[data-niche="fashion_accessories"]{border-left-color:var(--niche-fashion)}
+
+.card-img{
+  position:relative;
+  aspect-ratio:1/1;overflow:hidden;
+  background:var(--surface-2);
+}
+.card-img img{
+  width:100%;height:100%;
+  object-fit:cover;
+  transition:transform .3s;
+}
+.card:hover .card-img img{transform:scale(1.04)}
+.img-placeholder{
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:3rem;
+  background:var(--surface-2);
+}
+.discount-badge{
+  position:absolute;top:10px;right:10px;
+  background:var(--discount);color:#fff;
+  font-size:.75rem;font-weight:700;
+  padding:3px 8px;border-radius:5px;
+  font-variant-numeric:tabular-nums;
+}
+
+.card-body{
+  padding:14px 14px 14px 16px;
+  display:flex;flex-direction:column;gap:8px;
+  flex:1;
+}
+.card-niche{
+  font-size:.72rem;font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text-3);
+}
+[data-niche="tech_gadgets"]    .card-niche{color:var(--niche-tech)}
+[data-niche="home_smart"]      .card-niche{color:var(--niche-home)}
+[data-niche="fitness_health"]  .card-niche{color:var(--niche-fitness)}
+[data-niche="fashion_accessories"] .card-niche{color:var(--niche-fashion)}
+
+.card-title{
+  font-size:.9rem;font-weight:500;
+  color:var(--text);
+  line-height:1.35;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.price-row{
+  display:flex;align-items:baseline;gap:8px;
+  flex-wrap:wrap;
+}
+.price-current{
+  font-family:'Syne',sans-serif;
+  font-size:1.45rem;font-weight:700;
+  color:var(--price);
+  font-variant-numeric:tabular-nums;
+}
+.price-original{
+  font-size:.82rem;color:var(--text-3);
+  text-decoration:line-through;
+  font-variant-numeric:tabular-nums;
+}
+.savings{
+  font-size:.78rem;color:var(--discount);font-weight:600;
+}
+
+.card-cta{
+  margin-top:auto;padding-top:10px;
+}
+.btn-offer{
+  display:block;width:100%;
+  background:var(--accent);color:#fff;
+  font-size:.88rem;font-weight:600;
+  padding:10px 16px;border-radius:7px;
+  text-align:center;
+  transition:opacity .15s,transform .1s;
+}
+.btn-offer:hover{opacity:.88}
+.btn-offer:active{transform:scale(.98)}
+
+/* ── States ──────────────────────────────────────────────── */
+.skeleton{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  overflow:hidden;
+  border-left:3px solid var(--surface-2);
+}
+.skel-img{aspect-ratio:1/1;background:var(--surface-2);animation:pulse 1.4s ease-in-out infinite}
+.skel-body{padding:14px;display:flex;flex-direction:column;gap:10px}
+.skel-line{height:12px;border-radius:4px;background:var(--surface-2);animation:pulse 1.4s ease-in-out infinite}
+.skel-line.short{width:55%}
+.skel-line.tall{height:36px;border-radius:6px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+.empty-state{
+  grid-column:1/-1;
+  padding:64px 20px;text-align:center;
+  color:var(--text-2);
+}
+.empty-state .icon{font-size:2.5rem;margin-bottom:12px}
+.empty-state p{font-size:.95rem}
+
+/* ── Footer ──────────────────────────────────────────────── */
+.site-footer{
+  border-top:1px solid var(--border);
+  padding:20px;text-align:center;
+  color:var(--text-3);font-size:.8rem;
+}
+.site-footer a{color:var(--accent)}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media(max-width:480px){
+  .grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+  .price-current{font-size:1.15rem}
+  .card-title{font-size:.83rem}
+}
+@media(prefers-reduced-motion:reduce){
+  .card,.btn-offer,.card-img img{transition:none}
+  .skel-img,.skel-line{animation:none}
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">hugo<span>.deals</span></div>
+    <button class="theme-btn" id="themeBtn" aria-label="Alternar tema" title="Alternar tema">☾</button>
+    <a class="tg-pill" href="https://t.me/TopDealsGadgetss" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+      Telegram
+    </a>
+  </div>
+</header>
+
+<nav class="filter-bar">
+  <div class="filter-inner" id="filterBar">
+    <button class="filter-pill active" data-niche="all">Todos</button>
+    <button class="filter-pill" data-niche="tech_gadgets">📱 Tech</button>
+    <button class="filter-pill" data-niche="home_smart">🏠 Casa</button>
+    <button class="filter-pill" data-niche="fitness_health">💪 Fitness</button>
+    <button class="filter-pill" data-niche="fashion_accessories">👗 Moda</button>
+  </div>
+</nav>
+
+<main>
+  <div class="meta-row">
+    <span class="meta-count" id="metaCount"></span>
+    <select class="sort-select" id="sortSelect">
+      <option value="newest">Mais recentes</option>
+      <option value="discount">Maior desconto</option>
+      <option value="price_asc">Preço ↑</option>
+    </select>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer class="site-footer">
+  Atualizado <span id="updatedAt">—</span> · <a href="https://t.me/TopDealsGadgetss" target="_blank" rel="noopener">@TopDealsGadgetss</a>
+</footer>
+
+<script>
+const NICHE_LABELS = {
+  tech_gadgets:'📱 Tech',
+  home_smart:'🏠 Casa',
+  fitness_health:'💪 Fitness',
+  fashion_accessories:'👗 Moda'
+};
+const NICHE_EMOJI = {
+  tech_gadgets:'📱', home_smart:'🏠', fitness_health:'💪', fashion_accessories:'👗'
+};
+
+let allProducts = [];
+let activeNiche = 'all';
+let sortMode = 'newest';
+
+/* ── Theme toggle ─────────────────────────────────────────── */
+const root = document.documentElement;
+const themeBtn = document.getElementById('themeBtn');
+let theme = localStorage.getItem('hd-theme') || 'system';
+
+function applyTheme(t) {
+  if (t === 'dark')  { root.setAttribute('data-theme','dark');  themeBtn.textContent = '☀'; }
+  else if (t === 'light'){ root.setAttribute('data-theme','light'); themeBtn.textContent = '☾'; }
+  else               { root.removeAttribute('data-theme');      themeBtn.textContent = '☾'; }
+}
+applyTheme(theme);
+themeBtn.addEventListener('click', () => {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  try { localStorage.setItem('hd-theme', theme); } catch(e){}
+  applyTheme(theme);
+});
+
+/* ── Skeletons ────────────────────────────────────────────── */
+function showSkeletons(n=8) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = Array(n).fill(0).map(()=>`
+    <div class="skeleton">
+      <div class="skel-img"></div>
+      <div class="skel-body">
+        <div class="skel-line short"></div>
+        <div class="skel-line"></div>
+        <div class="skel-line short" style="width:70%"></div>
+        <div class="skel-line tall"></div>
+      </div>
+    </div>`).join('');
+}
+
+/* ── Render ───────────────────────────────────────────────── */
+function sorted(arr) {
+  const a = [...arr];
+  if (sortMode === 'discount') return a.sort((x,y)=>(y.discount_percent||0)-(x.discount_percent||0));
+  if (sortMode === 'price_asc') return a.sort((x,y)=>x.price-y.price);
+  return a.sort((x,y)=>new Date(y.posted_at)-new Date(x.posted_at));
+}
+
+function filtered() {
+  return activeNiche === 'all' ? allProducts : allProducts.filter(p=>p.niche===activeNiche);
+}
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  const products = sorted(filtered());
+  document.getElementById('metaCount').textContent =
+    products.length === 1 ? '1 oferta' : `${products.length} ofertas`;
+
+  if (!products.length) {
+    grid.innerHTML = `<div class="empty-state">
+      <div class="icon">🔍</div>
+      <p>Nenhuma oferta disponível nesta categoria.</p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = products.map(p => {
+    const discount = Math.round(p.discount_percent||0);
+    const savings  = p.original_price && p.original_price > p.price
+      ? (p.original_price - p.price).toFixed(2) : null;
+    const emoji = NICHE_EMOJI[p.niche] || '🛒';
+    const title = (p.title||'').replace(/</g,'&lt;');
+    const nLabel = NICHE_LABELS[p.niche] || '';
+
+    return `
+    <article class="card" data-niche="${p.niche||''}">
+      <div class="card-img">
+        <img src="${p.image_url||''}" alt="${title}"
+             loading="lazy"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="img-placeholder" style="display:none">${emoji}</div>
+        ${discount >= 10 ? `<span class="discount-badge">-${discount}%</span>` : ''}
+      </div>
+      <div class="card-body">
+        <div class="card-niche">${nLabel}</div>
+        <h2 class="card-title">${title}</h2>
+        <div class="price-row">
+          <span class="price-current">€${Number(p.price).toFixed(2)}</span>
+          ${p.original_price > p.price
+            ? `<span class="price-original">€${Number(p.original_price).toFixed(2)}</span>`
+            : ''}
+          ${savings ? `<span class="savings">−€${savings}</span>` : ''}
+        </div>
+        <div class="card-cta">
+          <a class="btn-offer" href="${p.affiliate_url||'#'}" target="_blank" rel="noopener sponsored">
+            Ver oferta →
+          </a>
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+/* ── Filter & sort wiring ─────────────────────────────────── */
+document.getElementById('filterBar').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-pill');
+  if (!btn) return;
+  document.querySelectorAll('.filter-pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  activeNiche = btn.dataset.niche;
+  renderGrid();
+});
+document.getElementById('sortSelect').addEventListener('change', e => {
+  sortMode = e.target.value;
+  renderGrid();
+});
+
+/* ── Fetch ────────────────────────────────────────────────── */
+function formatDate(iso) {
+  if (!iso) return '—';
+  try {
+    return new Intl.DateTimeFormat('pt-PT',{dateStyle:'short',timeStyle:'short'}).format(new Date(iso));
+  } catch { return iso; }
+}
+
+showSkeletons();
+
+fetch('./products.json?v=' + Date.now())
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(data => {
+    allProducts = data.products || [];
+    document.getElementById('updatedAt').textContent = formatDate(data.updated_at);
+    renderGrid();
+  })
+  .catch(() => {
+    allProducts = [];
+    document.getElementById('grid').innerHTML = `<div class="empty-state">
+      <div class="icon">📡</div>
+      <p>Sem ofertas ainda — volta mais tarde.</p>
+    </div>`;
+    document.getElementById('metaCount').textContent = '';
+  });
+</script>
+</body>
+</html>

@@ -92,6 +92,12 @@ def run_post_cycle(platform: str, niche_key: str, niche_config: dict) -> bool:
 
     if success:
         logger.info("Posted %s to %s — %s", product["product_id"], platform, product["title"][:50])
+        # Update GitHub Pages deals page (best-effort, non-blocking)
+        try:
+            publishers.website.publish(product, caption, str(image_path), platform=platform)
+        except Exception as e:
+            logger.debug("Website update skipped: %s", e)
+
     return success
 
 

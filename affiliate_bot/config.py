@@ -35,6 +35,9 @@ class Config:
     TIKTOK_CLIENT_SECRET = os.getenv("TIKTOK_CLIENT_SECRET", "")
     TIKTOK_ACCESS_TOKEN = os.getenv("TIKTOK_ACCESS_TOKEN", "")
 
+    # GitHub (para actualizar página de deals)
+    GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+
     # Anthropic
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
