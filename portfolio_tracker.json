@@ -1980,7 +1980,7 @@
       "carteiras": {
         "tangem_wallet": {
           "moeda": "USD",
-          "total": 3772.50,
+          "total": 3772.5,
           "variacao_vs_15jul_usd": -78.54,
           "variacao_vs_15jul_pct": -2.0,
           "ativos": {
@@ -2019,7 +2019,7 @@
             "BNB": {
               "qtd": 0.00857655,
               "valor_usd": 4.92,
-              "preco_usd": 573.20,
+              "preco_usd": 573.2,
               "nota": "novo, APY 0.65%"
             },
             "DOT": {
@@ -2105,7 +2105,7 @@
         },
         "cash_fund": {
           "moeda": "EUR",
-          "total": 1000.00,
+          "total": 1000.0,
           "nota": "Fundo cash — resultado da venda das posicoes anteriores do T212 (VWCE, FTNT, CEG, LEU, MRVL). ~€1,000 libertados e reservados em cash."
         },
         "binance_spot": {
@@ -2125,9 +2125,9 @@
         }
       },
       "resumo": {
-        "tangem_usd": 3772.50,
+        "tangem_usd": 3772.5,
         "invest_stocks_eur": 729.82,
-        "cash_fund_eur": 1000.00,
+        "cash_fund_eur": 1000.0,
         "binance_spot_usd": null,
         "binance_futures_usd": null,
         "robinhood_usd": null,
@@ -2200,7 +2200,7 @@
               "var_dia_pct": 0.61
             },
             "BASE_ETH": {
-              "qtd": 0.00000698,
+              "qtd": 6.98e-06,
               "valor_usd": 0.01,
               "preco_usd": 1889.59,
               "var_dia_pct": -1.15
@@ -2210,7 +2210,7 @@
         },
         "trading_212_invest": {
           "moeda": "EUR",
-          "total": 541.20,
+          "total": 541.2,
           "variacao_vs_27jul_eur": -188.62,
           "variacao_vs_27jul_pct": -25.8,
           "nota": "NBIS e CIFR vendidos. IREN, HODLX, DRAM reduzidos a metade. MSFT adicionado. ASML reduzido ligeiramente.",
@@ -2237,19 +2237,19 @@
             },
             "V3PA": {
               "qtd": 7.35610176,
-              "valor_eur": 68.00,
-              "var_dia_eur": -1.00,
+              "valor_eur": 68.0,
+              "var_dia_eur": -1.0,
               "var_dia_pct": -1.45
             },
             "EMIM": {
               "qtd": 1.32663956,
               "valor_eur": 61.25,
-              "var_dia_eur": -0.40,
+              "var_dia_eur": -0.4,
               "var_dia_pct": -0.65
             },
             "HODLX": {
               "qtd": 3.27432062,
-              "valor_eur": 58.80,
+              "valor_eur": 58.8,
               "var_dia_eur": -2.18,
               "var_dia_pct": -3.57,
               "nota": "reduzido de 6.61 para 3.27"
@@ -2277,11 +2277,11 @@
             "FTNT": {
               "qtd": 0.86825,
               "preco_usd": 154.63,
-              "valor_eur": 116.70,
+              "valor_eur": 116.7,
               "custo_medio_eur": 148.08,
               "pl_eur": -11.88,
               "pl_pct": -9.24,
-              "var_dia_eur": 0.40,
+              "var_dia_eur": 0.4,
               "var_dia_pct": 0.34,
               "portfolio_diversity_pct": 98.76
             }
@@ -2289,7 +2289,7 @@
         },
         "cash_fund": {
           "moeda": "EUR",
-          "total": 1000.00,
+          "total": 1000.0,
           "nota": "Sem actualizacao — valor de Jul-27. Possivelmente parte foi deployada nas novas posicoes."
         },
         "binance_spot": {
@@ -2306,9 +2306,9 @@
       "resumo": {
         "tangem_usd": 3507.49,
         "tangem_eur": 3050.0,
-        "invest_stocks_eur": 541.20,
+        "invest_stocks_eur": 541.2,
         "robinhood_eur": 118.17,
-        "cash_fund_eur": 1000.00,
+        "cash_fund_eur": 1000.0,
         "binance_spot_usd": null,
         "binance_futures_usd": null,
         "total_eur_aprox": 4709,
@@ -2316,6 +2316,625 @@
         "variacao_vs_27jul_pct": -18.8,
         "nota_variacao": "Tangem -$265 (ZEC vendido por completo, -$201; BTC -1.4%, ETH -2.6%, SOL -2.5%). T212 -€189: NBIS e CIFR vendidos, IREN/HODLX/DRAM reduzidos a metade, MSFT adicionado (+€109). Robinhood: QQQM vendido, FTNT comprado (€117, em perda -9.2%). Cash fund sem actualizacao. Sem dados Binance neste snapshot.",
         "nota": "Binance spot/futures sem actualizacao — totais omitidos do calculo. Total estimado considera Tangem + T212 + Robinhood + fundo cash."
+      }
+    },
+    {
+      "data": "2026-08-18",
+      "hora": "17:01",
+      "eur_usd_rate": 1.15,
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 3789.26,
+          "variacao_vs_31jul_usd": 281.77,
+          "variacao_vs_31jul_pct": 8.0,
+          "ativos": {
+            "BTC": {
+              "qtd": 0.03598865,
+              "valor_usd": 2462.5,
+              "preco_usd": 68424.43,
+              "var_dia_pct": 2.5
+            },
+            "ETH": {
+              "qtd": 0.45657129,
+              "valor_usd": 951.77,
+              "preco_usd": 2084.59,
+              "var_dia_pct": 9.0
+            },
+            "SOL": {
+              "qtd": 3.39978137,
+              "valor_usd": 278.22,
+              "preco_usd": 81.83,
+              "var_dia_pct": 6.0,
+              "staking_apy": 5.5
+            },
+            "XRP": {
+              "qtd": 84.566087,
+              "valor_usd": 90.64,
+              "preco_usd": 1.07,
+              "var_dia_pct": 3.5
+            },
+            "BNB": {
+              "qtd": 0.00857477,
+              "valor_usd": 5.28,
+              "preco_usd": 616.09,
+              "var_dia_pct": 1.3,
+              "staking_apy": 1.74
+            },
+            "DOT": {
+              "qtd": 1.0,
+              "valor_usd": 0.78,
+              "preco_usd": 0.78,
+              "var_dia_pct": 5.0
+            },
+            "HBAR": {
+              "qtd": 0.36102351,
+              "valor_usd": 0.02,
+              "preco_usd": 0.07,
+              "var_dia_pct": 4.6
+            },
+            "B2": {
+              "qtd": 0.047222,
+              "valor_usd": 0.02,
+              "preco_usd": 0.46,
+              "var_dia_pct": -1.1
+            },
+            "BASE_ETH": {
+              "qtd": 6.98e-06,
+              "valor_usd": 0.01,
+              "preco_usd": 2084.59,
+              "var_dia_pct": 9.0
+            }
+          },
+          "nota": "Rally em cripto: ETH +9%, SOL +6%, XRP +3.5%, BTC +2.5%. Quantidades inalteradas — subida toda de preco."
+        },
+        "trading_212_invest": {
+          "moeda": "EUR",
+          "total": 590.96,
+          "variacao_vs_31jul_eur": 49.76,
+          "nota": "Carteira COMPLETAMENTE rodada desde Jul-31: saiu MSFT, ASML, IREN, V3PA, EMIM, HODLX, DRAM. Tres posicoes novas a 18-Ago (NUKL, PAIW, JEDI, ~EUR112), todas em perda no primeiro dia.",
+          "ativos": {
+            "VWCE": {
+              "qtd": 1.08730863,
+              "valor_eur": 181.04,
+              "pl_eur": -2.07,
+              "pl_pct": -1.13,
+              "papel": "nucleo"
+            },
+            "SEC0": {
+              "qtd": 6.85871056,
+              "valor_eur": 114.88,
+              "pl_eur": -5.12,
+              "pl_pct": -4.27,
+              "dca": "desligado 18-Ago"
+            },
+            "VVMX": {
+              "qtd": 7.57690559,
+              "valor_eur": 97.36,
+              "pl_eur": -2.64,
+              "pl_pct": -2.64,
+              "dca": "desligado 18-Ago"
+            },
+            "MP": {
+              "qtd": 1.89394158,
+              "valor_eur": 92.13,
+              "pl_eur": 6.25,
+              "pl_pct": 7.28
+            },
+            "PAIW": {
+              "qtd": 2.29252636,
+              "valor_eur": 46.53,
+              "pl_eur": -3.47,
+              "pl_pct": -6.94,
+              "novo": true
+            },
+            "NUKL": {
+              "qtd": 0.87136929,
+              "valor_eur": 40.24,
+              "pl_eur": -1.76,
+              "pl_pct": -4.19,
+              "novo": true
+            },
+            "JEDI": {
+              "qtd": 0.25103448,
+              "valor_eur": 18.78,
+              "pl_eur": -1.24,
+              "pl_pct": -6.19,
+              "novo": true
+            }
+          },
+          "autoinvest": {
+            "total_mes_eur": 243,
+            "alterado_em": "2026-08-18",
+            "antes": "VWCE EUR3/dia (91), MP EUR2/dia (61), SEC0 EUR2/dia (61), VVMX EUR2/mes — total EUR215",
+            "razao": "SEC0 duplicava DISK (Micron 9.02% + SK Hynix 5.22%); VVMX duplicava MP."
+          }
+        },
+        "mexc_tokenized": {
+          "moeda": "USD",
+          "total": 315.93,
+          "nova_carteira": true,
+          "nota": "ETFs Tema domiciliados nos EUA — inacessiveis na UE por PRIIPs/KID, detidos como accoes tokenizadas (Ondo Finance). RISCO DE CONTRAPARTE: sao tokens que replicam os ETFs, sem proteccao ao investidor. DISK reforcado de 3 para 5 unidades.",
+          "ativos": {
+            "DISK": {
+              "qtd": 5,
+              "valor_usd": 184.5,
+              "preco_usd": 36.9,
+              "custo_medio_usd": 37.534,
+              "pl_usd": -3.17,
+              "subjacente": "Tema Memory ETF — Kioxia 15.8%, SanDisk 15.2%, SK Hynix 13.0%, CXMT 10.6%"
+            },
+            "LAZR": {
+              "qtd": 3,
+              "valor_usd": 131.43,
+              "preco_usd": 43.81,
+              "custo_medio_usd": 47.443,
+              "pl_usd": -10.89,
+              "subjacente": "Tema Photonics & Optical ETF — Lumentum 15.0%, Anthropic 12.45% (privada, $1.8T implicitos), AXT 8.7%"
+            }
+          }
+        },
+        "binance_futures": {
+          "moeda": "USD",
+          "total": 200.12,
+          "nota": "Capital do bot. Utilizador depositou 200 a 18-Ago.",
+          "ativos": {
+            "BNFCR": {
+              "margin_balance": 200.11859127,
+              "unrealized_pnl": 0.0
+            }
+          }
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 118.17,
+          "nota": "Sem actualizacao — Jul-31 (FTNT)."
+        },
+        "cash_fund": {
+          "moeda": "EUR",
+          "total": 1000.0,
+          "nota": "Sem actualizacao — Jul-27."
+        },
+        "binance_spot": {
+          "moeda": "USD",
+          "total": null,
+          "nota": "Sem screenshot."
+        }
+      },
+      "resumo": {
+        "tangem_usd": 3789.26,
+        "tangem_eur": 3295.01,
+        "trading_212_eur": 590.96,
+        "mexc_usd": 315.93,
+        "mexc_eur": 274.72,
+        "binance_futures_usd": 200.12,
+        "binance_futures_eur": 174.02,
+        "robinhood_eur": 118.17,
+        "cash_fund_eur": 1000.0,
+        "total_eur_aprox": 5452.88,
+        "nota": "Divergencia clara: cripto a subir com forca enquanto semis e memoria caem (Micron -6%, SK Hynix -6%). Memoria em bear market (>20% abaixo dos maximos) mas DRAM/HBM esgotados ate' final de 2027 — correccao de multiplo, nao de tese."
+      }
+    },
+    {
+      "data": "2026-08-24",
+      "hora": "16:03",
+      "eur_usd_rate": 1.15,
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 4770.36,
+          "variacao_vs_18ago_usd": 981.1,
+          "variacao_vs_18ago_pct": 25.9,
+          "ativos": {
+            "BTC": {
+              "qtd": 0.03799751,
+              "valor_usd": 3018.77,
+              "preco_usd": 79446.55,
+              "var_dia_pct": 3.01,
+              "delta_qtd": 0.00200886,
+              "nota": "reforcado ~$160"
+            },
+            "ETH": {
+              "qtd": 0.45657129,
+              "valor_usd": 1147.84,
+              "preco_usd": 2514.04,
+              "var_dia_pct": 3.44
+            },
+            "SOL": {
+              "qtd": 4.94865196,
+              "valor_usd": 475.15,
+              "preco_usd": 96.02,
+              "var_dia_pct": 1.23,
+              "staking_apy": 5.52,
+              "delta_qtd": 1.54887059,
+              "nota": "reforcado ~$149"
+            },
+            "XRP": {
+              "qtd": 84.566087,
+              "valor_usd": 127.56,
+              "preco_usd": 1.51,
+              "var_dia_pct": 0.08
+            },
+            "DOT": {
+              "qtd": 1.0,
+              "valor_usd": 0.91,
+              "preco_usd": 0.91,
+              "var_dia_pct": -0.85
+            },
+            "BNB": {
+              "qtd": 6.983e-05,
+              "valor_usd": 0.05,
+              "preco_usd": 706.58,
+              "var_dia_pct": 1.75,
+              "staking_apy": 1.03,
+              "delta_qtd": -0.00850494,
+              "nota": "vendido quase tudo"
+            },
+            "HBAR": {
+              "qtd": 0.36102351,
+              "valor_usd": 0.03,
+              "preco_usd": 0.08,
+              "var_dia_pct": 1.88
+            },
+            "B2": {
+              "qtd": 0.047222,
+              "valor_usd": 0.02,
+              "preco_usd": 0.42,
+              "var_dia_pct": -1.2
+            },
+            "BASE_ETH": {
+              "qtd": 6.98e-06,
+              "valor_usd": 0.02,
+              "preco_usd": 2514.04,
+              "var_dia_pct": 3.44
+            }
+          },
+          "precos_vs_18ago_pct": {
+            "BTC": 16.1,
+            "ETH": 20.6,
+            "SOL": 17.3,
+            "XRP": 41.1
+          },
+          "nota": "Rally forte em 6 dias: XRP +41%, ETH +21%, SOL +17%, BTC +16%. Alem do preco houve compras: +0.002 BTC e +1.55 SOL."
+        },
+        "trading_212_invest": {
+          "moeda": "EUR",
+          "total": 531.62,
+          "variacao_vs_18ago_eur": -59.34,
+          "nota": "SEC0 REDUZIDO de 6.859 para 2.295 unidades (-66%, ~EUR74 vendidos para libertar capital). VWCE subiu para 1.190 via DCA. AutoInvest fixado em EUR161/mes.",
+          "ativos": {
+            "VWCE": {
+              "qtd": 1.18983462,
+              "valor_eur": 196.91,
+              "pl_eur": -3.2,
+              "pl_pct": -1.6,
+              "papel": "nucleo",
+              "delta_qtd": 0.10252599
+            },
+            "VVMX": {
+              "qtd": 7.57690559,
+              "valor_eur": 101.77,
+              "pl_eur": 1.77,
+              "pl_pct": 1.77,
+              "nota": "passou a verde"
+            },
+            "MP": {
+              "qtd": 1.89394158,
+              "valor_eur": 92.0,
+              "pl_eur": 6.12,
+              "pl_pct": 7.13
+            },
+            "PAIW": {
+              "qtd": 2.29252636,
+              "valor_eur": 44.84,
+              "pl_eur": -5.16,
+              "pl_pct": -10.32
+            },
+            "NUKL": {
+              "qtd": 0.87136929,
+              "valor_eur": 41.03,
+              "pl_eur": -0.97,
+              "pl_pct": -2.31
+            },
+            "SEC0": {
+              "qtd": 2.29475349,
+              "valor_eur": 37.23,
+              "pl_eur": -2.92,
+              "pl_pct": -7.27,
+              "delta_qtd": -4.56395707
+            },
+            "JEDI": {
+              "qtd": 0.25103448,
+              "valor_eur": 17.84,
+              "pl_eur": -2.18,
+              "pl_pct": -10.89
+            }
+          },
+          "autoinvest": {
+            "total_mes_eur": 160.78,
+            "alterado_em": "2026-08-24",
+            "antes": "EUR243/mes -> passou por EUR135 -> ficou em EUR161",
+            "linhas": {
+              "VWCE": {
+                "valor": 4,
+                "frequencia": "diaria",
+                "eur_mes": 121.67
+              },
+              "NUKL": {
+                "valor": 4,
+                "frequencia": "semanal",
+                "eur_mes": 17.38
+              },
+              "MP": {
+                "valor": 2,
+                "frequencia": "semanal",
+                "eur_mes": 8.69
+              },
+              "PAIW": {
+                "valor": 2,
+                "frequencia": "semanal",
+                "eur_mes": 8.69
+              },
+              "JEDI": {
+                "valor": 1,
+                "frequencia": "semanal",
+                "eur_mes": 4.35
+              }
+            },
+            "reparticao": {
+              "nucleo_pct": 75.7,
+              "satelites_pct": 24.3
+            }
+          }
+        },
+        "mexc_tokenized": {
+          "moeda": "USD",
+          "total": 301.67,
+          "variacao_vs_18ago_usd": -14.26,
+          "ativos": {
+            "DISK": {
+              "qtd": 5,
+              "valor_usd": 177.5,
+              "preco_usd": 35.5,
+              "custo_medio_usd": 37.534,
+              "pl_usd": -10.17,
+              "var_dia_pct": -6.77
+            },
+            "LAZR": {
+              "qtd": 3,
+              "valor_usd": 124.17,
+              "preco_usd": 41.39,
+              "custo_medio_usd": 47.443,
+              "pl_usd": -18.15,
+              "var_dia_pct": -5.61
+            }
+          }
+        },
+        "binance_futures": {
+          "moeda": "USD",
+          "total": 146.82,
+          "nota": "Resumos horarios do Telegram de 24-Ago. A queda desde os 200 de 18-Ago e' perda nao realizada das posicoes MANUAIS do utilizador (UNIUSDC, ZECUSDC) — MONITOR_EXTERNAS=False, o bot ve o saldo mexer mas nao reporta a causa. Bot sem trades desde 12-Ago."
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 118.17,
+          "nota": "Sem actualizacao — Jul-31."
+        },
+        "cash_fund": {
+          "moeda": "EUR",
+          "total": 1000.0,
+          "nota": "Sem actualizacao — Jul-27."
+        },
+        "binance_spot": {
+          "moeda": "USD",
+          "total": null,
+          "nota": "Sem screenshot."
+        }
+      },
+      "resumo": {
+        "tangem_usd": 4770.36,
+        "tangem_eur": 4148.14,
+        "trading_212_eur": 531.62,
+        "mexc_usd": 301.67,
+        "mexc_eur": 262.32,
+        "binance_futures_usd": 146.82,
+        "binance_futures_eur": 127.67,
+        "robinhood_eur": 118.17,
+        "cash_fund_eur": 1000.0,
+        "total_eur_aprox": 6187.92,
+        "nota": "Divergencia de 18-Ago acentuou-se. Cripto +$981 (+25.9%), semis/optica continuaram a cair. T212 caiu EUR59 mas parte e' venda de SEC0, nao mercado."
+      }
+    },
+    {
+      "data": "2026-08-25",
+      "hora": "20:01",
+      "eur_usd_rate": 1.15,
+      "carteiras": {
+        "tangem_wallet": {
+          "moeda": "USD",
+          "total": 4932.13,
+          "variacao_vs_24ago_usd": 161.77,
+          "variacao_vs_24ago_pct": 3.4,
+          "ativos": {
+            "BTC": {
+              "qtd": 0.03799751,
+              "valor_usd": 3039.82,
+              "preco_usd": 80000.59,
+              "var_dia_pct": 1.98
+            },
+            "ETH": {
+              "qtd": 0.45657129,
+              "valor_usd": 1141.61,
+              "preco_usd": 2500.39,
+              "var_dia_pct": 1.16
+            },
+            "SOL": {
+              "qtd": 5.81982376,
+              "valor_usd": 627.38,
+              "preco_usd": 107.8,
+              "var_dia_pct": 11.34,
+              "staking_apy": 5.46,
+              "delta_qtd": 0.8711718,
+              "nota": "reforcado ~$94"
+            },
+            "XRP": {
+              "qtd": 84.566087,
+              "valor_usd": 122.31,
+              "preco_usd": 1.45,
+              "var_dia_pct": 4.38
+            },
+            "DOT": {
+              "qtd": 1.0,
+              "valor_usd": 0.88,
+              "preco_usd": 0.88,
+              "var_dia_pct": 4.58
+            },
+            "BNB": {
+              "qtd": 6.983e-05,
+              "valor_usd": 0.05,
+              "preco_usd": 709.75,
+              "var_dia_pct": 1.64,
+              "staking_apy": 1.29
+            },
+            "HBAR": {
+              "qtd": 0.36102351,
+              "valor_usd": 0.03,
+              "preco_usd": 0.08,
+              "var_dia_pct": 1.47
+            },
+            "B2": {
+              "qtd": 0.047222,
+              "valor_usd": 0.02,
+              "preco_usd": 0.45,
+              "var_dia_pct": 0.76
+            },
+            "BASE_ETH": {
+              "qtd": 6.98e-06,
+              "valor_usd": 0.02,
+              "preco_usd": 2500.39,
+              "var_dia_pct": 1.16
+            }
+          },
+          "nota": "BTC cruzou os $80k. SOL +11.34% no dia e reforcada em +0.87 unidades. Maximo historico da serie."
+        },
+        "trading_212_invest": {
+          "moeda": "EUR",
+          "total": 560.03,
+          "variacao_vs_24ago_eur": 28.41,
+          "nota": "DCA a correr: VWCE +0.072u, PAIW +0.102u, NUKL +0.082u, MP +0.039u. MP a +11.47%; NUKL e VVMX passaram a verde.",
+          "ativos": {
+            "VWCE": {
+              "qtd": 1.26189267,
+              "valor_eur": 210.91,
+              "pl_eur": -1.2,
+              "pl_pct": -0.57,
+              "papel": "nucleo",
+              "delta_qtd": 0.07205805
+            },
+            "VVMX": {
+              "qtd": 7.57690559,
+              "valor_eur": 100.59,
+              "pl_eur": 0.59,
+              "pl_pct": 0.59,
+              "dca": "desligado"
+            },
+            "MP": {
+              "qtd": 1.9332494,
+              "valor_eur": 97.96,
+              "pl_eur": 10.08,
+              "pl_pct": 11.47,
+              "delta_qtd": 0.03930782
+            },
+            "PAIW": {
+              "qtd": 2.3940492,
+              "valor_eur": 47.39,
+              "pl_eur": -4.61,
+              "pl_pct": -8.87,
+              "delta_qtd": 0.10152284
+            },
+            "NUKL": {
+              "qtd": 0.95301027,
+              "valor_eur": 46.76,
+              "pl_eur": 0.76,
+              "pl_pct": 1.65,
+              "delta_qtd": 0.08164098
+            },
+            "SEC0": {
+              "qtd": 2.29475349,
+              "valor_eur": 38.71,
+              "pl_eur": -1.44,
+              "pl_pct": -3.59,
+              "dca": "desligado"
+            },
+            "JEDI": {
+              "qtd": 0.25103448,
+              "valor_eur": 17.71,
+              "pl_eur": -2.31,
+              "pl_pct": -11.54
+            }
+          },
+          "autoinvest": {
+            "total_mes_eur": 160.78,
+            "nota": "VWCE EUR4/dia, NUKL EUR4/sem, MP EUR2/sem, PAIW EUR2/sem, JEDI EUR1/sem."
+          }
+        },
+        "mexc_tokenized": {
+          "moeda": "USD",
+          "total": 318.52,
+          "variacao_vs_24ago_usd": 16.85,
+          "variacao_vs_24ago_pct": 5.6,
+          "nota": "Primeiro dia verde desde que a carteira e' registada.",
+          "ativos": {
+            "DISK": {
+              "qtd": 5,
+              "valor_usd": 184.15,
+              "custo_medio_usd": 37.534
+            },
+            "LAZR": {
+              "qtd": 3,
+              "valor_usd": 134.37,
+              "custo_medio_usd": 47.443
+            }
+          }
+        },
+        "binance_futures": {
+          "moeda": "USD",
+          "total": 146.82,
+          "nota": "Sem leitura nova apos o deploy da Fase 3 (25-Ago 12:04, commit 9197916). Bot sem trades desde 12-Ago."
+        },
+        "robinhood": {
+          "moeda": "EUR",
+          "total": 118.17,
+          "nota": "Sem actualizacao — Jul-31."
+        },
+        "cash_fund": {
+          "moeda": "EUR",
+          "total": 1000.0,
+          "nota": "Sem actualizacao — Jul-27. Por confirmar."
+        },
+        "binance_spot": {
+          "moeda": "USD",
+          "total": null,
+          "nota": "Sem screenshot."
+        }
+      },
+      "resumo": {
+        "tangem_usd": 4932.13,
+        "tangem_eur": 4288.81,
+        "trading_212_eur": 560.03,
+        "mexc_usd": 318.52,
+        "mexc_eur": 276.97,
+        "binance_futures_usd": 146.82,
+        "binance_futures_eur": 127.67,
+        "robinhood_eur": 118.17,
+        "cash_fund_eur": 1000.0,
+        "total_eur_aprox": 6371.65,
+        "concentracao": {
+          "cripto_pct": 67.3,
+          "btc_pct": 41.5,
+          "btc_eth_pct": 57.1
+        },
+        "nota": "Primeiro dia em que tudo sobe ao mesmo tempo: cripto +$162, T212 +EUR28, MEXC +$17. BTC cruzou $80k. Fase 3 do bot deployada as 12:04. Taxa EUR/USD 1.15 arrastada desde Jul-31, por verificar."
       }
     }
   ]
