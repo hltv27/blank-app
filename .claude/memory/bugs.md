@@ -2,10 +2,8 @@
 
 ## 🔴 Pendentes
 
-### BUG-AFF-P1: Facebook `pages_manage_posts` em falta no token
-**Projecto:** affiliate_bot
-**Estado:** Token gerado (2026-08-27) mas 403 Forbidden — `pages_manage_posts` não activo na app TopDealsBot.
-**Fix:** Ver `context.md` secção "Facebook — próximo passo" (adicionar permissão via App Review).
+### ~~BUG-AFF-P1~~: Facebook `pages_manage_posts` — ✅ RESOLVIDO (2026-08-27)
+Token obtido via Access Token Tool (TopDealsGadget app, User Token com pages_manage_posts) → me/accounts → Page Token 207 chars. Facebook a publicar.
 
 ---
 

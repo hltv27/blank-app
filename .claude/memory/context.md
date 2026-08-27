@@ -63,7 +63,7 @@ Não é bug do bot, vai repetir-se.
 |------------|--------|-------|
 | Telegram   | ✅ OK  | 8 posts/dia agendados via APScheduler |
 | Instagram  | ✅ OK  | 4 posts/dia em @hugo.deals |
-| Facebook   | ❌ PENDENTE | Token tem 403 — falta `pages_manage_posts` na app |
+| Facebook   | ✅ OK  | 4 posts/dia — token com pages_manage_posts |
 | Website    | ✅ OK  | GitHub Pages em hltv27.github.io/blank-app/ |
 | TikTok     | ⚪ Não configurado | — |
 
