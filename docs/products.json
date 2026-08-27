@@ -1,5 +1,18 @@
 {
-  "updated_at": null,
+  "updated_at": "2026-08-27T14:48:54.373971",
   "channel": "@TopDealsGadgetss",
-  "products": []
+  "products": [
+    {
+      "product_id": "test123",
+      "title": "Test Product",
+      "price": 9.99,
+      "original_price": 9.99,
+      "discount_percent": 0,
+      "image_url": "",
+      "affiliate_url": "http://example.com",
+      "niche": "tech",
+      "posted_at": "2026-08-27T14:48:54.373944",
+      "platform": "test"
+    }
+  ]
 }
