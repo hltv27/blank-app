@@ -40,7 +40,7 @@ def run_post_cycle(platform: str, niche_key: str, niche_config: dict) -> bool:
     logger.info("Starting post cycle: platform=%s niche=%s", platform, niche_key)
 
     # Use cached products from DB — only call API if cache is stale
-    products = get_cached_products(niche_key, max_age_hours=12)
+    products = get_cached_products(niche_key, max_age_hours=72)
     if not products:
         logger.info("Cache empty/stale for %s — fetching from API", niche_key)
         products = get_products_for_niche(niche_key, niche_config, limit=20)
