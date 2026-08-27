@@ -4,8 +4,8 @@
 
 ### BUG-AFF-P1: Facebook `pages_manage_posts` em falta no token
 **Projecto:** affiliate_bot
-**Estado:** Token OAuth com `pages_manage_posts` obtido (2026-08-26) — falta extrair Page Token.
-**Fix:** Ver `context.md` secção "Facebook — próximo passo".
+**Estado:** Token gerado (2026-08-27) mas 403 Forbidden — `pages_manage_posts` não activo na app TopDealsBot.
+**Fix:** Ver `context.md` secção "Facebook — próximo passo" (adicionar permissão via App Review).
 
 ---
 

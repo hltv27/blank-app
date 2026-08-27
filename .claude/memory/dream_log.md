@@ -42,3 +42,24 @@
 3. Actualizar FACEBOOK_PAGE_TOKEN no VPS e restart do serviço
 
 ---
+
+## Ciclo #3 — 2026-08-27
+
+**Trigger:** Manual pelo utilizador ("Faz uma condensação da conversa até aqui").
+**Sessão:** Activação completa do affiliate bot — GitHub Pages, GITHUB_TOKEN, Facebook (parcial).
+
+**Feito nesta sessão:**
+- ✅ GitHub Pages activado em hltv27.github.io/blank-app/ (branch claude/affiliate-bot-automation-5rsFF, /docs)
+- ✅ GITHUB_TOKEN adicionado ao VPS .env (via python3 getpass, 40 chars)
+- ✅ website.py branch corrigido: main → claude/affiliate-bot-automation-5rsFF (SHA 6573ae1)
+- ✅ PR #25 criado (draft)
+- ✅ products.json actualizado via GitHub API (testado, Website: True)
+- ❌ Facebook: token gerado mas 403 Forbidden — pages_manage_posts não activo na app TopDealsBot
+- ⚠️ .env linha 15 malformada (tentativas de token falhadas) — inofensivo
+
+**Próxima sessão (Facebook):**
+1. developers.facebook.com → TopDealsBot → App Review → Permissions → Adicionar `pages_manage_posts`
+2. Gerar novo token no Graph API Explorer com essa permissão incluída
+3. Actualizar FACEBOOK_PAGE_TOKEN no VPS com `python3 -c "import getpass..."` (evita mascaramento)
+
+---

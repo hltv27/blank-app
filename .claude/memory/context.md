@@ -55,39 +55,55 @@ Não é bug do bot, vai repetir-se.
 
 **Onde corre:** VPS `178.105.52.219` como serviço systemd `affiliatebot.service`
 **Caminho:** `/root/affiliate-bot/` | **Config:** `.env`
-**Branch dev:** `claude/affiliate-bot-automation-5rsFF`
+**Branch dev:** `claude/affiliate-bot-automation-5rsFF` | **PR:** #25 (draft)
 **Repo code:** `affiliate_bot/` em `hltv27/blank-app`
 
-### Estado actual (2026-08-26)
+### Estado actual (2026-08-27)
 | Plataforma | Estado | Notas |
 |------------|--------|-------|
-| Telegram   | ✅ OK  | 16 jobs agendados via APScheduler |
-| Instagram  | ✅ OK  | Sessão renovada, posta em @hugo.deals |
-| Facebook   | ❌ PENDENTE | Token sem `pages_manage_posts` |
+| Telegram   | ✅ OK  | 8 posts/dia agendados via APScheduler |
+| Instagram  | ✅ OK  | 4 posts/dia em @hugo.deals |
+| Facebook   | ❌ PENDENTE | Token tem 403 — falta `pages_manage_posts` na app |
+| Website    | ✅ OK  | GitHub Pages em hltv27.github.io/blank-app/ |
 | TikTok     | ⚪ Não configurado | — |
 
-### Facebook — próximo passo (sessão 2026-08-26 parou aqui)
-Tenho um `long_lived_token` com `pages_manage_posts` obtido via OAuth:
-```
-EAATlarffxCMBScjj09ha35Mg3JDSonoZAqh0tOAMO2AOanrLkWNtTZB69jSYZAG2lgRNhKqnmxoMUvE5frmYsGcaQdAdZBYFN8JqdXN22sJRSoGWNP2dXbv0iVqZCLZBWc761BxOHhUtf5NzBYlMZAbNJkKj8Wg5apIxMMgZAaNctnFWoXoJTgqM5JyokKZASuxknpJXU61EcGRraryjBuIz8wKF3PcLEGKWh65StCFs000zL
-```
-**Falta:**
-1. Graph API Explorer → colar token → query `me/accounts?fields=name,id,access_token`
-2. Copiar `access_token` da linha "Top Deals Gadget" (page ID: 1189959324190844)
-3. No VPS: `sed -i 's/FACEBOOK_PAGE_TOKEN=.*/FACEBOOK_PAGE_TOKEN=<novo_token>/' /root/affiliate-bot/.env`
-4. `systemctl restart affiliatebot` e confirmar com `python -c "from affiliate_bot import publishers; print(publishers.facebook.test_connection())"`
+### Facebook — próximo passo
+**Problema:** Token gerado pelo Graph API Explorer dá 403 porque `pages_manage_posts` não está activo na app TopDealsBot.
 
-### Detalhes Facebook App
+**Fix:**
+1. Ir a developers.facebook.com → **My Apps → TopDealsBot**
+2. Menu esquerdo: **App Review → Permissions and Features**
+3. Encontrar `pages_manage_posts` → clicar **"Request"** ou **"Add"**
+4. Voltar ao **Graph API Explorer** → agora deve aparecer no dropdown
+5. Gerar novo token com `pages_manage_posts` + `pages_show_list` + `pages_read_engagement`
+6. Query `me/accounts?fields=name,id,access_token` → copiar token da página
+7. No VPS (usar `python3 -c "import getpass..."` para evitar mascaramento):
+   ```bash
+   python3 -c "
+   import getpass, re
+   tok = getpass.getpass('Token: ')
+   with open('/root/affiliate-bot/.env','r') as f: content = f.read()
+   content = re.sub(r'FACEBOOK_PAGE_TOKEN=.*\n?', '', content)
+   content += 'FACEBOOK_PAGE_TOKEN=' + tok + '\n'
+   with open('/root/affiliate-bot/.env','w') as f: f.write(content)
+   print('OK, comprimento:', len(tok))
+   "
+   ```
+8. `systemctl restart affiliatebot`
+
+**Detalhes Facebook App:**
 - App ID: `1378146421031971`
 - Página: "Top Deals Gadget" (ID: `1189959324190844`)
-- Admin: Hugo Vaz (hugoluisvaz@gmail.com) — confirmado via facebook.com/pages
-- `pages_manage_posts` está em Use Cases ("Ready for testing") — não aparece no dropdown do Graph API Explorer (UI bug), mas funciona via URL OAuth manual
+- Admin: Hugo Vaz (hugoluisvaz@gmail.com)
+
+### GitHub Pages (website de deals)
+- URL: **https://hltv27.github.io/blank-app/**
+- Serve de: branch `claude/affiliate-bot-automation-5rsFF` → pasta `/docs`
+- Actualiza automaticamente após cada post (via `publishers/website.py` + GITHUB_TOKEN)
+- `GITHUB_TOKEN` configurado no VPS .env (token `ghp_F0l6...`, 40 chars)
+- ⚠️ `.env` tem uma linha malformada (linha 15) — inofensivo mas limpar com: `grep -n "^[^A-Z#]" /root/affiliate-bot/.env`
 
 ### Niches configurados
 `tech_gadgets`, `home_smart`, `fitness_health`, `fashion_accessories`
-Cache refresh: 06:00 UTC diário. Posts: 7:00–23:00 UTC.
-
-### Bug corrigido nesta sessão
-`scheduler.py` — `mark_cache_refreshed()` só chamado quando `len(products) > 0`.
-Antes: 429 silencioso → cache marcada como actualizada → loop infinito sem produtos.
-SHA: a360a70 | Branch: `claude/affiliate-bot-automation-5rsFF`
+Cache: 72h TTL, 531 produtos em DB, refresh 06:00 UTC diário. Posts: 7:00–23:00 UTC.
+Tracking ID AliExpress: `hltv27` (via `ALIEXPRESS_TRACKING_ID` em .env)
