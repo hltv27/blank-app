@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 REPO       = "hltv27/blank-app"
 FILE_PATH  = "docs/products.json"
-BRANCH     = "main"
+BRANCH     = "claude/affiliate-bot-automation-5rsFF"
 API_BASE   = "https://api.github.com"
 MAX_PRODUCTS = 50
 
