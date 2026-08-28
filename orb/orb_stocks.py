@@ -40,6 +40,7 @@ OPEN_ET = (9, 30)
 SESSION_CLOSES = [(11, 0), (12, 0), (16, 0)]     # 90min, 2h30, sessao inteira
 CONFIRM_MODES = ["A", "B", "C"]
 DIRECTIONS = ["both", "long_only"]
+TARGETS = [1.0, 1.5, 2.0]              # alvo em multiplos de R
 RETEST_TOL = 0.0005                               # 0.05%
 ENTRY_CUTOFF_MIN_BEFORE_CLOSE = 60                # sem entradas na ultima hora
 RETEST_WINDOW_MIN = 60                            # janela de reteste, em minutos = velas de 1m
@@ -164,7 +165,8 @@ def sessions_for(candles: list, close_et: tuple) -> list:
 
 
 def evaluate(candles_by_symbol: dict, mode: str, close_et: tuple,
-             direction: str, notional: float):
+             direction: str, notional: float, target: float = 2.0):
+    ob.TARGET_R = target
     ch, cm = close_et
     cutoff_min = ch * 60 + cm - ENTRY_CUTOFF_MIN_BEFORE_CLOSE
     cutoff = (cutoff_min // 60, cutoff_min % 60)
@@ -195,6 +197,7 @@ def evaluate(candles_by_symbol: dict, mode: str, close_et: tuple,
     total = sum(t["pnl_r"] for t in trades)
     return {
         "mode": mode, "close": f"{ch:02d}:{cm:02d}", "dir": direction,
+        "target": target,
         "n": len(trades),
         "wr": 100 * len(wins) / len(trades),
         "avg_w": sum(wins) / len(wins) if wins else 0.0,
@@ -253,28 +256,49 @@ def main():
     print(f"\nTotal: {total_days} dias-simbolo\n")
 
     results = []
-    for mode in CONFIRM_MODES:
-        for close_et in SESSION_CLOSES:
-            for d in DIRECTIONS:
-                r = evaluate(data, mode, close_et, d, args.notional)
-                if r:
-                    results.append(r)
+    for tgt in TARGETS:
+        for mode in CONFIRM_MODES:
+            for close_et in SESSION_CLOSES:
+                for d in DIRECTIONS:
+                    r = evaluate(data, mode, close_et, d, args.notional, tgt)
+                    if r:
+                        results.append(r)
 
     if not results:
         print("Nenhuma combinacao gerou trades.")
         return 0
 
+    # Resumo por alvo — media de TODAS as combinacoes, nao so' da melhor.
+    # E' o numero robusto: se o alvo mais curto levantar a distribuicao
+    # inteira, e' sinal; se so' levantar o maximo, e' ruido de seleccao.
+    print("RESUMO POR ALVO (media de todas as combinacoes desse alvo)")
+    print(f"  {'alvo':>6}{'combos':>8}{'exp media':>11}{'positivas':>11}"
+          f"{'n medio':>9}{'%TP':>7}{'%TEMPO':>8}")
+    for tgt in TARGETS:
+        g = [r for r in results if r["target"] == tgt]
+        if not g:
+            continue
+        pos = sum(1 for r in g if r["exp_r"] > 0)
+        tp = sum(r["reasons"]["TP"] for r in g)
+        tm = sum(r["reasons"]["TEMPO"] for r in g)
+        tot = sum(r["n"] for r in g)
+        print(f"  {tgt:>6.1f}{len(g):>8}{sum(r['exp_r'] for r in g)/len(g):>11.3f}"
+              f"{pos:>7}/{len(g):<3}{tot//len(g):>9}"
+              f"{100*tp/tot:>7.1f}{100*tm/tot:>8.1f}")
+
     results.sort(key=lambda r: r["exp_r"], reverse=True)
-    print(f"{'modo':<5}{'fecho':<7}{'direccao':<11}{'n':>5}{'WR%':>7}"
+    print(f"\nTOP 12 combinacoes")
+    print(f"{'alvo':<6}{'modo':<5}{'fecho':<7}{'direccao':<11}{'n':>5}{'WR%':>7}"
           f"{'avgW':>7}{'avgL':>7}{'custo':>7}{'exp(R)':>9}{'total(R)':>10}")
-    print("-" * 75)
-    for r in results:
-        print(f"{r['mode']:<5}{r['close']:<7}{r['dir']:<11}{r['n']:>5}"
+    print("-" * 81)
+    for r in results[:12]:
+        print(f"{r['target']:<6.1f}{r['mode']:<5}{r['close']:<7}{r['dir']:<11}{r['n']:>5}"
               f"{r['wr']:>7.1f}{r['avg_w']:>7.2f}{r['avg_l']:>7.2f}"
               f"{r['cost_r']:>7.2f}{r['exp_r']:>9.3f}{r['total_r']:>10.1f}")
 
     b = results[0]
-    print(f"\nMelhor: modo {b['mode']}, fecho {b['close']} ET, {b['dir']}")
+    print(f"\nMelhor: alvo {b['target']:.1f}R, modo {b['mode']}, "
+          f"fecho {b['close']} ET, {b['dir']}")
     print(f"  {b['n']} trades | WR {b['wr']:.1f}% | expectancy {b['exp_r']:+.3f}R")
     print(f"  Custo medio por trade: {b['cost_r']:.2f}R  <-- comissoes")
     print(f"  Saidas: {b['reasons']}")
