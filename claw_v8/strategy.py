@@ -62,12 +62,15 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list,
     adx_min = ADX_TREND_MIN_MAJOR if symbol in _MAJOR_SYMBOLS else ADX_TREND_MIN_ALT
     if adx_val < adx_min:
         return None, 0, f"VETO_ADX {adx_val:.1f}"
-    if sr_val > STOCH_VETO_LONG:
-        return None, 0, f"VETO_SR_LONG {sr_val:.1f}"
-    if sr_val < STOCH_VETO_SHORT:
-        return None, 0, f"VETO_SR_SHORT {sr_val:.1f}"
     if not volume_ok(volumes):
         return None, 0, "VETO_VOL"
+
+    # Os vetos de stoch RSI sao aplicados por direccao nos gates finais.
+    # Antes corriam aqui e devolviam None para ambos os lados: um par com
+    # stoch a 0 (sobrevenda extrema) era impedido de abrir LONG, que e'
+    # exactamente a situacao em que o sinal faria sentido.
+    sr_bloqueia_long  = sr_val > STOCH_VETO_LONG
+    sr_bloqueia_short = sr_val < STOCH_VETO_SHORT
 
     # ═══ CATEGORIA: TREND (max 3) — direcção da tendência ═══
     trend_l = trend_s = 0
@@ -147,13 +150,18 @@ def signal_trending(closes: list, highs: list, lows: list, volumes: list,
     detail_s = f"T{trend_s}+M{mom_s}+F{flow_s}={score_short} ({cats_short}cat)"
 
     # Gate: preço acima/abaixo da EMA99 (confirmação de tendência)
+    # + veto de stoch RSI aplicado so' ao lado sobre-estendido
     if score_long >= SCORE_ALERTA and cats_long >= 2 and price > ema99[-1]:
+        if sr_bloqueia_long:
+            return None, score_long, f"VETO_SR_LONG {sr_val:.1f} {detail_l}"
         strength = "FORTE" if score_long >= SCORE_FORTE else "ALERTA"
         return "LONG", score_long, (
             f"RSI {rsi_val:.1f} ADX {adx_val:.1f} [{strength}] {detail_l}"
         )
 
     if score_short >= SCORE_ALERTA and cats_short >= 2 and price < ema99[-1]:
+        if sr_bloqueia_short:
+            return None, score_short, f"VETO_SR_SHORT {sr_val:.1f} {detail_s}"
         strength = "FORTE" if score_short >= SCORE_FORTE else "ALERTA"
         return "SHORT", score_short, (
             f"RSI {rsi_val:.1f} ADX {adx_val:.1f} [{strength}] {detail_s}"
