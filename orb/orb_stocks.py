@@ -56,18 +56,43 @@ def commission(shares: float, notional: float) -> float:
     return min(max(IBKR_MIN, IBKR_PER_SHARE * shares), IBKR_MAX_PCT * notional)
 
 
-def fetch(symbol: str) -> list:
-    """Velas de 5m dos ultimos 60 dias via Yahoo. Devolve [{t,o,h,l,c}] em ET."""
-    try:
-        r = requests.get(YF.format(symbol), headers=UA, timeout=25,
-                         params={"interval": "5m", "range": "60d"})
-        js = r.json()
-        res = js["chart"]["result"][0]
-        ts = res["timestamp"]
-        q = res["indicators"]["quote"][0]
-    except Exception as e:
-        print(f"  [{symbol}] falhou: {e}", file=sys.stderr)
+def _fetch_yfinance(symbol: str) -> list:
+    """Via preferida: yfinance trata do cookie/crumb que a API do Yahoo passou a exigir."""
+    import yfinance as yf
+    df = yf.download(symbol, period="60d", interval="5m",
+                     progress=False, auto_adjust=False, threads=False)
+    if df is None or df.empty:
         return []
+    # versoes recentes devolvem colunas MultiIndex mesmo com um so' ticker
+    if hasattr(df.columns, "nlevels") and df.columns.nlevels > 1:
+        df.columns = df.columns.get_level_values(0)
+
+    out = []
+    for ts, row in df.iterrows():
+        try:
+            o, h, l, c = (float(row["Open"]), float(row["High"]),
+                          float(row["Low"]), float(row["Close"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+        if any(v != v for v in (o, h, l, c)):        # NaN
+            continue
+        t = ts.to_pydatetime()
+        t = t.replace(tzinfo=ET) if t.tzinfo is None else t.astimezone(ET)
+        out.append({"t": t, "o": o, "h": h, "l": l, "c": c})
+    return out
+
+
+def _fetch_raw(symbol: str) -> list:
+    """Alternativa sem dependencias. Pode falhar se o Yahoo exigir crumb."""
+    r = requests.get(YF.format(symbol), headers=UA, timeout=25,
+                     params={"interval": "5m", "range": "60d"})
+    ct = r.headers.get("content-type", "")
+    if "json" not in ct:
+        raise RuntimeError(
+            f"HTTP {r.status_code}, content-type={ct or '?'}, "
+            f"inicio do corpo: {r.text[:120]!r}")
+    res = r.json()["chart"]["result"][0]
+    ts, q = res["timestamp"], res["indicators"]["quote"][0]
 
     out = []
     for i, t in enumerate(ts):
@@ -77,6 +102,21 @@ def fetch(symbol: str) -> list:
         out.append({"t": datetime.fromtimestamp(t, tz=ET),
                     "o": float(o), "h": float(h), "l": float(l), "c": float(c)})
     return out
+
+
+def fetch(symbol: str) -> list:
+    """Velas de 5m dos ultimos 60 dias. Devolve [{t,o,h,l,c}] em ET."""
+    try:
+        return _fetch_yfinance(symbol)
+    except ImportError:
+        pass                                    # sem yfinance — tenta a via directa
+    except Exception as e:
+        print(f"  [{symbol}] yfinance falhou: {e}", file=sys.stderr)
+    try:
+        return _fetch_raw(symbol)
+    except Exception as e:
+        print(f"  [{symbol}] falhou: {e}", file=sys.stderr)
+        return []
 
 
 def sessions_for(candles: list, close_et: tuple) -> list:
@@ -152,6 +192,14 @@ def main():
 
     syms = [s.strip().upper() for s in args.symbols.split(",") if s.strip()]
     ob.TAKER_FEE = 0.0          # comissoes tratadas aqui, nao em percentagem
+
+    try:
+        import yfinance  # noqa: F401
+    except ImportError:
+        print("AVISO: yfinance nao instalado — a API directa do Yahoo passou a\n"
+              "       exigir cookie/crumb e costuma falhar. Instala com:\n"
+              "         python3 -m venv /tmp/orbvenv && /tmp/orbvenv/bin/pip -q install yfinance\n"
+              "         /tmp/orbvenv/bin/python orb_stocks.py --notional 500\n")
 
     print(f"ORB em accoes — velas de 5m, 60 dias, abertura 09:30 ET")
     print(f"Nocional por posicao: ${args.notional:.0f} "
