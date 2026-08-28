@@ -68,7 +68,7 @@ SCAN_ALIGN_MIN      = 60     # Fase 2: scan 1×/hora com vela fechada (era 15 �
 
 ADX_TREND_MIN       = 22.5   # ADX mínimo (fallback / detect_market_mode)
 ADX_TREND_MIN_MAJOR = 22.5   # BTC, ETH, BNB — tendências mais limpas
-ADX_TREND_MIN_ALT   = 22.5   # Fase 3: 25.0 deixava 19.8k rejeicoes; alinhado com MAJOR
+ADX_TREND_MIN_ALT   = 20.0   # Fase 3b: 22.5 vetava 19/27 pares que passaram o market mode
 EMA_SLOPE_MIN   = 0.001  # Fase 3: 0.003 = 87% dos pares MORTO (EMA99 mal se move; era 0.0005)
 STOCH_VETO_LONG = 95.0
 STOCH_VETO_SHORT= 2.5
