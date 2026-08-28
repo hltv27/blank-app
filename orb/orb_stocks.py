@@ -48,14 +48,21 @@ LOOKBACK_DAYS = 28                                # limite do Yahoo para velas d
 DEFAULT_SYMBOLS = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA",
                    "TSLA", "AMD", "META", "AMZN", "GOOGL"]
 
-# IBKR fixed tier: $0.005/accao, minimo $1.00, maximo 1% do valor da ordem
-IBKR_PER_SHARE = 0.005
-IBKR_MIN = 1.00
-IBKR_MAX_PCT = 0.01
+# Escaloes IBKR para accoes US. O Tiered e' o certo para ordens pequenas:
+# o minimo de $0.35 contra $1.00 do Fixed decide tudo quando o nocional e' baixo.
+TIERS = {
+    "tiered": {"per_share": 0.0035, "min": 0.35, "max_pct": 0.005,
+               "passthrough": 0.0005},   # clearing + regulatorias, aproximado
+    "fixed":  {"per_share": 0.005,  "min": 1.00, "max_pct": 0.010,
+               "passthrough": 0.0},      # ja' incluidas no Fixed
+}
+TIER = "tiered"
 
 
 def commission(shares: float, notional: float) -> float:
-    return min(max(IBKR_MIN, IBKR_PER_SHARE * shares), IBKR_MAX_PCT * notional)
+    t = TIERS[TIER]
+    base = max(t["min"], t["per_share"] * shares)
+    return min(base + t["passthrough"] * shares, t["max_pct"] * notional)
 
 
 def _fetch_yfinance(symbol: str) -> list:
@@ -205,7 +212,12 @@ def main():
     ap.add_argument("--symbols", default=",".join(DEFAULT_SYMBOLS))
     ap.add_argument("--notional", type=float, default=500.0,
                     help="valor por posicao em USD (default 500)")
+    ap.add_argument("--tier", choices=["tiered", "fixed"], default="tiered",
+                    help="escalao de comissoes IBKR (default tiered)")
     args = ap.parse_args()
+
+    global TIER
+    TIER = args.tier
 
     syms = [s.strip().upper() for s in args.symbols.split(",") if s.strip()]
     ob.TAKER_FEE = 0.0          # comissoes tratadas aqui, nao em percentagem
@@ -219,8 +231,9 @@ def main():
               "         /tmp/orbvenv/bin/python orb_stocks.py --notional 500\n")
 
     print(f"ORB em accoes — range 5m + execucao 1m, {LOOKBACK_DAYS} dias, abertura 09:30 ET")
+    t = TIERS[TIER]
     print(f"Nocional por posicao: ${args.notional:.0f} "
-          f"| comissoes IBKR fixed (${IBKR_MIN:.2f} min/lado)\n")
+          f"| comissoes IBKR {TIER} (${t['min']:.2f} min/lado)\n")
 
     data, total_days = {}, 0
     for s in syms:
@@ -265,11 +278,24 @@ def main():
     print(f"  {b['n']} trades | WR {b['wr']:.1f}% | expectancy {b['exp_r']:+.3f}R")
     print(f"  Custo medio por trade: {b['cost_r']:.2f}R  <-- comissoes")
     print(f"  Saidas: {b['reasons']}")
-    if b["exp_r"] <= 0:
-        print("\n  Nenhuma combinacao tem expectativa positiva.")
-    else:
-        print(f"\n  Sem comissoes seria {b['exp_r'] + b['cost_r']:+.3f}R "
-              f"— a diferenca mede quanto a corretora leva.")
+    gross = b["exp_r"] + b["cost_r"]
+    print(f"  Expectancia BRUTA (sem comissoes): {gross:+.3f}R")
+
+    print(f"\n  A mesma combinacao a varios tamanhos de posicao:")
+    print(f"    {'nocional':>10}{'risco medio':>13}{'custo(R)':>10}{'liquido(R)':>12}")
+    risk_per_dollar = b["cost_r"] / (2 * commission(
+        args.notional / 200.0, args.notional)) if b["cost_r"] > 0 else 0
+    for nt in (500, 1000, 1500, 2000, 3000, 5000):
+        risk = (args.notional and nt / args.notional) * (
+            2 * commission(args.notional / 200.0, args.notional) / b["cost_r"]) \
+            if b["cost_r"] > 0 else 0
+        cost_r = (2 * commission(nt / 200.0, nt)) / risk if risk > 0 else 0
+        print(f"    ${nt:>9,}{risk:>12.2f}${cost_r:>10.3f}{gross - cost_r:>12.3f}")
+
+    if gross <= 0:
+        print("\n  Sem edge nem antes de comissoes — nao ha tamanho que resolva.")
+    elif b["exp_r"] <= 0:
+        print("\n  Ha edge bruto, mas as comissoes comem-no a este tamanho.")
     return 0
 
 
