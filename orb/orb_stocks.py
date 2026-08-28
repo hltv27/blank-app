@@ -42,6 +42,8 @@ CONFIRM_MODES = ["A", "B", "C"]
 DIRECTIONS = ["both", "long_only"]
 RETEST_TOL = 0.0005                               # 0.05%
 ENTRY_CUTOFF_MIN_BEFORE_CLOSE = 60                # sem entradas na ultima hora
+RETEST_WINDOW_MIN = 60                            # janela de reteste, em minutos = velas de 1m
+LOOKBACK_DAYS = 28                                # limite do Yahoo para velas de 1m
 
 DEFAULT_SYMBOLS = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA",
                    "TSLA", "AMD", "META", "AMZN", "GOOGL"]
@@ -57,11 +59,31 @@ def commission(shares: float, notional: float) -> float:
 
 
 def _fetch_yfinance(symbol: str) -> list:
-    """Via preferida: yfinance trata do cookie/crumb que a API do Yahoo passou a exigir."""
+    """Via preferida: yfinance trata do cookie/crumb que a API do Yahoo passou a exigir.
+
+    O Yahoo so' da' velas de 1m em janelas de 7 dias e ate' ~30 dias para tras,
+    por isso o pedido e' partido em pedacos.
+    """
     import yfinance as yf
-    df = yf.download(symbol, period="60d", interval="5m",
-                     progress=False, auto_adjust=False, threads=False)
-    if df is None or df.empty:
+    from datetime import timedelta, date
+
+    frames = []
+    today = date.today()
+    for wk in range(LOOKBACK_DAYS // 7 + 1):
+        end = today - timedelta(days=7 * wk)
+        start = end - timedelta(days=7)
+        d = yf.download(symbol, start=start.isoformat(), end=end.isoformat(),
+                        interval="1m", progress=False, auto_adjust=False,
+                        threads=False)
+        if d is not None and not d.empty:
+            frames.append(d)
+        time.sleep(0.25)
+    if not frames:
+        return []
+    import pandas as pd
+    df = pd.concat(frames).sort_index()
+    df = df[~df.index.duplicated(keep="first")]
+    if df.empty:
         return []
     # versoes recentes devolvem colunas MultiIndex mesmo com um so' ticker
     if hasattr(df.columns, "nlevels") and df.columns.nlevels > 1:
@@ -85,7 +107,7 @@ def _fetch_yfinance(symbol: str) -> list:
 def _fetch_raw(symbol: str) -> list:
     """Alternativa sem dependencias. Pode falhar se o Yahoo exigir crumb."""
     r = requests.get(YF.format(symbol), headers=UA, timeout=25,
-                     params={"interval": "5m", "range": "60d"})
+                     params={"interval": "1m", "range": f"{LOOKBACK_DAYS}d"})
     ct = r.headers.get("content-type", "")
     if "json" not in ct:
         raise RuntimeError(
@@ -120,7 +142,7 @@ def fetch(symbol: str) -> list:
 
 
 def sessions_for(candles: list, close_et: tuple) -> list:
-    """(vela_do_range, [velas ate' ao fecho]) por dia de negociacao."""
+    """Range agregado da vela de 5m da abertura, execucao nas velas de 1m."""
     by_day = {}
     for c in candles:
         by_day.setdefault(c["t"].date(), []).append(c)
@@ -128,15 +150,9 @@ def sessions_for(candles: list, close_et: tuple) -> list:
     out = []
     for _, day in sorted(by_day.items()):
         day.sort(key=lambda x: x["t"])
-        rng = next((c for c in day
-                    if (c["t"].hour, c["t"].minute) == OPEN_ET), None)
-        if rng is None:
-            continue
-        rest = [c for c in day
-                if c["t"] > rng["t"]
-                and (c["t"].hour, c["t"].minute) < close_et]
-        if rest:
-            out.append((rng, rest))
+        s = ob.build_session(day, OPEN_ET, close_et)
+        if s:
+            out.append(s)
     return out
 
 
@@ -149,7 +165,8 @@ def evaluate(candles_by_symbol: dict, mode: str, close_et: tuple,
     trades = []
     for candles in candles_by_symbol.values():
         for rng, rest in sessions_for(candles, close_et):
-            t = ob.run_session(rng, rest, mode, cutoff, RETEST_TOL, "fixed")
+            t = ob.run_session(rng, rest, mode, cutoff, RETEST_TOL, "fixed",
+                               retest_max=RETEST_WINDOW_MIN)
             if not t:
                 continue
             if direction == "long_only" and t["side"] != "LONG":
@@ -201,7 +218,7 @@ def main():
               "         python3 -m venv /tmp/orbvenv && /tmp/orbvenv/bin/pip -q install yfinance\n"
               "         /tmp/orbvenv/bin/python orb_stocks.py --notional 500\n")
 
-    print(f"ORB em accoes — velas de 5m, 60 dias, abertura 09:30 ET")
+    print(f"ORB em accoes — range 5m + execucao 1m, {LOOKBACK_DAYS} dias, abertura 09:30 ET")
     print(f"Nocional por posicao: ${args.notional:.0f} "
           f"| comissoes IBKR fixed (${IBKR_MIN:.2f} min/lado)\n")
 

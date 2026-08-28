@@ -28,8 +28,8 @@ from datetime import datetime, timezone
 import requests
 
 BASE_URL = "https://fapi.binance.com"
-INTERVAL = "5m"
-CANDLE_MS = 5 * 60 * 1000
+INTERVAL = "1m"          # range agregado de 5m, execucao em 1m
+CANDLE_MS = 60 * 1000
 
 # ── Sessao ────────────────────────────────────────────────────────────
 OPEN_H, OPEN_M = 13, 30      # 13:30 UTC = 14:30 Lisboa (abertura NY)
@@ -95,24 +95,41 @@ def to_candles(raw: list) -> list:
 
 
 def split_sessions(candles: list) -> list:
-    """Agrupa por dia UTC: (vela_do_range, [velas ate' ao fecho])."""
+    """Agrupa por dia UTC e constroi cada sessao (range 5m + execucao 1m)."""
     by_day = {}
     for c in candles:
         by_day.setdefault(c["t"].date(), []).append(c)
 
     sessions = []
-    for day, day_candles in sorted(by_day.items()):
+    for _, day_candles in sorted(by_day.items()):
         day_candles.sort(key=lambda x: x["t"])
-        rng = next((c for c in day_candles
-                    if c["t"].hour == OPEN_H and c["t"].minute == OPEN_M), None)
-        if rng is None:
-            continue
-        rest = [c for c in day_candles
-                if c["t"] > rng["t"]
-                and (c["t"].hour, c["t"].minute) < (CLOSE_H, CLOSE_M)]
-        if rest:
-            sessions.append((rng, rest))
+        s = build_session(day_candles, (OPEN_H, OPEN_M), (CLOSE_H, CLOSE_M))
+        if s:
+            sessions.append(s)
     return sessions
+
+
+def build_session(candles_1m: list, open_hm: tuple, close_hm: tuple):
+    """
+    Range da primeira vela de 5m, execucao nas velas de 1m seguintes.
+
+    A vela do range e' agregada a partir das cinco velas de 1m que comecam
+    na abertura — e' a mesma vela de 5m do grafico, mas assim a execucao
+    continua com resolucao de 1 minuto, que e' como a estrategia e' operada.
+    """
+    oh, om = open_hm
+    head = [c for c in candles_1m
+            if (c["t"].hour, c["t"].minute) >= (oh, om)
+            and (c["t"].hour * 60 + c["t"].minute) < (oh * 60 + om + 5)]
+    if len(head) < 5:
+        return None
+    rng = {"t": head[0]["t"], "o": head[0]["o"], "c": head[-1]["c"],
+           "h": max(x["h"] for x in head), "l": min(x["l"] for x in head)}
+    start = oh * 60 + om + 5
+    end = close_hm[0] * 60 + close_hm[1]
+    rest = [c for c in candles_1m
+            if start <= (c["t"].hour * 60 + c["t"].minute) < end]
+    return (rng, rest) if rest else None
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -170,8 +187,13 @@ def confirm(mode: str, c: dict, level: float, side: str, pending_rej: dict):
 #  Simulacao de uma sessao
 # ══════════════════════════════════════════════════════════════════════
 def run_session(rng: dict, rest: list, mode: str, cutoff: tuple,
-                tol: float, exit_mode: str):
-    """Devolve o trade da sessao (dict) ou None."""
+                tol: float, exit_mode: str, retest_max: int = 12):
+    """Devolve o trade da sessao (dict) ou None.
+
+    retest_max e' contado em velas de `rest`. A regra e' de 60 minutos, por
+    isso vale 12 em velas de 5m e 60 em velas de 1m — quem chama e' que sabe
+    a resolucao com que esta' a trabalhar.
+    """
     H, L = rng["h"], rng["l"]
     if H <= L:
         return None
@@ -192,7 +214,7 @@ def run_session(rng: dict, rest: list, mode: str, cutoff: tuple,
             continue
 
         # janela de reteste esgotada
-        if not retested and (i - broke_i) > 12:
+        if not retested and (i - broke_i) > retest_max:
             return None
 
         # ── 2. reteste: o preco volta e toca no nivel ──
@@ -259,7 +281,7 @@ def evaluate(sessions_by_symbol: dict, mode, cutoff_s, tol, exit_mode):
     trades = []
     for sessions in sessions_by_symbol.values():
         for rng, rest in sessions:
-            t = run_session(rng, rest, mode, (h, m), tol, exit_mode)
+            t = run_session(rng, rest, mode, (h, m), tol, exit_mode, retest_max=60)
             if t:
                 trades.append(t)
     if not trades:
