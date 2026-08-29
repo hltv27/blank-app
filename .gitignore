@@ -24,6 +24,9 @@ downloads/
 eggs/
 .eggs/
 lib/
+# excepção: lib/ genérico acima também apanhava a biblioteca partilhada da
+# extensão Chrome (não é um venv Python) — manter rastreada no git
+!/chrome-ram-saver/lib/
 lib64/
 parts/
 sdist/

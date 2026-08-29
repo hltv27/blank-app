@@ -312,6 +312,7 @@ Este repositório (`hltv27/blank-app`) começou como um template Streamlit em br
 | `douroetamega/`, `guidedbynature/`, `guidedbynature_crawler.py`, `find_api.py` | Web crawlers para projectos de scraping distintos | Projectos separados |
 | `streamlit_app.py`, `.devcontainer/` | Boilerplate do template original do repo | Não usado pelo bot |
 | `biblioteca_cw` | Ficheiro solto vazio (1 byte) | Resíduo, sem conteúdo |
+| `chrome-ram-saver/` | Extensão Chrome (MV3) standalone que suspende separadores inactivos via `chrome.tabs.discard()` para reduzir RAM — sem `host_permissions`, não lê conteúdo de páginas | Projecto separado, sem relação com o bot; ver `chrome-ram-saver/README.md` |
 | `portfolio_tracker.json` | Snapshots manuais do portfólio pessoal do utilizador (múltiplas carteiras/exchanges), mantido por sessões Claude via commits directos | Dados, não código — não é lido pelo `claw_v8` |
 | `PROJECTO_CLAW_COMPLETO.md`, `CLAW_MASTER.md`, `CHANGELOG.md`, `SESSAO_*.md`, `.claude/memory/*.md` | Documentação histórica/notas de sessões anteriores sobre o bot | Podem estar desactualizadas — `CLAUDE.md` (este ficheiro) e `claw_v8/status.json` são as fontes de verdade actuais; `.claude/memory/` reflecte estado de 2026-06-15, já ultrapassado pelas secções acima |
 
