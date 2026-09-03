@@ -2,6 +2,15 @@
 
 ## 🔴 Pendentes
 
+### BUG-AFF-P2: Instagram sessão expirada — login via VPS bloqueado
+**Ficheiro:** `affiliate_bot/publishers/instagram.py`, `instagram_session.json`
+**Sintoma:** Desde 27/08 todos os posts em Instagram falham com `{"message":"login_required","status":"fail"}` (403 no upload de foto). A sessão gravada expirou.
+**Causa:** Tentativa de novo login via instagrapi no VPS falha com `"Sorry, there was a problem with your request"` mesmo com password correta (confirmado — login funciona no browser do telemóvel). Motivo provável: Instagram bloqueia login novo vindo de IP de datacenter/VPS (178.105.52.219) como suspeito.
+**Conta:** @hugo.deals | Password confirmada: correcta (login OK no browser mobile)
+**Fix pendente:** Extrair `sessionid` de uma sessão de browser válida (PC, Chrome DevTools → Application → Cookies) e usar `cl.login_by_sessionid(SESSIONID)` no VPS em vez de `cl.login(user, pass)` — evita o processo de login que está a ser bloqueado.
+**Status:** Aguarda utilizador ter acesso a PC para extrair sessionid.
+**Impacto:** Instagram (4 posts/dia) não publica. Telegram e Facebook não afectados.
+
 ### ~~BUG-AFF-P1~~: Facebook `pages_manage_posts` — ✅ RESOLVIDO (2026-08-27)
 Token obtido via Access Token Tool (TopDealsGadget app, User Token com pages_manage_posts) → me/accounts → Page Token 207 chars. Facebook a publicar.
 
