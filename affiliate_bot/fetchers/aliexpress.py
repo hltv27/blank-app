@@ -7,6 +7,10 @@ from affiliate_bot.config import Config
 logger = logging.getLogger(__name__)
 
 RAPIDAPI_HOST = "aliexpress-datahub.p.rapidapi.com"
+
+
+class QuotaExceededError(Exception):
+    """Raised when RapidAPI returns 429 — quota exhausted for today."""
 RAPIDAPI_BASE = f"https://{RAPIDAPI_HOST}"
 
 
@@ -39,8 +43,13 @@ def search_products(keyword: str, niche: str, min_rating: float = 4.0, page_size
             params={"q": keyword, "page": "1"},
             timeout=15,
         )
+        if resp.status_code == 429:
+            logger.error("RapidAPI quota exceeded (429) for keyword '%s'", keyword)
+            raise QuotaExceededError("RapidAPI daily quota exceeded")
         resp.raise_for_status()
         data = resp.json()
+    except QuotaExceededError:
+        raise
     except Exception as e:
         logger.error("RapidAPI search error: %s", e)
         return []
@@ -115,7 +124,7 @@ def get_products_for_niche(niche_key: str, niche_config: dict, limit: int = 5) -
             niche=niche_key,
             min_rating=niche_config.get("min_rating", 4.0),
             page_size=10,
-        )
+        )  # QuotaExceededError propagates up to caller
         all_products.extend(found)
         if len(all_products) >= limit * 2:
             break

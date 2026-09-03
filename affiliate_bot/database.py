@@ -137,6 +137,16 @@ def mark_cache_refreshed(niche: str):
         )
 
 
+def get_any_products(niche: str, limit: int = 20) -> list[dict]:
+    """Return products from DB regardless of cache age — fallback when API quota is exhausted."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM products WHERE niche=? ORDER BY discount_percent DESC, orders DESC LIMIT ?",
+            (niche, limit)
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def get_stats() -> dict:
     with get_db() as conn:
         total_posts = conn.execute("SELECT COUNT(*) FROM posts WHERE status='success'").fetchone()[0]

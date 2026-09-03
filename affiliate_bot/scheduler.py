@@ -6,9 +6,9 @@ from pathlib import Path
 from affiliate_bot.config import Config
 from affiliate_bot.database import (
     init_db, was_posted, save_product, record_post, get_stats,
-    get_cached_products, mark_cache_refreshed,
+    get_cached_products, mark_cache_refreshed, get_any_products,
 )
-from affiliate_bot.fetchers.aliexpress import get_products_for_niche
+from affiliate_bot.fetchers.aliexpress import get_products_for_niche, QuotaExceededError
 from affiliate_bot.generators.content import generate_post_text
 from affiliate_bot.generators.image import create_product_card
 from affiliate_bot import publishers
@@ -32,6 +32,9 @@ def refresh_product_cache(niches: dict):
                 save_product(p)
             mark_cache_refreshed(niche_key)
             logger.info("Cache refreshed: %s — %d products", niche_key, len(products))
+        except QuotaExceededError:
+            logger.error("RapidAPI quota exceeded — stopping cache refresh, will retry tomorrow at 06:00 UTC")
+            break  # Stop trying other niches — all will fail anyway
         except Exception as e:
             logger.error("Cache refresh error for %s: %s", niche_key, e)
 
@@ -39,15 +42,21 @@ def refresh_product_cache(niches: dict):
 def run_post_cycle(platform: str, niche_key: str, niche_config: dict) -> bool:
     logger.info("Starting post cycle: platform=%s niche=%s", platform, niche_key)
 
-    # Use cached products from DB — only call API if cache is stale
+    # Use cached products from DB — prefer fresh cache, fall back to stale DB, then API
     products = get_cached_products(niche_key, max_age_hours=72)
     if not products:
-        logger.info("Cache empty/stale for %s — fetching from API", niche_key)
-        products = get_products_for_niche(niche_key, niche_config, limit=20)
+        # Cache is stale: use existing DB products to avoid unnecessary API calls
+        products = get_any_products(niche_key)
         if products:
-            for p in products:
-                save_product(p)
-            mark_cache_refreshed(niche_key)
+            logger.info("Using stale DB products for %s (%d available)", niche_key, len(products))
+        else:
+            # DB truly empty — call API as last resort
+            logger.info("DB empty for %s — fetching from API", niche_key)
+            products = get_products_for_niche(niche_key, niche_config, limit=20)
+            if products:
+                for p in products:
+                    save_product(p)
+                mark_cache_refreshed(niche_key)
 
     if not products:
         logger.warning("No products found for niche %s", niche_key)
