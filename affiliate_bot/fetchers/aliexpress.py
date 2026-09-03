@@ -114,11 +114,11 @@ def search_products(keyword: str, niche: str, min_rating: float = 4.0, page_size
 
 def get_products_for_niche(niche_key: str, niche_config: dict, limit: int = 5) -> list[dict]:
     all_products = []
-    keywords = niche_config.get("keywords", [])[:3]
+    keywords = niche_config.get("keywords", [])[:1]  # 1 keyword/niche = 4 API calls/day
 
     for i, keyword in enumerate(keywords):
         if i > 0:
-            time.sleep(2)
+            time.sleep(10)
         found = search_products(
             keyword=keyword,
             niche=niche_key,

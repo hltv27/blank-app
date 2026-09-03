@@ -22,7 +22,7 @@ def refresh_product_cache(niches: dict):
     logger.info("Refreshing product cache for %d niches", len(niches))
     for i, (niche_key, niche_cfg) in enumerate(niches.items()):
         if i > 0:
-            time.sleep(5)
+            time.sleep(15)  # 15s between niches to respect rate limits
         try:
             products = get_products_for_niche(niche_key, niche_cfg, limit=20)
             if not products:
