@@ -63,3 +63,34 @@
 3. Actualizar FACEBOOK_PAGE_TOKEN no VPS com `python3 -c "import getpass..."` (evita mascaramento)
 
 ---
+
+## Ciclo #4 — 2026-09-03
+
+**Trigger:** Manual pelo utilizador ("relembra o histórico e faz .md").
+**Sessão:** Continuação do Ciclo #3 — Facebook resolvido, .env limpo, metal bot planeado.
+
+**Feito nesta sessão:**
+- ✅ Facebook resolvido: Access Token Tool → app **TopDealsGadget** (já tinha `pages_manage_posts`) → User Token → `me/accounts` → Page Token 207 chars → `Facebook: True`
+- ✅ .env limpo: removidas linhas 15-16 malformadas (restos de tentativas falhadas de token insertion)
+- ✅ Affiliate bot completo: Telegram ✅ + Instagram ✅ + Facebook ✅ + Website ✅
+
+**Lições aprendidas:**
+- Graph API Explorer NÃO mostra `pages_manage_posts` se a app não tiver o Use Case correcto
+- Solução: **Access Token Tool** lista todas as apps → TopDealsGadget já tinha a permissão
+- `python3 getpass.getpass()` obrigatório para tokens longos — Claude Code mascara tokens no chat
+
+**Metal bot planeado:**
+- @internationalmetall (60k seguidores, metal music)
+- 1 post/dia: YouTube API v3 → yt-dlp → Claude Haiku caption → instagrapi
+- Aguarda: YouTube Data API v3 key + credenciais Instagram da conta
+
+**Actualizações:**
+- `context.md` — reescrito: parâmetros CLAW corrigidos, affiliate bot all-OK, Facebook fix, metal bot planeado
+- `dream_log.md` — este ciclo adicionado
+
+**Próxima sessão (metal bot):**
+1. Utilizador obtém YouTube Data API v3 key em console.cloud.google.com
+2. Adicionar credenciais @internationalmetall ao VPS .env via getpass
+3. Construir `metal_bot/` no repo
+
+---
