@@ -3,6 +3,7 @@ Bulk publish multiple AliExpress products to all platforms.
 Usage: python3 -m affiliate_bot.publish_bulk "item_id:niche" "item_id:niche" ...
 Example: python3 -m affiliate_bot.publish_bulk "1005010063076436:tech_gadgets" "1005009999999999:fitness_health"
 """
+import os
 import sys
 import time
 import logging
@@ -111,10 +112,12 @@ def post_product(product: dict):
         logger.error("[%s] Image generation failed: %s", item_id, e)
         image_path = None
 
+    skip_instagram = os.environ.get("SKIP_INSTAGRAM") == "1"
+
     active = []
     if Config.TELEGRAM_BOT_TOKEN:
         active.append("telegram")
-    if Config.INSTAGRAM_USERNAME and Config.INSTAGRAM_PASSWORD:
+    if Config.INSTAGRAM_USERNAME and Config.INSTAGRAM_PASSWORD and not skip_instagram:
         active.append("instagram")
     if Config.FACEBOOK_PAGE_ID and Config.FACEBOOK_PAGE_TOKEN:
         active.append("facebook")
