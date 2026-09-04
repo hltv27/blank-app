@@ -4,9 +4,9 @@ Usage: python3 -m affiliate_bot.publish_bulk "item_id:niche" "item_id:niche" ...
 Example: python3 -m affiliate_bot.publish_bulk "1005010063076436:tech_gadgets" "1005009999999999:fitness_health"
 """
 import sys
+import time
 import logging
 import requests
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("publish_bulk")
@@ -18,10 +18,11 @@ from affiliate_bot.generators.image import create_product_card
 from affiliate_bot import publishers
 
 RAPIDAPI_HOST = "aliexpress-datahub.p.rapidapi.com"
+DELAY_BETWEEN_REQUESTS = 6  # seconds — respect RapidAPI Basic rate limit
 
 
-def fetch_item(item_id: str, niche: str) -> dict | None:
-    """Fetch product details from RapidAPI."""
+def fetch_item(item_id: str, niche: str, retry: bool = True) -> dict | None:
+    """Fetch product details from RapidAPI. Retries once on 429 with backoff."""
     headers = {
         "X-RapidAPI-Key": Config.RAPIDAPI_KEY,
         "X-RapidAPI-Host": RAPIDAPI_HOST,
@@ -33,14 +34,21 @@ def fetch_item(item_id: str, niche: str) -> dict | None:
             params={"itemId": item_id},
             timeout=15,
         )
+        if resp.status_code == 429:
+            if retry:
+                logger.warning("[%s] 429 — waiting 20s and retrying once...", item_id)
+                time.sleep(20)
+                return fetch_item(item_id, niche, retry=False)
+            logger.error("[%s] API error 429 (after retry)", item_id)
+            return None
         if resp.status_code != 200:
-            logger.error("[%s] API error %s", item_id, resp.status_code)
+            logger.error("[%s] API error %s: %s", item_id, resp.status_code, resp.text[:200])
             return None
 
         data = resp.json()
         item = data.get("result", {}).get("item", {})
         if not item:
-            logger.error("[%s] No item in response", item_id)
+            logger.error("[%s] No item in response. Raw: %s", item_id, str(data)[:500])
             return None
 
         # Price
@@ -139,26 +147,22 @@ if __name__ == "__main__":
         niche = parts[1].strip() if len(parts) > 1 else "tech_gadgets"
         items.append((item_id, niche))
 
-    logger.info("Publishing %d products...", len(items))
+    logger.info("Fetching %d products (sequential, %ds delay to respect rate limit)...", len(items), DELAY_BETWEEN_REQUESTS)
 
-    # Fetch all products (parallel)
+    # Fetch sequentially with delay to avoid 429
     products = []
-    with ThreadPoolExecutor(max_workers=3) as exe:
-        futures = {exe.submit(fetch_item, iid, niche): (iid, niche) for iid, niche in items}
-        for future in as_completed(futures):
-            iid, niche = futures[future]
-            try:
-                product = future.result()
-                if product:
-                    products.append(product)
-                    logger.info("[%s] ✓ Fetched: %s (€%.2f)", iid, product["title"][:50], product["price"])
-                else:
-                    logger.warning("[%s] ✗ Could not fetch", iid)
-            except Exception as e:
-                logger.error("[%s] ✗ %s", iid, e)
+    for i, (iid, niche) in enumerate(items):
+        if i > 0:
+            time.sleep(DELAY_BETWEEN_REQUESTS)
+        product = fetch_item(iid, niche)
+        if product:
+            products.append(product)
+            logger.info("[%s] ✓ Fetched: %s (€%.2f)", iid, product["title"][:50], product["price"])
+        else:
+            logger.warning("[%s] ✗ Could not fetch", iid)
 
-    logger.info("\nPublishing %d products to all platforms...", len(products))
+    logger.info("\nPublishing %d/%d products to all platforms...", len(products), len(items))
     for product in products:
         post_product(product)
 
-    logger.info("\nDone. %d products published.", len(products))
+    logger.info("\nDone. %d/%d products published.", len(products), len(items))
