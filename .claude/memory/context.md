@@ -1,4 +1,4 @@
-# Contexto — hltv27/blank-app (2026-09-03)
+# Contexto — hltv27/blank-app (2026-09-03, actualizado à noite)
 
 ---
 
@@ -48,14 +48,34 @@ SESSOES_UTC         = [(5, 23)]
 **Branch dev:** `claude/affiliate-bot-automation-5rsFF` | **PR:** #25 (draft)
 **Repo code:** `affiliate_bot/` em `hltv27/blank-app`
 
-### Estado actual (2026-09-03) — TUDO ACTIVO ✅
+### Estado actual (2026-09-03 noite)
 | Plataforma | Estado | Notas |
 |------------|--------|-------|
 | Telegram   | ✅ OK  | 8 posts/dia — canal @TopDealsGadgetss |
-| Instagram  | ✅ OK  | 4 posts/dia — @hugo.deals |
+| Instagram  | 🔴 PARADO | @hugo.deals — sessão expirada desde 27/08. Ver BUG-AFF-P2 em bugs.md |
 | Facebook   | ✅ OK  | 4 posts/dia — "Top Deals Gadget" (ID: 1189959324190844) |
 | Website    | ✅ OK  | hltv27.github.io/blank-app/ — auto-actualizado após cada post |
 | TikTok     | ⚪     | Não configurado |
+
+### RapidAPI — quota/rate limit (resolvido 2026-09-03)
+**Sintoma:** Bot parado desde 30/08 — todos os pedidos à AliExpress DataHub davam 429 (rate limit, não quota mensal — essa estava a 0%).
+**Causa:** Cache refresh diário disparava 12 pedidos (3 keywords × 4 niches) em ~30s — excedia o rate limit do plano Basic. Além disso, cada post cycle com cache expirado tentava a API de novo, agravando o problema.
+**Fix aplicado (commits 7f8f77c, 6032943):**
+- `database.py`: `get_any_products()` — fallback para produtos antigos do DB, sem chamar API
+- `scheduler.py`: `run_post_cycle` usa produtos stale do DB antes de tentar API; `refresh_product_cache` pára ao 1º 429 em vez de continuar a tentar outros niches
+- `aliexpress.py`: `QuotaExceededError` explícita no 429; reduzido para **1 keyword/niche** (4 pedidos/dia em vez de 12), delays aumentados (10s entre keywords, 15s entre niches)
+**Resultado:** Bot voltou a publicar imediatamente com os 531+ produtos já no DB.
+
+### Publicação manual de produtos (novo — 2026-09-03)
+Scripts para publicar produtos específicos fora do scheduler normal (ex: quando o utilizador encontra uma boa oferta manualmente):
+- `affiliate_bot/post_now.py` — publica 1 produto por item ID
+- `affiliate_bot/publish_bulk.py` — publica vários de uma vez (fetch paralelo + post sequencial)
+  ```bash
+  python3 -m affiliate_bot.publish_bulk "1005010063076436:tech_gadgets" "1005007594756946:home_smart" ...
+  ```
+- Usa `item_detail_2` da RapidAPI para obter título/preço/imagem a partir do item ID
+- Gera link de afiliado com `ALIEXPRESS_TRACKING_ID` (hltv27) automaticamente — preferir isto a usar short links (`s.click.aliexpress.com`) porque parecem mais confiáveis a quem vê e não dependem do encurtador
+- 16 produtos publicados manualmente nesta sessão via este método
 
 ### Facebook — como renovar token (expira ~3 meses)
 O token actual (207 chars) foi obtido via **Access Token Tool** (não Graph API Explorer):

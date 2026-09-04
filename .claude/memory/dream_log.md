@@ -94,3 +94,35 @@
 3. Construir `metal_bot/` no repo
 
 ---
+
+## Ciclo #5 — 2026-09-03 (noite)
+
+**Trigger:** Manual pelo utilizador ("Compacta e faz .md").
+**Sessão:** Bot totalmente parado (RapidAPI 429) → diagnosticado e corrigido → publicação manual de 16 produtos → descoberta de sessão Instagram expirada.
+
+**Feito nesta sessão:**
+- ✅ Diagnosticado "tudo parado": RapidAPI a dar 429 em todos os pedidos desde ~30/08 (rate limit do plano Basic, não quota mensal — essa estava a 0%)
+- ✅ Fix: `get_any_products()` fallback para produtos stale do DB; `refresh_product_cache` pára ao 1º 429; reduzido a 1 keyword/niche (4 pedidos/dia); `QuotaExceededError` explícita (commits 7f8f77c, 6032943)
+- ✅ Bot voltou a publicar imediatamente com os 531+ produtos existentes
+- ✅ Criados `post_now.py` e `publish_bulk.py` — publicação manual de produtos específicos por item ID (fora do scheduler)
+- ✅ Publicados 16 produtos manualmente que o utilizador foi enviando (links AliExpress → extraído item ID → niche → publish_bulk)
+- ⚠️ Descoberto: Instagram não publica desde 27/08 (`login_required`, 403 no upload) — sessão expirada
+- ❌ Tentativa de renovar via `cl.login()` no VPS falhou mesmo com password correta (confirmado: login funciona no browser do telemóvel) — Instagram bloqueia login novo vindo de IP de datacenter
+- 📝 BUG-AFF-P2 registado em bugs.md — fix requer `sessionid` extraído de um browser (PC) + `cl.login_by_sessionid()`. Aguarda utilizador ter PC disponível.
+
+**Lições aprendidas:**
+- RapidAPI free tier: "Quota Usage 0%" no dashboard é quota MENSAL — não protege contra rate limit por minuto/segundo. Espaçar pedidos (10-15s) é essencial mesmo com quota disponível
+- Instagram bloqueia `instagrapi.login()` a partir de IPs de VPS/datacenter mesmo com credenciais corretas — usar sempre `login_by_sessionid()` para servidores, nunca login fresco por password
+- Para publicação manual de produtos (fora do fetch automático), usar o endpoint `item_detail_2` da RapidAPI com o item ID extraído do URL do produto
+- Links de afiliado gerados (aliexpress.com/item/ID?aff_fcid=hltv27) são preferíveis a short links (s.click.aliexpress.com) para posts — parecem mais confiáveis e não dependem de um encurtador externo
+
+**Actualizações:**
+- `context.md` — estado Instagram marcado 🔴, secção RapidAPI fix documentada, secção publicação manual adicionada
+- `bugs.md` — BUG-AFF-P2 adicionado (Instagram sessão expirada, aguarda sessionid)
+- `dream_log.md` — este ciclo
+
+**Próxima sessão:**
+1. Se utilizador enviar `sessionid` do Instagram: renovar com `cl.login_by_sessionid()` no VPS, testar post, `systemctl restart affiliatebot`
+2. Continuar metal bot (@internationalmetall) — ainda aguarda YouTube API key
+
+---
