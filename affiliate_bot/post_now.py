@@ -25,7 +25,7 @@ def fetch_item(item_id: str) -> dict | None:
         "X-RapidAPI-Host": RAPIDAPI_HOST,
     }
     resp = requests.get(
-        f"https://{RAPIDAPI_HOST}/item_detail_2",
+        f"https://{RAPIDAPI_HOST}/item_detail",
         headers=headers,
         params={"itemId": item_id},
         timeout=15,
@@ -43,16 +43,23 @@ def fetch_item(item_id: str) -> dict | None:
         logger.error("No item in response: %s", str(data)[:300])
         return None
 
-    # Price
-    price_info = item.get("sku", {}).get("base", [{}])[0] if item.get("sku", {}).get("base") else {}
-    price_raw = price_info.get("promotionPrice") or price_info.get("price", "0")
-    original_raw = price_info.get("price", price_raw)
-    try:
-        price = float(str(price_raw).replace(",", "."))
-        original = float(str(original_raw).replace(",", "."))
-    except (ValueError, TypeError):
-        price = 0.0
-        original = 0.0
+    # Price — sku.def.promotionPrice is the discounted price (number);
+    # sku.def.price can be a single value OR a range "X - Y" (string)
+    sku_def = item.get("sku", {}).get("def", {})
+    promotion_raw = sku_def.get("promotionPrice")
+    price_field = sku_def.get("price", "0")
+
+    def _parse_price(val, fallback: float = 0.0) -> float:
+        try:
+            s = str(val)
+            if " - " in s:
+                s = s.split(" - ")[0]
+            return float(s.replace(",", "."))
+        except (ValueError, TypeError):
+            return fallback
+
+    original = _parse_price(price_field)
+    price = _parse_price(promotion_raw, fallback=original) if promotion_raw is not None else original
 
     discount = round((1 - price / original) * 100) if original > price > 0 else 0
 
