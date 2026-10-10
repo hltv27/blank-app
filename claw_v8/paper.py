@@ -263,9 +263,13 @@ def ler_trades() -> list[dict]:
 
 
 # Critério para voltar ao dinheiro real. Com 100 trades e "líquido > 0" uma
-# estratégia sem edge passava ~50% das vezes; exige-se amostra grande E
-# t-stat do líquido por trade (média / (desvio / √n)) acima de 2.
+# estratégia sem edge passava ~50% das vezes; exige-se t-stat do líquido por
+# trade (média / (desvio / √n)) acima de 2. A recolha termina aos 1000 trades
+# ou no fim do prazo (o que vier primeiro); no prazo, com menos de
+# MIN_TRADES_PRAZO trades a amostra não chega para decidir.
 MIN_TRADES_VEREDICTO = 1000
+MIN_TRADES_PRAZO     = 30
+PRAZO_VEREDICTO      = "2026-12-31"   # UTC, inclusive
 T_STAT_MIN           = 2.0
 
 
@@ -282,8 +286,12 @@ def resumo() -> dict:
         t_stat = media / (desvio / n ** 0.5) if desvio > 0 else 0.0
     else:
         desvio, t_stat = 0.0, 0.0
-    if n < MIN_TRADES_VEREDICTO:
-        veredicto = f"A RECOLHER ({n}/{MIN_TRADES_VEREDICTO} trades, t={t_stat:+.2f})"
+    prazo_fim = time.strftime("%Y-%m-%d", time.gmtime()) > PRAZO_VEREDICTO
+    if n < MIN_TRADES_VEREDICTO and not prazo_fim:
+        veredicto = (f"A RECOLHER ({n}/{MIN_TRADES_VEREDICTO} trades até "
+                     f"{PRAZO_VEREDICTO}, t={t_stat:+.2f})")
+    elif n < MIN_TRADES_PRAZO:
+        veredicto = f"INCONCLUSIVO (prazo terminou com {n} trades, t={t_stat:+.2f})"
     elif t_stat > T_STAT_MIN:
         veredicto = f"APROVADO (t={t_stat:+.2f})"
     elif t_stat < 0:

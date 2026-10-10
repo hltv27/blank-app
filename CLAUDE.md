@@ -55,7 +55,7 @@ O bot arranca em **modo papel** (`PAPER_TRADING`, `config.py`): estratégia, fil
 - Estado: `paper_state.json` (saldo simulado, começa em 200 USDC), trades fechados em `paper_trades.jsonl` (bruto/fees/líquido), SQLite separado `claw_v8_paper.db`
 - Relatório diário escreve `status_paper.json` / `status_paper_history.jsonl` (o `status.json` real não é tocado); Telegram leva o prefixo `[PAPEL]`
 - Resumo manual: `cd /root/blank-app/claw_v8 && python3 paper_report.py`
-- **Critério para voltar ao dinheiro real**: ≥1000 trades em papel **e** t-stat do líquido por trade > 2 (`media / (desvio / √n)`; `paper.py:MIN_TRADES_VEREDICTO`/`T_STAT_MIN`). Veredictos: A RECOLHER / APROVADO / REPROVADO (t<0) / INCONCLUSIVO. Era ≥100 com líquido > 0 — uma estratégia sem edge passava ~50% das vezes. Parâmetros congelados durante a recolha; mudar a estratégia = recomeçar a contagem (novo `paper_trades.jsonl`)
+- **Critério para voltar ao dinheiro real**: t-stat do líquido por trade > 2 (`media / (desvio / √n)`), avaliado aos 1000 trades em papel **ou** no fim do prazo **2026-12-31** (o que vier primeiro); no prazo com < 30 trades → INCONCLUSIVO (`paper.py:MIN_TRADES_VEREDICTO`/`PRAZO_VEREDICTO`/`MIN_TRADES_PRAZO`/`T_STAT_MIN`). Veredictos: A RECOLHER / APROVADO / REPROVADO (t<0) / INCONCLUSIVO — só APROVADO autoriza propor dinheiro real. Era ≥100 com líquido > 0 — uma estratégia sem edge passava ~50% das vezes. Parâmetros congelados durante a recolha; mudar a estratégia = recomeçar a contagem (novo `paper_trades.jsonl`)
 - Dinheiro real só com `CLAW_PAPER=0` no ambiente do `run_loop.sh` — nunca sem confirmação do utilizador
 - Razão: 588 trades reais deram bruto −11.01 e comissões 85.94 → líquido ≈ −97 USDC (o `pnl` no SQLite é `unRealizedProfit`, bruto, sem comissões)
 

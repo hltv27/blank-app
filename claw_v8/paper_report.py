@@ -2,7 +2,7 @@
 Resumo do modo papel — corre manualmente no VPS:
     cd /root/blank-app/claw_v8 && python3 paper_report.py
 Lê paper_trades.jsonl (escrito por paper.py) e mostra bruto, comissões e
-líquido, por motivo de saída e por símbolo, mais o veredicto (≥1000 trades e t-stat > 2).
+líquido, por motivo de saída e por símbolo, mais o veredicto (t-stat > 2 aos 1000 trades ou a 2026-12-31).
 """
 from collections import defaultdict
 
