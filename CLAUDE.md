@@ -50,6 +50,15 @@ Esta sessão remota **não tem acesso SSH** à VPS — qualquer diagnóstico dep
   sleep 3 && tail -20 /root/claw.log
   ```
 
+## Modo papel (paper trading) — activo por omissão desde 2026-10-10
+O bot arranca em **modo papel** (`PAPER_TRADING`, `config.py`): estratégia, filtros e gestão de posições correm iguais, mas conta e ordens são simuladas por `paper.py` com preços reais (comissão taker 0.05% + slippage 0.02% por fill, stops verificados a cada ~15s, funding não simulado). Nenhuma ordem chega à Binance.
+- Estado: `paper_state.json` (saldo simulado, começa em 200 USDC), trades fechados em `paper_trades.jsonl` (bruto/fees/líquido), SQLite separado `claw_v8_paper.db`
+- Relatório diário escreve `status_paper.json` / `status_paper_history.jsonl` (o `status.json` real não é tocado); Telegram leva o prefixo `[PAPEL]`
+- Resumo manual: `cd /root/blank-app/claw_v8 && python3 paper_report.py`
+- **Critério para voltar ao dinheiro real**: ≥100 trades em papel com líquido > 0 (o `resumo()` dá o veredicto)
+- Dinheiro real só com `CLAW_PAPER=0` no ambiente do `run_loop.sh` — nunca sem confirmação do utilizador
+- Razão: 588 trades reais deram bruto −11.01 e comissões 85.94 → líquido ≈ −97 USDC (o `pnl` no SQLite é `unRealizedProfit`, bruto, sem comissões)
+
 ## Kill switch de emergência
 ```bash
 touch /root/blank-app/claw_v8/KILL_SWITCH

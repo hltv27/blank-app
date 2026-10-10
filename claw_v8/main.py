@@ -95,15 +95,23 @@ def _relatorio_diario(mem: dict):
             "losses_total": mem.get("losses", 0),
             "versao": "v8.0",
         }
+        if config.PAPER_TRADING:
+            import paper
+            status["modo"]  = "PAPEL"
+            status["papel"] = paper.resumo()
 
         # Escreve status.json (último dia — para Claude ler rapidamente)
         base_path = os.path.dirname(__file__)
-        status_path = os.path.join(base_path, "status.json")
+        # Em modo papel usa ficheiros próprios — não mistura com o histórico real
+        sufixo = "_paper" if config.PAPER_TRADING else ""
+        status_file  = f"status{sufixo}.json"
+        history_file = f"status{sufixo}_history.jsonl"
+        status_path = os.path.join(base_path, status_file)
         with open(status_path, "w", encoding="utf-8") as f:
             json.dump(status, f, indent=2, ensure_ascii=False)
 
         # Append status_history.jsonl (histórico completo, nunca sobrescreve)
-        history_path = os.path.join(base_path, "status_history.jsonl")
+        history_path = os.path.join(base_path, history_file)
         with open(history_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(status, ensure_ascii=False) + "\n")
 
@@ -112,7 +120,7 @@ def _relatorio_diario(mem: dict):
         subprocess.run(["git", "-C", repo_path, "pull", "--rebase", "origin", "main"],
                        capture_output=True, timeout=60)
         subprocess.run(["git", "-C", repo_path, "add",
-                        "claw_v8/status.json", "claw_v8/status_history.jsonl"],
+                        f"claw_v8/{status_file}", f"claw_v8/{history_file}"],
                        capture_output=True, timeout=30)
         subprocess.run(["git", "-C", repo_path, "commit", "-m", f"status: {data_hoje}"],
                        capture_output=True, timeout=30)
@@ -137,6 +145,11 @@ def _relatorio_diario(mem: dict):
         cb_txt     = f" | ⛔ CB: {cb_motivo}" if cb_activo else ""
         push_txt   = "📁 GitHub ✅" if push_ok else "📁 push ⚠️"
         exp_txt    = f"📐 Expectancy: {_expectancy:+.3f} USDC/trade ({_tot} trades)"
+        if config.PAPER_TRADING:
+            pr = status["papel"]
+            exp_txt += (f"\n🧾 Papel total: {pr['trades']} trades | bruto {pr['bruto']:+.2f} "
+                        f"| fees {pr['fees']:.2f} | <b>líquido {pr['liquido']:+.2f}</b>\n"
+                        f"⚖️ {pr['veredicto']}")
 
         tg(
             f"📊 <b>Relatório {data_hoje}</b>\n"

@@ -9,7 +9,8 @@ import time
 from urllib.parse import urlencode
 from config import (
     BASE_URL, BINANCE_API_KEY, BINANCE_API_SECRET,
-    TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, SYMBOL_PRECISION, PRICE_PRECISION
+    TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, SYMBOL_PRECISION, PRICE_PRECISION,
+    PAPER_TRADING
 )
 
 _time_offset_ms = 0
@@ -69,6 +70,8 @@ def _get_retry(url: str, params: dict = None, timeout: int = 10,
 
 
 def tg(msg: str):
+    if PAPER_TRADING:
+        msg = "📝 <b>[PAPEL]</b> " + msg
     try:
         r = requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
@@ -571,3 +574,27 @@ def cancel_algo_order(symbol: str, algo_id) -> bool:
 
     # Tentativa 2: ordem regular (STOP_MARKET via /fapi/v1/order)
     return cancel_order(symbol, algo_id)
+
+
+# ─────────────────────────────────────────────
+#  MODO PAPEL — substitui conta/ordens pela simulação (paper.py).
+#  Klines, preços e exchangeInfo continuam a vir da Binance real.
+#  Tem de ficar no fim: os outros módulos fazem `from exchange import ...`
+#  depois de este módulo carregar, e recebem as versões simuladas.
+# ─────────────────────────────────────────────
+if PAPER_TRADING:
+    import paper as _paper
+    _paper.init(get_price)
+    get_balance             = _paper.get_balance
+    get_positions           = _paper.get_positions
+    get_margin_ratio        = _paper.get_margin_ratio
+    get_margin_ratio_global = _paper.get_margin_ratio_global
+    set_leverage            = _paper.set_leverage
+    place_order             = _paper.place_order
+    place_stop_market       = _paper.place_stop_market
+    place_take_profit       = _paper.place_take_profit
+    place_trailing_stop     = _paper.place_trailing_stop
+    close_position          = _paper.close_position
+    cancel_order            = _paper.cancel_order
+    cancel_algo_order       = _paper.cancel_algo_order
+    get_open_algo_orders    = _paper.get_open_algo_orders

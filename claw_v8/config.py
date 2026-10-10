@@ -182,9 +182,12 @@ CHECK_POSICOES_FAST = 15     # gestão de posições a cada 15s (era 10)
 # ─────────────────────────────────────────────
 #  FICHEIROS / MODO
 # ─────────────────────────────────────────────
-DB_FILE       = "claw_v8.db"
+# Modo papel: simula ordens (paper.py) sem tocar no dinheiro real.
+# Ligado por omissão; para dinheiro real arrancar com CLAW_PAPER=0.
+PAPER_TRADING = os.getenv("CLAW_PAPER", "1") != "0"
+PAPER_SALDO_INICIAL = 200.0  # USDC simulados no arranque do modo papel
+DB_FILE       = "claw_v8_paper.db" if PAPER_TRADING else "claw_v8.db"
 LOG_FILE      = "claw_v8.log"
-PAPER_TRADING = False
 MONITOR_EXTERNAS = False  # True = monitoriza posições manuais e aplica profit lock
 KRONOS_ENABLED   = True   # True = usa modelo Kronos para bonus/penalidade de score
 
