@@ -18,6 +18,7 @@ from config import (
 )
 import math
 from exchange import (
+    _log_mudanca,
     tg, get_balance, get_positions, get_margin_ratio, get_margin_ratio_global, get_price,
     get_klines,
     set_leverage, place_order, place_stop_market, place_trailing_stop,
@@ -45,7 +46,7 @@ def _fechar_com_retry(symbol: str, qty: float, side: str, tentativas: int = 3) -
 from filters import (
     macro_event_proximo, volatility_regime_ok, spread_ok,
     market_conditions_ok, htf_4h_ok, htf_1h_ok, fear_greed_ok,
-    bb_squeeze_ok, cvd_ok, obi_ok, vwap_ok,
+    cvd_ok, obi_ok, vwap_ok,
     liquidity_sweep_detectado, btc_crash_detectado, calc_correlation
 )
 from risk import equity_scale_factor, atualizar_stats_simbolo, registar_perda_lado
@@ -116,10 +117,20 @@ def abrir_trade(symbol: str, direction: str, closes: list, highs: list,
     # ── Saldo e capital ──────────────────────────────────────────────────
     saldo = get_balance()
     if saldo is None:
+        _log_mudanca("abrir_trade.saldo", "none",
+                     "[AVISO] abrir_trade: get_balance devolveu None — sem entradas")
         return
     capital_bot = min(saldo, CAPITAL_MAX_BOT)
     if capital_bot < RISCO_USDC * 3:
+        # Este return era silencioso. Com o saldo a 0 matava TODAS as entradas
+        # depois de elas terem passado os 24 portoes anteriores, sem deixar
+        # rasto no log — foi o que escondeu semanas sem trades.
+        _log_mudanca("abrir_trade.saldo", f"baixo:{capital_bot:.0f}",
+                     f"[AVISO] abrir_trade: capital {capital_bot:.2f} < "
+                     f"{RISCO_USDC * 3:.0f} USDC minimos — NENHUMA entrada possivel")
         return
+    _log_mudanca("abrir_trade.saldo", "ok",
+                 f"[OK] abrir_trade: capital {capital_bot:.2f} USDC — entradas possiveis")
 
     adx_val = adx(highs, lows, closes)
     sl, tp  = calc_sl_tp(direction, price, atr_val, mode, score, adx_val)

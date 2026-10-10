@@ -88,6 +88,30 @@ def get_public_ip() -> str:
         return "desconhecido"
 
 
+# ─────────────────────────────────────────────
+#  Log sem inundacao
+# ─────────────────────────────────────────────
+_log_estado: dict[str, dict] = {}
+
+
+def _log_mudanca(chave: str, estado: str, msg: str) -> None:
+    """Imprime so' quando o estado muda; conta as repeticoes pelo caminho.
+
+    O get_balance escreveu 282.277 linhas iguais num log de 94 MB — a mesma
+    mensagem a cada ciclo de 15s. Isso nao e' um aviso, e' um apagao: afoga
+    tudo o resto e torna o log inutil para diagnostico.
+    """
+    st = _log_estado.setdefault(chave, {"ultimo": None, "repeticoes": 0})
+    if st["ultimo"] == estado:
+        st["repeticoes"] += 1
+        return
+    if st["repeticoes"]:
+        print(f"[AVISO] {chave}: estado anterior repetiu-se {st['repeticoes']}x")
+    print(msg)
+    st["ultimo"] = estado
+    st["repeticoes"] = 0
+
+
 def get_balance() -> float | None:
     """Saldo USDC/BNFCR via /fapi/v2/account.
     Tenta marginBalance, walletBalance, crossWalletBalance, availableBalance.
@@ -101,7 +125,8 @@ def get_balance() -> float | None:
             )
             data = r.json()
             if _is_timestamp_error(data):
-                print("[AVISO] get_balance: timestamp desfasado — a resincronizar")
+                _log_mudanca("get_balance", "timestamp",
+                             "[AVISO] get_balance: timestamp desfasado — a resincronizar")
                 sync_time()
                 continue
             if isinstance(data, list):
@@ -118,13 +143,16 @@ def get_balance() -> float | None:
                             total = max(total, val)
                             break
             if total > 0:
+                _log_mudanca("get_balance", "ok", "[OK] get_balance: saldo lido")
                 return round(total, 4)
             # Fallback: totalMarginBalance ao nível da conta
             tmb = float(data.get("totalMarginBalance") or "0")
             if tmb > 0:
-                print(f"[AVISO] get_balance: usando totalMarginBalance={tmb:.4f}")
+                _log_mudanca("get_balance", "fallback",
+                             f"[AVISO] get_balance: usando totalMarginBalance={tmb:.4f}")
                 return round(tmb, 4)
-            print(f"[AVISO] get_balance: saldo 0 — campos USDC/BNFCR: {debug}")
+            _log_mudanca("get_balance", "saldo0",
+                         f"[AVISO] get_balance: saldo 0 — campos USDC/BNFCR: {debug}")
         except Exception as e:
             print(f"[ERRO] get_balance: {e}")
             break
