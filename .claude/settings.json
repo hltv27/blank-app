@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "mcp__BINANCE_MCP_SERVER__wallet_getApiKeyPermission",
+      "mcp__BINANCE_MCP_SERVER__wallet_queryUserWalletBalance",
+      "mcp__BINANCE_MCP_SERVER__wallet_allCoinsInformation",
+      "mcp__BINANCE_MCP_SERVER__wallet_dailyAccountSnapshot",
+      "mcp__BINANCE_MCP_SERVER__futures_usds_futuresAccountBalanceV3",
+      "mcp__BINANCE_MCP_SERVER__futures_usds_accountInformationV3",
+      "mcp__BINANCE_MCP_SERVER__futures_usds_positionInformationV2",
+      "mcp__BINANCE_MCP_SERVER__futures_usds_currentAllOpenOrders",
+      "mcp__BINANCE_MCP_SERVER__futures_usds_symbolPriceTicker",
+      "mcp__BINANCE_MCP_SERVER__futures_usds_klineCandlestickData",
+      "mcp__BINANCE_MCP_SERVER__spot_getAccount",
+      "mcp__BINANCE_MCP_SERVER__spot_myTrades",
+      "mcp__BINANCE_MCP_SERVER__spot_getOpenOrders",
+      "mcp__BINANCE_MCP_SERVER__spot_tickerPrice",
+      "mcp__BINANCE_MCP_SERVER__spot_ticker24hr",
+      "mcp__BINANCE_MCP_SERVER__spot_klines",
+      "mcp__BINANCE_MCP_SERVER__spot_exchangeInfo",
+      "mcp__BINANCE_MCP_SERVER__analysis_getTokenAiReport",
+      "mcp__BINANCE_MCP_SERVER__tool_search"
+    ],
+    "deny": [
+      "mcp__BINANCE_MCP_SERVER__spot_newOrder",
+      "mcp__BINANCE_MCP_SERVER__spot_deleteOrder",
+      "mcp__BINANCE_MCP_SERVER__spot_deleteOpenOrders",
+      "mcp__BINANCE_MCP_SERVER__futures_usds_newOrder",
+      "mcp__BINANCE_MCP_SERVER__futures_usds_cancelOrder",
+      "mcp__BINANCE_MCP_SERVER__futures_usds_changeInitialLeverage",
+      "mcp__BINANCE_MCP_SERVER__futures_usds_changeMarginType",
+      "mcp__BINANCE_MCP_SERVER__futures_coin_newOrder",
+      "mcp__BINANCE_MCP_SERVER__futures_coin_cancelOrder",
+      "mcp__BINANCE_MCP_SERVER__futures_coin_changeInitialLeverage",
+      "mcp__BINANCE_MCP_SERVER__futures_coin_changeMarginType",
+      "mcp__BINANCE_MCP_SERVER__margin_marginAccountNewOrder",
+      "mcp__BINANCE_MCP_SERVER__margin_marginAccountCancelOrder",
+      "mcp__BINANCE_MCP_SERVER__margin_marginAccountCancelAllOpenOrdersOnASymbol",
+      "mcp__BINANCE_MCP_SERVER__margin_marginAccountBorrowRepay",
+      "mcp__BINANCE_MCP_SERVER__wallet_userUniversalTransfer",
+      "mcp__BINANCE_MCP_SERVER__convert_acceptQuote",
+      "mcp__BINANCE_MCP_SERVER__convert_placeLimitOrder",
+      "mcp__BINANCE_MCP_SERVER__convert_cancelLimitOrder"
+    ]
+  }
+}
