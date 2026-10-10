@@ -262,6 +262,13 @@ def ler_trades() -> list[dict]:
         return []
 
 
+# Critério para voltar ao dinheiro real. Com 100 trades e "líquido > 0" uma
+# estratégia sem edge passava ~50% das vezes; exige-se amostra grande E
+# t-stat do líquido por trade (média / (desvio / √n)) acima de 2.
+MIN_TRADES_VEREDICTO = 1000
+T_STAT_MIN           = 2.0
+
+
 def resumo() -> dict:
     trades = ler_trades()
     n      = len(trades)
@@ -269,10 +276,24 @@ def resumo() -> dict:
     bruto  = sum(t["bruto"] for t in trades)
     fees   = sum(t["fees"] for t in trades)
     liq    = bruto - fees
+    media  = liq / n if n else 0.0
+    if n >= 2:
+        desvio = (sum((t["liquido"] - media) ** 2 for t in trades) / (n - 1)) ** 0.5
+        t_stat = media / (desvio / n ** 0.5) if desvio > 0 else 0.0
+    else:
+        desvio, t_stat = 0.0, 0.0
+    if n < MIN_TRADES_VEREDICTO:
+        veredicto = f"A RECOLHER ({n}/{MIN_TRADES_VEREDICTO} trades, t={t_stat:+.2f})"
+    elif t_stat > T_STAT_MIN:
+        veredicto = f"APROVADO (t={t_stat:+.2f})"
+    elif t_stat < 0:
+        veredicto = f"REPROVADO (t={t_stat:+.2f})"
+    else:
+        veredicto = f"INCONCLUSIVO (t={t_stat:+.2f}, precisa > {T_STAT_MIN:g})"
     return {
         "trades": n, "wins": wins, "wr_pct": round(wins / n * 100, 1) if n else 0.0,
         "bruto": round(bruto, 2), "fees": round(fees, 2), "liquido": round(liq, 2),
-        "liquido_por_trade": round(liq / n, 3) if n else 0.0,
-        "veredicto": ("APROVADO" if n >= 100 and liq > 0 else
-                      "REPROVADO" if n >= 100 else f"A RECOLHER ({n}/100 trades)"),
+        "liquido_por_trade": round(media, 3),
+        "desvio_por_trade": round(desvio, 3), "t_stat": round(t_stat, 2),
+        "veredicto": veredicto,
     }
