@@ -2,7 +2,7 @@
 Resumo do modo papel — corre manualmente no VPS:
     cd /root/blank-app/claw_v8 && python3 paper_report.py
 Lê paper_trades.jsonl (escrito por paper.py) e mostra bruto, comissões e
-líquido, por motivo de saída e por símbolo, mais o veredicto 100 trades.
+líquido, por motivo de saída e por símbolo, mais o veredicto (t-stat > 2 aos 1000 trades ou a 2026-12-31).
 """
 from collections import defaultdict
 
@@ -22,7 +22,7 @@ def main():
     r = resumo()
     print(f"Trades: {r['trades']} | WR líquido {r['wr_pct']}%")
     print(f"Bruto {r['bruto']:+.2f} | Fees {r['fees']:.2f} | Líquido {r['liquido']:+.2f} "
-          f"({r['liquido_por_trade']:+.3f}/trade)")
+          f"({r['liquido_por_trade']:+.3f}/trade, desvio {r['desvio_por_trade']:.3f}, t={r['t_stat']:+.2f})")
     print(f"Veredicto: {r['veredicto']}")
     if not trades:
         return
