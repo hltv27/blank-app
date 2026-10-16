@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <title>RAM Saver</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="header">
+    <img src="icons/icon48.png" alt="" width="24" height="24" />
+    <h1>RAM Saver</h1>
+    <label class="switch" title="Suspensão automática activa">
+      <input type="checkbox" id="enabledToggle" />
+      <span class="slider"></span>
+    </label>
+  </header>
+
+  <section class="stats">
+    <div class="stat">
+      <span class="stat-value" id="totalCount">–</span>
+      <span class="stat-label">separadores abertos</span>
+    </div>
+    <div class="stat">
+      <span class="stat-value" id="discardedCount">–</span>
+      <span class="stat-label">suspensos</span>
+    </div>
+  </section>
+
+  <section class="actions">
+    <button id="suspendAllBtn" class="btn primary">Suspender inactivos agora</button>
+    <button id="suspendCurrentBtn" class="btn">Suspender este separador</button>
+    <button id="whitelistBtn" class="btn subtle">Adicionar site à lista branca</button>
+  </section>
+
+  <section class="discarded-list-wrap">
+    <h2>Separadores suspensos</h2>
+    <ul id="discardedList" class="discarded-list">
+      <li class="empty">Nenhum separador suspenso de momento.</li>
+    </ul>
+  </section>
+
+  <footer class="footer">
+    <button id="openOptionsBtn" class="link-btn">Definições</button>
+  </footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
