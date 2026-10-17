@@ -324,6 +324,13 @@ Este repositório (`hltv27/blank-app`) começou como um template Streamlit em br
 | `portfolio_tracker.json` | Snapshots manuais do portfólio pessoal do utilizador (múltiplas carteiras/exchanges), mantido por sessões Claude via commits directos | Dados, não código — não é lido pelo `claw_v8` |
 | `PROJECTO_CLAW_COMPLETO.md`, `CLAW_MASTER.md`, `CHANGELOG.md`, `SESSAO_*.md`, `.claude/memory/*.md` | Documentação histórica/notas de sessões anteriores sobre o bot | Podem estar desactualizadas — `CLAUDE.md` (este ficheiro) e `claw_v8/status.json` são as fontes de verdade actuais; `.claude/memory/` reflecte estado de 2026-06-15, já ultrapassado pelas secções acima |
 
+## Skills de agente (`npx skills`, vercel-labs/skills)
+
+- `.claude/skills/find-skills/` vem de `vercel-labs/skills` e carrega em todas as sessões: quando aparecer uma tarefa que uma skill externa resolva, procura com `npx skills find <termo>`. O CLI corre on-demand via `npx`, não precisa de estar instalado
+- **Sessões cloud são efémeras** — `-g` instala em `~/.claude/skills` e perde-se no fim da sessão. Para uma skill ficar, instalar no projecto (`npx skills add <owner/repo> -s <skill> -a claude-code --copy -y`, sem `-g`) e commitar `.claude/skills/<skill>/` + `skills-lock.json`
+- Ler o `SKILL.md` antes de commitar — skills de terceiros correm com permissões totais do agente
+- Actualizar: `npx skills update -p -y`
+
 ## Convenções de desenvolvimento (Claw Agent v8)
 
 - **Mensagens de commit**: descritivas, em português, focadas no "porquê" (ex: `Profit lock progressivo para trades do bot (+0.5 USDC)`), seguidas de rodapé `Co-Authored-By` — ver `git log` para o estilo exacto
