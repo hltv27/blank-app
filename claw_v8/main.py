@@ -40,6 +40,7 @@ from storage import init_db, load_memory, save_memory, log_state_transition
 from analytics import print_full_report
 from telegram_handler import process_commands
 from kronos_signal import init_kronos, kronos_score
+import kronos_log
 
 
 def _relatorio_diario(mem: dict):
@@ -606,9 +607,16 @@ def run():
                     continue
 
                 k_bonus, k_detail = kronos_score(symbol, klines, direction) if config.KRONOS_ENABLED else (0, "")
+                score_base = score
                 if k_bonus != 0:
                     score += k_bonus
                     detalhe = f"{detalhe} | {k_detail}"
+
+                # Registo sombra (não altera decisões): o que o Kronos previu e se o bónus foi decisivo
+                kronos_log.registar_sinal(
+                    symbol, direction, score_base, k_bonus, k_detail, score,
+                    SCORE_LONG_MIN if direction == "LONG" else SCORE_SHORT_MIN
+                )
 
                 print(f"[{hora}] {symbol} {mode} {detalhe}")
 
@@ -683,6 +691,7 @@ def run():
                         print(f"[{hora}] {symbol} CORR {corr:.2f} — skip")
                         continue
 
+                kronos_log.registar_entrada(symbol, direction)
                 abrir_trade(
                     symbol, direction, closes, highs, lows,
                     atr_val, mode, detalhe, mem, score,
