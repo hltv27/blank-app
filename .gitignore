@@ -7,6 +7,7 @@ claw_v8/claw_v8.db
 claw_v8/claw_v8_paper.db
 claw_v8/paper_state.json
 claw_v8/paper_trades.jsonl
+claw_v8/kronos_log.jsonl
 .env
 secrets.toml
 
