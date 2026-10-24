@@ -56,8 +56,13 @@ O bot arranca em **modo papel** (`PAPER_TRADING`, `config.py`): estratégia, fil
 - Relatório diário escreve `status_paper.json` / `status_paper_history.jsonl` (o `status.json` real não é tocado); Telegram leva o prefixo `[PAPEL]`
 - Resumo manual: `cd /root/blank-app/claw_v8 && python3 paper_report.py`
 - **Critério para voltar ao dinheiro real**: t-stat do líquido por trade > 2 (`media / (desvio / √n)`), avaliado aos 1000 trades em papel **ou** no fim do prazo **2026-12-31** (o que vier primeiro); no prazo com < 30 trades → INCONCLUSIVO (`paper.py:MIN_TRADES_VEREDICTO`/`PRAZO_VEREDICTO`/`MIN_TRADES_PRAZO`/`T_STAT_MIN`). Veredictos: A RECOLHER / APROVADO / REPROVADO (t<0) / INCONCLUSIVO — só APROVADO autoriza propor dinheiro real. Era ≥100 com líquido > 0 — uma estratégia sem edge passava ~50% das vezes. Parâmetros congelados durante a recolha; mudar a estratégia = recomeçar a contagem (novo `paper_trades.jsonl`)
+- **Ressalva de slippage**: `PAPER_SLIPPAGE = 0.0002` (0.02%) é igual para todos os 38 pares, incluindo alts finos (BIO, DATAIP, PNUT, KAITO, TRUMP…). É optimista para esses — um APROVADO em papel pode encolher em real só por execução. Antes de propor dinheiro real, ver `paper_report.py` por símbolo e desconfiar de lucro concentrado em pares ilíquidos
+- **Recolha iniciada a 2026-10-10 ~13:00 UTC** com `paper_trades.jsonl` vazio (deploy do merge `e41d8e8`). Estratégia congelada até 2026-12-31 — inclui o Kronos (ver secção própria)
 - Dinheiro real só com `CLAW_PAPER=0` no ambiente do `run_loop.sh` — nunca sem confirmação do utilizador
 - Razão: 588 trades reais deram bruto −11.01 e comissões 85.94 → líquido ≈ −97 USDC (o `pnl` no SQLite é `unRealizedProfit`, bruto, sem comissões)
+
+## Pesquisa e decisões de 2026-10-10
+Relatório `reports/Bots de trading open source comprovados.md` (notas em `research_notes/…`) e resumo da sessão em `SESSAO_2026-10-10.md`. Conclusões que orientam decisões futuras: nenhum bot open-source tem P&L live auditado; o Claw não tinha edge bruto (−0.019 USDC/trade vs 0.146 de custo); estratégias com evidência são lentas (trend diário, carry); Freqtrade envia stops `reduceOnly` (incompatível com BNFCR sem override); base multi-asset recomendada: NautilusTrader (+IBKR para UCITS).
 
 ## Kill switch de emergência
 ```bash
@@ -106,6 +111,7 @@ Se aparecerem bugs antigos de "posição tratada como manual" ou conflitos de ST
 | `risk.py` | Circuit breaker, veto por símbolo, sessão |
 | `storage.py` | SQLite + memória JSON |
 | `indicators.py` | ATR, ADX, RSI, Supertrend, VWAP, etc. |
+| `kronos_signal.py` | Previsão de candles com o modelo Kronos (HF `NeoQuasar/Kronos-small`, CPU) — +2 / 0 / −1 ao score de entrada. Ver secção "Kronos" |
 | `markov.py` | Detecção de regime via cadeia de Markov (5 estados: BULL/BEAR/VOL_UP/VOL_DOWN/RANGING), +2 ao score quando confirma direcção |
 | `telegram_handler.py` | Comandos Telegram (`/status /fechar /pause /resume /pairs /help`), poll a cada 15s |
 | `analytics.py` | Relatórios de performance por filtro (filter attribution) a partir do SQLite |
@@ -113,6 +119,17 @@ Se aparecerem bugs antigos de "posição tratada como manual" ou conflitos de ST
 | `spot_scanner.py` | Scanner multi-timeframe independente para Binance Spot (não é o bot de futures; alertas Telegram apenas, não executa ordens) |
 | `check_results.py` | Query rápida ao SQLite (`../claw_v8.db`) para win/loss e stats — corre manualmente, não faz parte do loop |
 | `run_loop.sh` | Wrapper que reinicia `main.py` automaticamente (Termux) |
+
+---
+
+## Kronos — modelo de previsão no score (activo desde 2026-08-01)
+
+Componente que estava ausente desta documentação até 2026-10-10. `config.KRONOS_ENABLED = True`.
+- **O quê**: `kronos_signal.py` carrega `NeoQuasar/Kronos-small` + `Kronos-Tokenizer-base` do Hugging Face (CPU, ~2s, pede `HF_TOKEN` mas funciona sem) a partir do código em `../kronos`. Chamado em `main.py:608` no scan de cada par candidato
+- **Como pesa**: prevê 6 candles; compara a média das 3 últimas previstas com o close actual. Se o movimento previsto (>|0.1%|) concorda com a direcção do sinal → **+2** (`KRONOS_SCORE`); neutro → 0; contra → **−1**. Cooldown de 30s por símbolo
+- **Não determinístico**: amostragem com `T=0.8`, `top_p=0.9`, `sample_count=3` — o mesmo par/vela pode dar bonus diferentes em corridas diferentes; com score mínimo 6/7, o Kronos pode ser o que decide a entrada
+- **Falha silenciosa**: se o modelo não carregar (ou der erro num par), devolve 0 e o bot continua — isso muda a estratégia sem aviso além do Telegram de arranque (`⚠️ Kronos falhou a carregar`). Durante a recolha em papel, um arranque sem Kronos contamina a amostra
+- **Evidência**: nenhuma específica deste bot. Esteve activo em grande parte dos 588 trades reais (bruto ≈ 0) — não há indicação de que acrescente edge. Não desligar antes de 2026-12-31 (estratégia congelada); avaliar depois com attribution (`analytics.py`) se houver dados por filtro
 
 ---
 
